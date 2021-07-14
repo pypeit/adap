@@ -1,0 +1,8 @@
+# Setup
+pypeit_setup -s keck_deimos -r 830G_LVM_8400/d -c all
+
+#
+cd keck_deimos_A
+
+# Run
+run_pypeit keck_deimos_A.pypeit -d 3
