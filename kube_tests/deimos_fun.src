@@ -2,7 +2,7 @@
 #cd /scratch/PypeIt-development-suite/REDUX_OUT/tmp
 
 # Setup
-pypeit_setup -s keck_deimos -r PypeIt-development-suite/REDUX_OUT/tmp/830G_LVM_8400/d -c all
+pypeit_setup -s keck_deimos -r /foo/830G_LVM_8400/d -c all
 
 #
 cd keck_deimos_A
