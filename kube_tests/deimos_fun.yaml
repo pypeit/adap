@@ -29,14 +29,15 @@ spec:
             git checkout develop; 
             cd ..;
             git clone https://github.com/pypeit/adap.git;
+            cd adap;
             git checkout starting_up; 
             git pull; 
             cd ..;
             mkdir foo;
             cd foo;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 get s3://pypeit/RAW_DATA/keck_deimos/830G_LVM_8400 --recursive --force;
-            cd kube_tests;
-            source ~/adap/kube_tests/deimos_fun.src;
+            mkdir 830G_LVM_8400;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://pypeit/RAW_DATA/keck_deimos/830G_LVM_8400 830G_LVM_8400/ --recursive --force;
+            source /adap/kube_tests/deimos_fun.src;
             #cd ..;
             #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:
