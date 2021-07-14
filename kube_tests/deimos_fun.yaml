@@ -24,8 +24,7 @@ spec:
             # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
         command: ["/bin/bash", "-c"]
         args:
-          - sleep 600;
-            cd PypeIt;  
+          - cd PypeIt;  
             git checkout develop; 
             cd ..;
             git clone https://github.com/pypeit/adap.git;
@@ -38,8 +37,7 @@ spec:
             mkdir 830G_LVM_8400;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://pypeit/RAW_DATA/keck_deimos/830G_LVM_8400 830G_LVM_8400/ --recursive --force;
             source /adap/kube_tests/deimos_fun.src;
-            #cd ..;
-            #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp Science s3://pypeit --recursive --force;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
