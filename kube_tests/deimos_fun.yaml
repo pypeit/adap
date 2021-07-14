@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
       - name: container
-        image: localhost:30081/profxj/ulmo_nvidia:latest  # UPDATE
+        image: localhost:30081/profxj/pypeit:latest  # UPDATE
         imagePullPolicy: Always
         resources:
           requests:
@@ -25,9 +25,8 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
           - sleep 600;
-            git clone https://github.com/pypeit/PypeIt.git;
-            cd PypeIt;
-            pip install -e ".[dev]";
+            cd PypeIt;  
+            git checkout develop; 
             cd ..;
             git clone https://github.com/pypeit/adap.git;
             git checkout starting_up; 

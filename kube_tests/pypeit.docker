@@ -1,0 +1,53 @@
+# https://www.techrepublic.com/article/how-to-create-a-docker-image-and-push-it-to-docker-hub/
+# https://medium.com/faun/how-to-build-a-docker-container-from-scratch-docker-basics-a-must-know-395cba82897b
+# docker build -t pypeit -f ../adap/kube_tests/pypeit.docker .
+# docker tag pypeit:latest profxj/pypeit:latest
+# docker push profxj/pypeit:latest
+# Testing: docker exec -it <container> /bin/bash
+
+#FROM continuumio/anaconda3:latest
+
+FROM ubuntu:20.04
+
+
+# This and that. Mainly for data
+ENV DEBIAN_FRONTEND="noninteractive" TZ="US"
+RUN  apt-get update && \
+     apt-get install -y tzdata && \
+     apt-get install -y wget glances git 
+#     curl https://rclone.org/install.sh | bash
+
+# Code and storage and gcc for bottleneck
+RUN  apt-get install -y git awscli build-essential
+
+# Download and install Anaconda.
+RUN apt-get update && apt-get install curl -y
+
+# Miniconda
+ENV PATH="/root/miniconda3/bin:${PATH}"
+ARG PATH="/root/miniconda3/bin:${PATH}"
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh \
+    && mkdir /root/.conda \
+    && bash Miniconda3-py38_4.9.2-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-py38_4.9.2-Linux-x86_64.sh \
+
+# Other apt
+RUN  apt-get update && \
+     apt-get install -y vim
+
+# Storage
+RUN  pip install smart-open[s3]
+
+# Some basics
+RUN  pip install ipython
+
+# Some bigger packages
+RUN  pip install astropy
+RUN  pip install --upgrade pip setuptools wheel
+
+# PypeIt time
+RUN git clone https://github.com/pypeit/PypeIt
+RUN cd PypeIt; pip install -e ".[dev]"
+
+# Test
+#ENV PYPEIT_DEV="https://s3.nautilus.optiputer.net"
