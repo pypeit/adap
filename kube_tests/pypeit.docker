@@ -48,6 +48,8 @@ RUN  pip install --upgrade pip setuptools wheel
 # PypeIt time
 RUN git clone https://github.com/pypeit/PypeIt
 RUN cd PypeIt; pip install -e ".[dev]"
+RUN cd ..;
+RUN git clone https://github.com/pypeit/PypeIt-development-suite.git
 
 # Test
-#ENV PYPEIT_DEV="https://s3.nautilus.optiputer.net"
+ENV PYPEIT_DEV="/PYPEIT_DEV"

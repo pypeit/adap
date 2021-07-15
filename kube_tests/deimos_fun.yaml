@@ -23,7 +23,7 @@ spec:
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
             # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
         command: ["/bin/bash", "-c"]
-        args:
+        arg:
           - cd PypeIt;  
             git checkout develop; 
             cd ..;
