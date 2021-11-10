@@ -20,7 +20,7 @@ from pypeit.pypeitsetup import PypeItSetup
 import cloudstorage
 
 def is_metadata_complete(metadata):
-    metadata.get_frame_types()
+    metadata.get_frame_types(flag_unknown=True)
     num_science_frames = np.sum(metadata.find_frames('science'))
     num_flat_frames = np.sum(np.logical_or(metadata.find_frames('pixelflat'), metadata.find_frames('illumflat')))
     num_arc_frames = np.sum(metadata.find_frames('arc'))
@@ -41,8 +41,12 @@ def transfer_data(args, file_list, target_dir):
                 cloudstorage.copy(file, dest_file)
         else:
             os.makedirs(target_dir, exist_ok=True) 
-            print(f"Moving {file} to {target_dir}")
-            shutil.move(file, target_dir)
+            if args.move_files is True:
+                print(f"Moving {file} to {target_dir}")
+                shutil.move(file, target_dir)
+            else:
+                print(f"Copying {file} to {target_dir}")
+                shutil.copy2(file, target_dir)
             files.append(os.path.join(target_dir, os.path.basename(file)))
 
     return files
@@ -50,7 +54,12 @@ def transfer_data(args, file_list, target_dir):
 def run_setup(args, target_dir, metadata):
 
     try:
-        ps = PypeItSetup.from_fitstbl(args.spectrograph_name, metadata)
+        # Build a PypeItSetup object. Because this script can work in a batch mode where previous batches of data
+        # may no longer exist, we manually set the fitstbl to a pre-built PypeItMetaData object.
+        file_list = [os.path.join(x, y) for (x,y) in zip(metadata['directory'], metadata['filename'])]
+        ps = PypeItSetup(file_list=file_list, spectrograph_name = args.spectrograph_name)
+        ps.fitstbl = metadata
+
         if cloudstorage.is_cloud_uri(args.out_dir):
             os.makedirs(target_dir, exist_ok=True)
             ps.run(sort_dir=target_dir)
@@ -92,7 +101,7 @@ def transfer_batch(args, spectrograph, par, files):
     # Group the files to determine where to transfer them
     print("Grouping by 'decker'")
     for decker_group in grouping_metadata_table.group_by('decker').groups:
-        print("Grouping by 'dispname', 'dispanble', 'filter1'")
+        print("Grouping by 'dispname', 'dispangle', 'filter1'")
         for cfg_group in decker_group.group_by(['dispname', 'dispangle', 'filter1']).groups:
             dates = []
             for mjd in cfg_group['mjd']:
@@ -104,7 +113,7 @@ def transfer_batch(args, spectrograph, par, files):
                     date = '1970-01-01'
                 dates.append(date)
 
-            config_group_dir = f"{cfg_group['dispname'][0]}_{cfg_group['dispangle'][0]:.2f}_{cfg_group['filter1'][0]}".replace(" ", "_")
+            config_group_dir = f"{cfg_group['dispname'][0]}_{cfg_group['dispangle'][0]:.0f}_{cfg_group['filter1'][0]}".replace(" ", "_")
             print("Grouping by dates")
             date_groups = cfg_group.group_by(np.array(dates)).groups
             for i in range(len(date_groups)):
@@ -132,14 +141,14 @@ def transfer_batch(args, spectrograph, par, files):
                     source_dirs = [os.path.dirname(x['sourcefile']) for x in date_groups[i]]
                     metadata.table['directory'] = Column(data=source_dirs, name='directory')
 
-                metadata_file = os.path.join(incomplete_target, "metadata.ecsv")
+                metadata_file = os.path.join(incomplete_target, f"metadata_{grouping_path.replace(os.path.sep, '_')}.ecsv")
                 if os.path.exists(metadata_file):
                     # Merge with the results of a prior run
                     #metadata.table.write(os.path.join(target_dir, "new_metadata.ecsv"), format="ascii.ecsv",overwrite=True)
                     print(f"Merging with {metadata_file}")
                     existing_metadata = Table.read(metadata_file, format="ascii.ecsv")
                     metadata.table = vstack([existing_metadata, metadata.table])
-
+                metadata.table.sort(['mjd', 'filename'])
                 metadata.table.write(metadata_file, format="ascii.ecsv",overwrite=True)
                 
                 ##
@@ -188,6 +197,8 @@ def read_grouping_metadata(spectrograph, files, local_files, error_report_file):
                     data_row.append(source_file)
                 elif key == "localfile":
                     data_row.append(local_file)
+                elif key == "dispangle":
+                    data_row.append(round(spectrograph.get_meta_value(headarr, key, required=True)))
                 else:
                     data_row.append(spectrograph.get_meta_value(headarr, key, required=True))
             data_rows.append(data_row)
@@ -233,6 +244,7 @@ class BatchSetup(scriptbase.ScriptBase):
 
         parser.add_argument('out_dir', type=str)
         parser.add_argument('source_dirs', type=str, nargs='+')
+        parser.add_argument('--move_files', default=False, action="store_true")
         parser.add_argument('--endpoint_url', type=str, default='https://s3-west.nrp-nautilus.io')
         parser.add_argument('--spectrograph_name', type=str, default='keck_deimos')
         parser.add_argument('--local_out', type=str, default="adap_setup_tmp")
