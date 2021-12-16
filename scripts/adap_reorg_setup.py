@@ -348,11 +348,14 @@ class BatchSetup(scriptbase.ScriptBase):
             metadata_search_path = args.out_dir
 
         incomplete_science_dirs = []
+        files_with_unknown_type = []
         for metadata_file in glob.glob(os.path.join(metadata_search_path, "**/*.ecsv"), recursive=True):
             target_dir = os.path.dirname(metadata_file)
             metadata = PypeItMetaData(spectrograph, par, data = Table.read(metadata_file, format="ascii.ecsv"))
-            # Initialize types in PypeItMetadata so we can find science frames
-            metadata.get_frame_types()
+            # Initialize types in PypeItMetadata so we can find science frames and 
+            # unknown type
+            metadata.get_frame_types(flag_unknown=True)
+
             if is_metadata_complete(metadata):
                 if os.path.basename(target_dir) == 'incomplete':
                     new_target_dir = os.path.join(os.path.dirname(target_dir), "complete")
@@ -364,6 +367,10 @@ class BatchSetup(scriptbase.ScriptBase):
             else:
                 if len(metadata.table[metadata.find_frames("science")]) > 0:
                     incomplete_science_dirs.append(os.path.dirname(target_dir))
+
+            for row in metadata.table:
+                if row['frametype'] is None or row['frametype'] == 'None':
+                    files_with_unknown_type.append(os.path.join(row['directory'], row['filename']))
 
             # Transfer files within the cloud, updating the metadata directory to point to the new cloud URI
             if cloudstorage.is_cloud_uri(args.out_dir):
@@ -380,6 +387,10 @@ class BatchSetup(scriptbase.ScriptBase):
             for dir in incomplete_science_dirs:
                 write_to_report(args, dir)
 
+        if len(files_with_unknown_type) > 0:
+            write_to_report(args, "\nFiles with unknown type:\n")
+            for file in files_with_unknown_type:
+                write_to_report(args, file)
 
 
         end_time = datetime.datetime.now()
