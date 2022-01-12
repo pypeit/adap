@@ -1,5 +1,37 @@
 #!/usr/bin/env python3
+"""
+Given a set of source directories in S3 or local storage that contain raw
+DEIMOS FITs file, organize them into a heirarchy and run setup on them.
+The resulting heirarchy will look like:
 
+<slit mask name>/
+    <Grating_Dispangle_Filter>/
+        YYYY-MM-DD_YYYY-MM-DD/
+            complete/
+                raw/
+                    <raw data files>
+                keck_deimos_A/
+                    <output of PypeIt Setup>
+            incomplete/
+                raw/
+                keck_deimos_A/
+                    <output of PypeIt Setup>
+
+Where "complete" folders have enough data to be reduced with PypeIt, and
+"incomplete" folders do not.                
+
+
+Example Usage:
+
+To organize a local RAW_DATA1 and RAW_DATA2 directory to raw_organized:
+    adap_reorg_setup.py raw_organized RAW_DATA1 RAW_DATA2
+
+To organize an S3 RAW_DATA files 50 files at a time:
+    adap_reorg_setup.py s3://pypeit/adap/raw_organized s3://pypeit/adap/RAW_DATA --batch_size 50
+
+Requres: "boto3" and "smart_open" pip packages to use S3
+
+"""
 import glob
 import os
 import shutil
@@ -20,6 +52,10 @@ from pypeit.pypeitsetup import PypeItSetup
 import cloudstorage
 
 def is_metadata_complete(metadata):
+    """Determine if a PypeItMetadata object has enough data to be reduced.
+       The minimum requirements for this are a science frame, a flat frame, and
+       an arc frame.
+    """
     metadata.get_frame_types(flag_unknown=True)
     num_science_frames = np.sum(metadata.find_frames('science'))
     num_flat_frames = np.sum(np.logical_or(metadata.find_frames('pixelflat'), metadata.find_frames('illumflat')))
@@ -27,13 +63,16 @@ def is_metadata_complete(metadata):
     return (num_science_frames >= 1 and num_flat_frames >= 1 and num_arc_frames >= 1)
     
 def write_to_report(args, msg):
+    """Write a message to the report file, creating it if it doesn't exist. """
     if os.path.dirname(args.report) != '' and not os.path.exists(os.path.dirname(args.report)):
         os.makedirs(os.path.dirname(args.report), exist_ok=True)
     with open(args.report, "a") as erf:
         print(msg,file=erf)
 
 def transfer_data(args, file_list, target_dir):
-
+    """Transfers data from the source to destination. Supports cloud to cloud,
+    or local to local. Will also move if args.move_files is True.
+    """
     files = []
     for file in file_list:
         if cloudstorage.is_cloud_uri(target_dir):
@@ -57,7 +96,7 @@ def transfer_data(args, file_list, target_dir):
     return files
 
 def run_setup(args, target_dir, metadata):
-
+    """Run PypeIt setup on a directory given the PypeItMetadata for it."""
     try:
         # Build a PypeItSetup object. Because this script can work in a batch mode where previous batches of data
         # may no longer exist, we manually set the fitstbl to a pre-built PypeItMetaData object.
@@ -108,7 +147,10 @@ def merge_tables(table1, table2):
     return vstack([table1, table2])
 
 def transfer_batch(args, spectrograph, par, files):
-
+    """Transfer a batch of files to their correct, grouped destinations.
+    For cloud files, the file is downloaded and grouped to local data, and
+    will only be copied to the correct destination in the cloud later"""
+    
     ## if s3 transfer s3 files to a temp location, then continue from there
     if cloudstorage.is_cloud_uri(args.source_dirs[0]):
         os.makedirs(args.local_out, exist_ok=True)
@@ -117,7 +159,6 @@ def transfer_batch(args, spectrograph, par, files):
         local_files = files
 
 
-    # do this?
     grouping_metadata_table = read_grouping_metadata(args, spectrograph, files, local_files)
     transferred_files = []
     # Group the files to determine where to transfer them
@@ -125,20 +166,7 @@ def transfer_batch(args, spectrograph, par, files):
     for decker_group in grouping_metadata_table.group_by('decker').groups:
         print("Grouping by 'dispname', 'dispangle', 'filter1'")
         for cfg_group in decker_group.group_by(['dispname', 'dispangle', 'filter1']).groups:
-            """
-            dates = []
-            for mjd in cfg_group['mjd']:
-                try:
-                    date = Time(mjd, format='mjd').to_value('iso', subfmt='date')
-                except:
-                    import pdb; pdb.set_trace()
-                    # to_value is failing because  subfmt isn't recognized as valid
-                    # keyword argument
-                    # We have to keep an entry for this so that the column
-                    # remains the same length as the table
-                    date = '1970-01-01'
-                dates.append(date)
-            """
+
             dates = get_date_groups(args, cfg_group)
             config_group_dir = f"{cfg_group['dispname'][0]}_{cfg_group['dispangle'][0]:.0f}_{cfg_group['filter1'][0]}".replace(" ", "_")
             print("Grouping by dates")
@@ -188,6 +216,7 @@ def transfer_batch(args, spectrograph, par, files):
     return transferred_files
 
 def is_bias_frame(spectrograph, headarr):
+    """ Determine if a DEIMOS frame is a bias frame."""
     if (spectrograph.get_meta_value(headarr, "idname") == 'Bias' and
         spectrograph.get_meta_value(headarr, "lampstat01") == 'Off' and
         spectrograph.get_meta_value(headarr, "hatch") == 'closed'):
@@ -196,7 +225,7 @@ def is_bias_frame(spectrograph, headarr):
         return False
 
 def read_grouping_metadata(args, spectrograph, files, local_files):
-
+    """Read metadata from a file needed to group it."""
     keys = ["decker", "dispname", "dispangle", "filter1", "mjd", "sourcefile", "localfile"]
     dtypes = ['<U', '<U', 'float64', '<U', 'float64', '<U', '<U']
     data_rows = []
@@ -229,7 +258,7 @@ def read_grouping_metadata(args, spectrograph, files, local_files):
         return Table(rows=data_rows, names=keys, dtype=dtypes)
 
 def get_date_groups(args, cfg_group):
-    """Return an array of that can groups the entries in a configuration group"""
+    """Return an array that can groups the entries in a configuration group by a date range."""
     date_groups = np.zeros(len(cfg_group))
     next_frame = 0
     next_group = 1
@@ -270,7 +299,7 @@ def get_date_groups(args, cfg_group):
     # IS this really it?
 
 def get_files(args):
-
+    """Find all of the source fits files, whether in S3 or local."""
     results = []
     if cloudstorage.is_cloud_uri(args.source_dirs[0]):
         for source_dir in args.source_dirs:
@@ -288,25 +317,25 @@ def remove_batch(files):
     for file in files:
         os.unlink(file)
 
-class BatchSetup(scriptbase.ScriptBase):
+class ReorgSetup(scriptbase.ScriptBase):
 
     @classmethod
     def get_parser(cls, width=None):
 
-        parser = super().get_parser(description='Organize a batch of files into directories '\
-                                                'based on configuration keys and date and run ' \
+        parser = super().get_parser(description='Organize raw data files into directories '
+                                                'based on configuration keys and date and run '
                                                 'pypeit_setup on them.',
                                     width=width, formatter=scriptbase.SmartFormatter)
 
-        parser.add_argument('out_dir', type=str)
-        parser.add_argument('source_dirs', type=str, nargs='+')
-        parser.add_argument('--date_window', type=float, default=3.0)
-        parser.add_argument('--move_files', default=False, action="store_true")
-        parser.add_argument('--endpoint_url', type=str, default='https://s3-west.nrp-nautilus.io')
-        parser.add_argument('--spectrograph_name', type=str, default='keck_deimos')
-        parser.add_argument('--local_out', type=str, default="adap_setup_tmp")
-        parser.add_argument('--report', type=str, default="reorg_report_file.txt")
-        parser.add_argument("--batch_size", type=int, default=0)
+        parser.add_argument('out_dir', type=str, help="Output directory where the organized directry tree of files will be created.")
+        parser.add_argument('source_dirs', type=str, nargs='+', help="One or more source directories containing raw data files.")
+        parser.add_argument('--date_window', type=float, default=3.0, help="How long a time range to use when grouping files. Measured in days. Defaults to 3 days.")
+        parser.add_argument('--move_files', default=False, action="store_true", help="Whether or not to move the files from their original location instead of copying. Defaults to false.")
+        parser.add_argument('--endpoint_url', type=str, default='https://s3-west.nrp-nautilus.io', help="Endpoint URL to use when working with files in S3. Defaults to the PRP nautilus west coast URL.")
+        parser.add_argument('--spectrograph_name', type=str, default='keck_deimos', help="The name of the spectrograph that created the raw data. Defaults to keck_deimos.")
+        parser.add_argument('--local_out', type=str, default="adap_setup_tmp", help="A temporary directory used when working with files on S3. Defaults to 'adap_setup_tmp'.")
+        parser.add_argument('--report', type=str, default="reorg_report_file.txt", help="Name of the report file to create detailing any issues that occurred when running this script. Defaults to 'reorg_report_file.txt'.")
+        parser.add_argument("--batch_size", type=int, default=0, help="Divides the files into batches of this size when downloading from S3. Defaults to 0, inidicating all files will be processed in one batch.")
 
         return parser
 
@@ -326,6 +355,9 @@ class BatchSetup(scriptbase.ScriptBase):
         batch_size = args.batch_size * (2**30)
         current_batch_size = 0
         current_batch_files = []
+
+        #Transfer files batch by batch, organizing the files as we go
+        # Files from the cloud are organized into a local directory first
         for file, size in get_files(args):
             if args.batch_size != 0 and current_batch_size + size >= batch_size:
                 print("Transferring batch")
@@ -373,6 +405,8 @@ class BatchSetup(scriptbase.ScriptBase):
                     files_with_unknown_type.append(os.path.join(row['directory'], row['filename']))
 
             # Transfer files within the cloud, updating the metadata directory to point to the new cloud URI
+            # This has to be done after determining if the directory is complete, because there's no
+            # rename or move in S3
             if cloudstorage.is_cloud_uri(args.out_dir):
                 cloud_dir = os.path.join(args.out_dir, os.path.relpath(target_dir, args.local_out), 'raw')
                 file_list = [os.path.join(row['directory'], row['filename']) for row in metadata.table]
@@ -400,4 +434,4 @@ class BatchSetup(scriptbase.ScriptBase):
         return 0
 
 if __name__ == '__main__':
-    BatchSetup.entry_point()
+    ReorgSetup.entry_point()
