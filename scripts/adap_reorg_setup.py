@@ -35,8 +35,9 @@ Requres: "boto3" and "smart_open" pip packages to use S3
 import glob
 import os
 import shutil
-
 import datetime 
+import traceback
+from operator import is_
 
 from astropy.table import Table, vstack, Column
 from astropy.time import Time
@@ -56,7 +57,11 @@ def is_metadata_complete(metadata):
        The minimum requirements for this are a science frame, a flat frame, and
        an arc frame.
     """
-    metadata.get_frame_types(flag_unknown=True)
+    if len(metadata.table) == 0:
+        # This can happen if all of the files in this directory were removed from the metadata
+        # due to unknown types.
+        return False
+
     num_science_frames = np.sum(metadata.find_frames('science'))
     num_flat_frames = np.sum(np.logical_or(metadata.find_frames('pixelflat'), metadata.find_frames('illumflat')))
     num_arc_frames = np.sum(metadata.find_frames('arc'))
@@ -106,7 +111,7 @@ def run_setup(args, target_dir, metadata):
 
         if cloudstorage.is_cloud_uri(args.out_dir):
             os.makedirs(target_dir, exist_ok=True)
-            ps.run(sort_dir=target_dir)
+            ps.run(sort_dir=target_dir, setup_only=True)
 
             print(f"Writing pypeit file to {target_dir}")
             files = metadata.write_pypeit(target_dir)
@@ -119,12 +124,25 @@ def run_setup(args, target_dir, metadata):
             
         else:
             os.makedirs(target_dir, exist_ok=True)
-            ps.run(sort_dir=target_dir)
+            ps.run(sort_dir=target_dir, setup_only=True)
             print(f"Writing pypeit file to {target_dir}")
             metadata.write_pypeit(target_dir)
 
     except Exception as e:
-        write_to_report(args, f"Failed to run setup on {target_dir}, exception {e}")
+        write_to_report(args, f"Failed to run setup on {target_dir}")
+        write_to_report(args, traceback.format_exc())
+
+def find_none_rows(table):
+    # Return indexes of rows in table that have None values.
+
+    rows = None
+    for col in table.colnames:
+        if rows is not None:
+            rows = np.concatenate((np.where(np.vectorize(is_)(table[col], None))[0], rows))
+        else:
+            rows = np.where(np.vectorize(is_)(table[col], None))[0]
+
+    return np.unique(rows)
 
 def merge_tables(table1, table2):
     # I kept having errors merging tables where the column type was 'object' in one table
@@ -362,8 +380,10 @@ class ReorgSetup(scriptbase.ScriptBase):
             if args.batch_size != 0 and current_batch_size + size >= batch_size:
                 print("Transferring batch")
                 transferred_files = transfer_batch(args, spectrograph, par, current_batch_files)               
-                print("Removing batch")
-                remove_batch(transferred_files)
+                # We only use the temporary storage if the target is in the cloud
+                if cloudstorage.is_cloud_uri(args.source_dirs[0]):
+                    print("Removing batch")
+                    remove_batch(transferred_files)
                 current_batch_files = []
                 current_batch_size = 0
 
@@ -371,7 +391,8 @@ class ReorgSetup(scriptbase.ScriptBase):
             current_batch_size += size
         print("Transferring final batch")
         transferred_files = transfer_batch(args, spectrograph, par, current_batch_files)
-        if args.batch_size != 0:
+        if args.batch_size != 0 and cloudstorage.is_cloud_uri(args.source_dirs[0]):
+            # We only use the temporary storage if the target is in the cloud
             remove_batch(transferred_files)
 
         if cloudstorage.is_cloud_uri(args.out_dir):            
@@ -381,12 +402,26 @@ class ReorgSetup(scriptbase.ScriptBase):
 
         incomplete_science_dirs = []
         files_with_unknown_type = []
+        files_with_missing_metadata = []
         for metadata_file in glob.glob(os.path.join(metadata_search_path, "**/*.ecsv"), recursive=True):
             target_dir = os.path.dirname(metadata_file)
             metadata = PypeItMetaData(spectrograph, par, data = Table.read(metadata_file, format="ascii.ecsv"))
-            # Initialize types in PypeItMetadata so we can find science frames and 
-            # unknown type
+
+            rows_with_none = find_none_rows(metadata.table)
+            for row in metadata.table[rows_with_none]:
+                files_with_missing_metadata.append(os.path.join(row['directory'], row['filename']))
+
+            metadata.table.remove_rows(rows_with_none)
+
+            # Initialize types in PypeItMetadata so we can find science frames 
             metadata.get_frame_types(flag_unknown=True)
+
+            # Find and filter out images with unknown types
+            unknown_idx = np.logical_or(metadata.table["frametype"] == 'None', np.asarray(np.vectorize(is_)(metadata.table["frametype"], None)))
+            for row in metadata.table[unknown_idx]:
+                files_with_unknown_type.append(os.path.join(row['directory'], row['filename']))
+
+            metadata.table.remove_rows(unknown_idx)
 
             if is_metadata_complete(metadata):
                 if os.path.basename(target_dir) == 'incomplete':
@@ -400,9 +435,6 @@ class ReorgSetup(scriptbase.ScriptBase):
                 if len(metadata.table[metadata.find_frames("science")]) > 0:
                     incomplete_science_dirs.append(os.path.dirname(target_dir))
 
-            for row in metadata.table:
-                if row['frametype'] is None or row['frametype'] == 'None':
-                    files_with_unknown_type.append(os.path.join(row['directory'], row['filename']))
 
             # Transfer files within the cloud, updating the metadata directory to point to the new cloud URI
             # This has to be done after determining if the directory is complete, because there's no
@@ -426,6 +458,10 @@ class ReorgSetup(scriptbase.ScriptBase):
             for file in files_with_unknown_type:
                 write_to_report(args, file)
 
+        if len(files_with_missing_metadata) > 0:
+            write_to_report(args, "\nFiles with missing metadata:\n")
+            for file in files_with_missing_metadata:
+                write_to_report(args, file)
 
         end_time = datetime.datetime.now()
         total_time = end_time - start_time
