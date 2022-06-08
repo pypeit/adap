@@ -447,7 +447,10 @@ def get_files(args):
 
 def remove_batch(files):
     for file in files:
-        os.unlink(file)
+        try:
+            os.unlink(file)
+        except FileNotFoundError:
+            pass # It's okay if the file doesn't exist
 
 class ReorgSetup(scriptbase.ScriptBase):
 
@@ -467,7 +470,7 @@ class ReorgSetup(scriptbase.ScriptBase):
         parser.add_argument('--spectrograph_name', type=str, default='keck_deimos', help="The name of the spectrograph that created the raw data. Defaults to keck_deimos.")
         parser.add_argument('--local_out', type=str, default="adap_setup_tmp", help="A temporary directory used when working with files on S3. Defaults to 'adap_setup_tmp'.")
         parser.add_argument('--report', type=str, default="reorg_report_file.txt", help="Name of the report file to create detailing any issues that occurred when running this script. Defaults to 'reorg_report_file.txt'.")
-        parser.add_argument("--batch_size", type=int, default=0, help="Divides the files into batches of this size when downloading from S3. Defaults to 0, inidicating all files will be processed in one batch.")
+        parser.add_argument("--batch_size", type=int, default=0, help="Divides the files into batches of this size in (GiB) when downloading from S3. Defaults to 0, inidicating all files will be processed in one batch.")
 
         return parser
 
