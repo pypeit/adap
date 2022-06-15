@@ -5,7 +5,6 @@ import numpy as np
 from pypeit import pypeitsetup
 
 from IPython import embed
-from torch import _make_per_channel_quantized_tensor
 
 # Test case
 
@@ -29,21 +28,19 @@ mjd_order = np.argsort(ps.fitstbl['mjd'])
 
 # Criteria
 
-# For arcs, strive to take at least 1 per lamp set
-
 best_dec = np.abs(ps.fitstbl['dec']-45.) < 1.
 best_arc_exp = (ps.fitstbl['exptime'] >= 1.) & (ps.fitstbl['exptime'] <= 15.) 
 best_flat_exp = (ps.fitstbl['exptime'] > 5.) & (ps.fitstbl['exptime'] <= 30.) 
 
 test_criterion = (ps.fitstbl['exptime'] > 50000.)
 
-
 arc_type = 'arc,tilt'
 flat_type = 'pixelflat,illumflat,trace'
 min_arc_set = 1
 min_flats = 3
 
-# Cut down Arcs
+# ########################
+# Arcs
 arcs = ps.fitstbl['frametype'] == arc_type
 
 arc_criteria = [best_arc_exp, best_dec]
@@ -55,11 +52,11 @@ nlamps = [len(item) for item in indiv_lamps]
 
 lamp_order = np.argsort(nlamps)[::-1]
 
-# Loop on the sets
 all_keep_arcs = []
 all_lamps = []
+# Loop on the lamp sets
 for ilamp in lamp_order:
-    # Any new ones?
+    # Any new lamps?
     new = False
     for lamp in indiv_lamps[ilamp]:
         if lamp not in all_lamps:
@@ -68,8 +65,10 @@ for ilamp in lamp_order:
         print(f"No new lamps in {indiv_lamps[ilamp]}")
         continue
     
+    # All matching this set
     arc_set = arcs & (ps.fitstbl['lampstat01'].data == unique_lamps[ilamp])
     
+    # Criteria
     while True:
         criteria = np.stack([arc_set]+arc_criteria)
         gd_arcs = np.all(criteria, axis=0)
@@ -79,7 +78,7 @@ for ilamp in lamp_order:
         # Remove a criterion
         arc_criteria.pop()
 
-    # Take the latest in time
+    # Take the latest entries in time
     keep_arcs = np.where(gd_arcs)[0]
     sort_mjd_arcs = np.argsort(ps.fitstbl['mjd'].data[keep_arcs])
     keep_arcs = keep_arcs[sort_mjd_arcs[-min_arc_set:]]
@@ -90,14 +89,14 @@ for ilamp in lamp_order:
     all_lamps += indiv_lamps[ilamp]
     all_lamps = np.unique(all_lamps).tolist()
     
-
-# Keep only the last ones in time
+# Keep em
 all_arcs = np.where(arcs)[0]
 sort_mjd_arcs = np.argsort(ps.fitstbl['mjd'].data[keep_arcs])
 for idx in all_arcs:
     if idx not in all_keep_arcs:
         filenames[idx] = '#'+filenames[idx]
 
+# #################
 # Flats
 flats = ps.fitstbl['frametype'] == flat_type
 
