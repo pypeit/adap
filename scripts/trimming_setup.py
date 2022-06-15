@@ -23,44 +23,80 @@ os.makedirs(target_dir, exist_ok=True)
 
 # Run setup
 ps.run(sort_dir=target_dir, setup_only=True)
+filenames = ps.fitstbl['filename'].data.tolist()
 
 mjd_order = np.argsort(ps.fitstbl['mjd'])
 
-# Keep
-keep = np.ones(len(ps.fitstbl), dtype=bool)
-
 # Criteria
+
+# For arcs, strive to take at least 1 per lamp set
+
 best_dec = np.abs(ps.fitstbl['dec']-45.) < 1.
-best_arc_exp = (ps.fitstbl['exptime'] > 1.) & (ps.fitstbl['exptime'] <= 5.) 
-best_flat_exp = (ps.fitstbl['exptime'] > 5.) & (ps.fitstbl['exptime'] <= 20.) 
+best_arc_exp = (ps.fitstbl['exptime'] >= 1.) & (ps.fitstbl['exptime'] <= 15.) 
+best_flat_exp = (ps.fitstbl['exptime'] > 5.) & (ps.fitstbl['exptime'] <= 30.) 
+
 test_criterion = (ps.fitstbl['exptime'] > 50000.)
+
 
 arc_type = 'arc,tilt'
 flat_type = 'pixelflat,illumflat,trace'
-min_arcs = 2
+min_arc_set = 1
 min_flats = 3
 
 # Cut down Arcs
 arcs = ps.fitstbl['frametype'] == arc_type
 
-arc_criteria = [best_arc_exp, best_dec, test_criterion]
+arc_criteria = [best_arc_exp, best_dec]
 
-while True:
-    criteria = np.stack([arcs]+arc_criteria)
-    gd_arcs = np.all(criteria, axis=0)
-    # Have enough?
-    if np.sum(gd_arcs) > min_arcs or len(arc_criteria) == 0:
-        break
-    # Remove a criterion
-    print("Removing an arc criterion")
-    arc_criteria.pop()
+# Lamps
+unique_lamps = np.unique(ps.fitstbl['lampstat01'][arcs].data)
+indiv_lamps = [item.split(' ') for item in unique_lamps]
+nlamps = [len(item) for item in indiv_lamps]
+
+lamp_order = np.argsort(nlamps)[::-1]
+
+# Loop on the sets
+all_keep_arcs = []
+all_lamps = []
+for ilamp in lamp_order:
+    # Any new ones?
+    new = False
+    for lamp in indiv_lamps[ilamp]:
+        if lamp not in all_lamps:
+            new = True
+    if not new:
+        print(f"No new lamps in {indiv_lamps[ilamp]}")
+        continue
+    
+    arc_set = arcs & (ps.fitstbl['lampstat01'].data == unique_lamps[ilamp])
+    
+    while True:
+        criteria = np.stack([arc_set]+arc_criteria)
+        gd_arcs = np.all(criteria, axis=0)
+        # Have enough?
+        if np.sum(gd_arcs) >= min_arc_set or len(arc_criteria) == 0:
+            break
+        # Remove a criterion
+        arc_criteria.pop()
+
+    # Take the latest in time
+    keep_arcs = np.where(gd_arcs)[0]
+    sort_mjd_arcs = np.argsort(ps.fitstbl['mjd'].data[keep_arcs])
+    keep_arcs = keep_arcs[sort_mjd_arcs[-min_arc_set:]]
+
+    all_keep_arcs += keep_arcs.tolist()
+
+    # Record the lamps
+    all_lamps += indiv_lamps[ilamp]
+    all_lamps = np.unique(all_lamps).tolist()
+    
 
 # Keep only the last ones in time
-keep[arcs] = False
-
-keep_arcs = np.where(gd_arcs)[0]
+all_arcs = np.where(arcs)[0]
 sort_mjd_arcs = np.argsort(ps.fitstbl['mjd'].data[keep_arcs])
-keep[keep_arcs[sort_mjd_arcs[-min_arcs:]]] = True
+for idx in all_arcs:
+    if idx not in all_keep_arcs:
+        filenames[idx] = '#'+filenames[idx]
 
 # Flats
 flats = ps.fitstbl['frametype'] == flat_type
@@ -78,12 +114,15 @@ while True:
     flat_criteria.pop()
 
 # Keep the last ones
-keep[flats] = False
-
+all_flats = np.where(flats)[0]
 keep_flats = np.where(gd_flats)[0]
 sort_mjd_flats = np.argsort(ps.fitstbl['mjd'].data[keep_flats])
-keep[keep_flats[sort_mjd_flats[-min_flats:]]] = True
+keep_flats = keep_flats[sort_mjd_flats[-min_flats:]]
+for idx in all_flats:
+    if idx not in keep_flats:
+        filenames[idx] = '#'+filenames[idx]
+
 
 # Finish
-ps.fitstbl.table = ps.fitstbl.table[keep]
+ps.fitstbl.table['filename'] = filenames
 ps.fitstbl.write_pypeit(target_dir)
