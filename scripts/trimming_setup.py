@@ -6,6 +6,20 @@ from pypeit import pypeitsetup
 
 from IPython import embed
 
+'''
+Arcs:
+
+Use 1 file for each lamp set, provided at least one of the lamps is unique.  Prioritize files with the most lamps
+When provided more than 1 file for a give lamp set, aim for 45 deg elevation and exposure time 1<t<15
+If more than 1 exists meeting #2, take the last one in mjd
+
+Flats:
+
+Aim for exposure 5 < t < 30
+Aim for 45deg elevation
+Take the 3 last in mjd that meet the criteria
+'''
+
 # Test case
 
 lcl_path = '/scratch/REDUX/Keck/DEIMOS/adap_organizing'
