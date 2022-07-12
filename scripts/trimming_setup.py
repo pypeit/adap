@@ -43,7 +43,7 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
 
 
     # Create a PypeItSetup object for the raw files, excluding any files if needed
-    raw_path = lcl_path / "raw"
+    raw_path = lcl_path.resolve() / "raw"
     file_list = [str(raw_file) for raw_file in raw_path.glob('DE*.fits') if raw_file.name not in raw_files_to_exclude]
     ps = pypeitsetup.PypeItSetup(file_list=file_list, 
                                  spectrograph_name = 'keck_deimos')
