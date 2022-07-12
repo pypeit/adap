@@ -359,6 +359,10 @@ def transfer_batch(args, spectrograph, par, files):
                 date_group_dir = os.path.join(config_group_dir, str(date_groups.keys[i]))
                 #complete_target = os.path.join(dest, "complete")
                 if cloudstorage.is_cloud_uri(args.source_dirs[0]):
+                    # TODO: I think this is the cause of the issue with batch processing in the cloud
+                    # filling up space.  We transfer from our local temp dir to the destination, but
+                    # never clean up the temp dir. transfer_data needs a flag to tell it to clean up in
+                    # that case
                     dest = os.path.join(args.local_out,date_group_dir)
                 else:
                     dest = os.path.join(args.out_dir,  date_group_dir)

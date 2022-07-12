@@ -6,9 +6,11 @@ from pathlib import Path
 from pypeit.pypmsgs import PypeItError
 import numpy as np
 from astropy.stats import mad_std
-
+from astropy.table import Table
 from pypeit.specobjs import SpecObjs
 from pypeit.spec2dobj import AllSpec2DObj
+from pypeit.slittrace import SlitTraceBitMask
+from pypeit.inputfiles import PypeItFile
 
 def get_1d_std_chis_out_of_range(sobjs, lower_thresh, upper_thresh):
     num_out_of_range = 0
@@ -24,8 +26,9 @@ def main():
     parser = argparse.ArgumentParser(description='Build score card for completed pypeit reductions.\nAssumes the directory structure created by adap_reorg_setup.py')
     parser.add_argument("reorg_dir", type=str, help = "Root of directory structure created by adap_reorg_setup.py")
     parser.add_argument("outfile", type=str, help='Output csv file.')
+    parser.add_argument("--commit", type=str, default = "", help='Optional, git commit id for the PypeIt version used')
     parser.add_argument("--masks", type=str, nargs='+', help="Specific masks to run on" )
-    parser.add_argument("--rms_thresh", type=float, default=0.2)
+    parser.add_argument("--rms_thresh", type=float, default=0.4)
     parser.add_argument("--lower_std_chi", type=float, default=0.6)
     parser.add_argument("--upper_std_chi", type=float, default=1.6)
 
@@ -50,76 +53,119 @@ def main():
                 if reduce_path.exists():
                     reduce_paths.append(reduce_path)
 
-    columns = ['bad_slit_count', 'spec2d_count', 'slit_count', 'spec1d_slit_count', 'slit_rms_over_thresh', 'no_chi_value_slits' , 'slit_std_chi_out_of_range', 'spec1d_count',  'object_count', 'object_without_opt_with_box', 'object_without_opt_wo_box', 'maskdef_extract_count', 'rms_thresh_no_chi_overlap']
-    data = dict()
-    for reduce_path in reduce_paths:
-        reduce_key = str(reduce_path.parent.parent)
-        data[reduce_key] = {x: 0 for x in columns}
-        for file in reduce_path.glob("Science/spec2d*.fits"):
-            print(f"Processing file {file}")
-            bad_slits = set()
-            try:
-                allspec2d = AllSpec2DObj.from_fits(str(file), chk_version=False)
-                data[reduce_key]['spec2d_count'] += 1
-                for det in allspec2d.detectors:
-                    spec2dobj = allspec2d[det]
-                    std_chis = spec2dobj['std_chis']
-                    med_chis = spec2dobj['med_chis']                
-                    data[reduce_key]['slit_count'] += len(std_chis)
-                    no_chis = (std_chis == 0.0) & (med_chis==0.0)
-                    num_no_chis = np.sum(no_chis)
-                    data[reduce_key]['no_chi_value_slits'] += num_no_chis
-                    chis_out_of_range = (std_chis<args.lower_std_chi) | (std_chis>args.upper_std_chi)
-                    data[reduce_key]['slit_std_chi_out_of_range'] += np.sum(chis_out_of_range) - num_no_chis
-                    bad_slits.update(spec2dobj.slits.slitord_id[no_chis | chis_out_of_range])
     
-            except PypeItError:
-                print(f"Failed to load spec2d {file}")
+    columns = ['dataset', 'science_file', 'git_commit', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
+               'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
+               'skip_flat_count', 'bad_reduce_count', 'spec1d_count',  'object_count', 
+               'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
+               'maskdef_extract_count']
 
-            spec1d_file = file.parent.joinpath(file.name.replace("spec2d_", "spec1d_", 1))
+    data = Table(names = columns, dtype=['U64', 'U22', 'U40'] + [int for x in columns[2:]])
+    stbm = SlitTraceBitMask()
+    for reduce_path in reduce_paths:
+        dataset = reduce_path.parent.relative_to(args.reorg_dir)
+        pypeit_file = str(reduce_path / "keck_deimos_A.pypeit")
+        science_path = reduce_path / "Science"
+        pf = PypeItFile.from_file(pypeit_file)
+        science_idx = pf.data['frametype'] == 'science'
+        for science_file in pf.data['filename'][science_idx]:
+            data.add_row()
+            science_stem = Path(science_file).stem
+            spec2d_files = list(science_path.glob(f"spec2d_{science_stem}*.fits"))
+            if len(spec2d_files) == 0:
+                print(f"Could not find spec2d for {science_file}.")
+            elif len(spec2d_files) > 1:
+                print(f"Found too many spec2d files for {science_file}?")
+            else:            
+                print(f"Processing file {spec2d_files[0]}")
 
-            print(f"Processing {file}")
-            try:
-                sobjs = SpecObjs.from_fitsfile(str(spec1d_file),chk_version=False)
-                data[reduce_key]['spec1d_count'] += 1
-                data[reduce_key]['object_count'] += len(sobjs)
-                data[reduce_key]['maskdef_extract_count'] += np.sum(sobjs['MASKDEF_EXTRACT'])            
+                bad_chi_slits = set()
+                total_bad_flag_slits = set()
+                total_bad_wv_slits = set()
+                total_bad_tilt_slits = set()
+                total_bad_flat_slits = set()
+                total_skip_flat_slits = set()
+                total_bad_reduce_slits = set()
+                all_slit_ids = set()
 
-                # We want the slit RMS, but those aren't stored in the spec2d
-                # In the spec1d they are stored per object, so there could be multiple (identical) RMS values
-                # per slit. So we store the values in a map that filters out duplicates. We
-                # also use the detector as part of the key for consistency for how we count slits
-                # in the spec2d
-                slit_rms_map = dict()
-                for specobj in sobjs:
-                    slit_rms_map[specobj['DET'] + '_' + str(specobj['SLITID'])] = specobj['WAVE_RMS']
-                    if specobj['OPT_COUNTS'] is None:
-                        if specobj['BOX_COUNTS'] is not None:
-                            data[reduce_key]['object_without_opt_with_box'] += 1
-                            print(f"File {file} object {specobj['NAME']} is missing OPT_COUNTS but has BOX_COUNTS.")
-                        else:
-                            data[reduce_key]['object_without_opt_wo_box'] += 1
-                            print(f"File {file} object {specobj['NAME']} is missing OPT_COUNTS and BOX_COUNTS.")
+                # only count as bad if it's bad in all dets?
+                # nooooo not quite. Only count as good if it's good in all dets.
+                # should we count good instead of or in additon to bad?
+                # or count as bad if it's bad in any detector
+                # data[science_file] = {x: 0 for x in columns}
+                try:
+                    allspec2d = AllSpec2DObj.from_fits(spec2d_files[0], chk_version=False)
+                    for det in allspec2d.detectors:
+                        data[-1]['det_count'] += 1
+                        spec2dobj = allspec2d[det]
+                        std_chis = spec2dobj['std_chis']
+                        med_chis = spec2dobj['med_chis']                
+                        no_chis = (std_chis == 0.0) & (med_chis==0.0)
+                        #num_no_chis = np.sum(no_chis)
+                        #data[science_file]['no_chi_value_slits'] += num_no_chis
+                        chis_out_of_range = ((std_chis<args.lower_std_chi) | (std_chis>args.upper_std_chi)) & np.logical_not(no_chis)
 
-                unique_rms_values = np.array(list(slit_rms_map.values()))
-                unique_slit_ids =   np.array(list(slit_rms_map.keys()))
-                data[reduce_key]['spec1d_slit_count'] += len(unique_slit_ids)
-                slits_over_thresh = unique_rms_values > args.rms_thresh
-                data[reduce_key]['slit_rms_over_thresh'] += np.sum(slits_over_thresh)
-                rms_over_thresh = set(unique_slit_ids[slits_over_thresh])
-                rms_over_thresh_and_no_chi = rms_over_thresh.intersection(bad_slits)
-                data[reduce_key]['rms_thresh_no_chi_overlap'] += len(rms_over_thresh_and_no_chi)
-                bad_slits.update(unique_slit_ids[slits_over_thresh])
-            except PypeItError:
-                print(f"Failed to load spec1d {spec1d_file}")
+                        bad_wv_slits = np.array([stbm.flagged(x, 'BADWVCALIB') for x in spec2dobj.slits.mask])
+                        bad_tilt_slits = np.array([stbm.flagged(x, 'BADTILTCALIB') for x in spec2dobj.slits.mask])
+                        bad_flat_slits = np.array([stbm.flagged(x, 'BADFLATCALIB') for x in spec2dobj.slits.mask])
+                        skip_flat_slits = np.array([stbm.flagged(x, 'SKIPFLATCALIB') for x in spec2dobj.slits.mask])
+                        bad_reduce_slits = np.array([stbm.flagged(x, 'BADREDUCE') for x in spec2dobj.slits.mask])
+                        total_bad_wv_slits.update(spec2dobj.slits.slitord_id[bad_wv_slits])
+                        total_bad_tilt_slits.update(spec2dobj.slits.slitord_id[bad_tilt_slits])
+                        total_bad_flat_slits.update(spec2dobj.slits.slitord_id[bad_flat_slits])
+                        total_skip_flat_slits.update(spec2dobj.slits.slitord_id[skip_flat_slits])
+                        total_bad_reduce_slits.update(spec2dobj.slits.slitord_id[bad_reduce_slits])
+                        bad_chi_slits.update(spec2dobj.slits.slitord_id[chis_out_of_range])
+                        all_slit_ids.update(spec2dobj.slits.slitord_id)
+                except PypeItError:
+                    print(f"Failed to load spec2d {spec2d_files[0]}")
+
+                total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
+                bad_slits = bad_chi_slits | total_bad_flag_slits
+
+                data[-1]['dataset'] = dataset 
+                data[-1]['science_file'] = science_file
+                data[-1]['git_commit'] = args.commit
+                data[-1]['bad_slit_count'] = len(bad_slits)
+                data[-1]['slit_count'] = len(all_slit_ids)
+                data[-1]['slit_std_chi_out_of_range'] = len(bad_chi_slits)
+                data[-1]['total_bad_flags'] = len(total_bad_flag_slits)
+                data[-1]['bad_wv_count'] = len(total_bad_wv_slits)
+                data[-1]['bad_tilt_count'] = len(total_bad_tilt_slits)
+                data[-1]['bad_flat_count'] = len(total_bad_flat_slits)
+                data[-1]['skip_flat_count'] = len(total_skip_flat_slits)
+                data[-1]['bad_reduce_count'] = len(total_bad_reduce_slits)
 
 
-            data[reduce_key]['bad_slit_count'] += len(bad_slits)
+            spec1d_files = list(science_path.glob(f"spec1d_{science_stem}*.fits"))
 
-    with open(args.outfile, "w") as f:
-        print (f"dataset,{','.join(columns)}", file=f)
-        for key in data.keys():
-            print(f"{key},{','.join([str(data[key][x]) for x in columns])}", file=f)
+            for spec1d_file in spec1d_files:
+                print(f"Processing {spec1d_file}")
+                try:
+                    sobjs = SpecObjs.from_fitsfile(str(spec1d_file),chk_version=False)
+                    data[-1]['spec1d_count'] += 1
+                    data[-1]['object_count'] += len(sobjs)
+                    data[-1]['maskdef_extract_count'] += np.sum(sobjs['MASKDEF_EXTRACT'])            
+
+                    # Object RMS will eventually be replaced with slit rms once that's added to the
+                    # spec2d
+                    for specobj in sobjs:
+                        if specobj['OPT_COUNTS'] is None:
+                            if specobj['BOX_COUNTS'] is not None:
+                                data[-1]['object_without_opt_with_box'] += 1
+                                print(f"File {spec1d_file} object {specobj['NAME']} is missing OPT_COUNTS but has BOX_COUNTS.")
+                            else:
+                                data[-1]['object_without_opt_wo_box'] += 1
+                                print(f"File {spec1d_file} object {specobj['NAME']} is missing OPT_COUNTS and BOX_COUNTS.")
+
+                        if specobj['WAVE_RMS'] > args.rms_thresh:
+                            data[-1]['obj_rms_over_thresh'] += 1
+                except PypeItError:
+                    print(f"Failed to load spec1d {spec1d_file}")
+
+    data.sort(['dataset', 'science_file'])
+
+    data.write(args.outfile, format='csv', overwrite=True)
 
 
 
