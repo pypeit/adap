@@ -1,0 +1,20 @@
+[rdx]
+    spectrograph = keck_deimos
+    detnum = 1
+[reduce]
+   [[findobj]]
+       snr_thresh = 5
+   [[slitmask]]
+           obj_toler = 0.5
+   [[extraction]]
+       model_full_slit = True
+       use_2dmodel_mask = False
+       boxcar_radius = 1.0
+
+[calibrations]
+  [[flatfield]]
+    saturated_slits = continue
+
+  [[slitedges]]
+    fit_min_spec_length = 0.5
+
