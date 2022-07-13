@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rel_path="$1/complete/"
+rel_path="$1/complete/raw/"
 s3_path="s3://pypeit/adap/raw_data_reorg/$rel_path"
 
 mkdir -p $rel_path
