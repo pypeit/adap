@@ -55,13 +55,13 @@ def main():
                         reduce_paths.append(reduce_path)
 
     
-    columns = ['dataset', 'science_file', 'git_commit', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
+    columns = ['dataset', 'science_file', 'git_commit', 'status', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
                'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
                'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
                'maskdef_extract_count']
 
-    data = Table(names = columns, dtype=['U64', 'U22', 'U40'] + [int for x in columns[3:]])
+    data = Table(names = columns, dtype=['U64', 'U22', 'U40', 'U7'] + [int for x in columns[4:]])
     stbm = SlitTraceBitMask()
     for reduce_path in reduce_paths:
         dataset = reduce_path.parent.relative_to(args.reorg_dir)
@@ -71,6 +71,11 @@ def main():
         science_idx = pf.data['frametype'] == 'science'
         for science_file in pf.data['filename'][science_idx]:
             data.add_row()
+            data[-1]['dataset'] = dataset.parent 
+            data[-1]['science_file'] = science_file
+            data[-1]['status'] = 'FAILED'
+            data[-1]['git_commit'] = args.commit
+
             science_stem = Path(science_file).stem
             spec2d_files = list(science_path.glob(f"spec2d_{science_stem}*.fits"))
             if len(spec2d_files) == 0:
@@ -133,15 +138,14 @@ def main():
                         total_bad_reduce_slits.update(spec2dobj.slits.slitord_id[bad_reduce_slits])
                         bad_chi_slits.update(spec2dobj.slits.slitord_id[chis_out_of_range])
                         all_slit_ids.update(spec2dobj.slits.slitord_id)
+                    data[-1]['status'] = 'COMPLETE'
+
                 except PypeItError:
                     print(f"Failed to load spec2d {spec2d_files[0]}")
 
                 total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
                 bad_slits =  total_bad_coverage | total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits
 
-                data[-1]['dataset'] = dataset 
-                data[-1]['science_file'] = science_file
-                data[-1]['git_commit'] = args.commit
                 data[-1]['bad_slit_count'] = len(bad_slits)
                 data[-1]['slit_count'] = len(all_slit_ids)
                 data[-1]['slit_wv_cov_under_thresh'] = len(total_bad_coverage)
@@ -180,7 +184,7 @@ def main():
                 except PypeItError:
                     print(f"Failed to load spec1d {spec1d_file}")
 
-    data.sort(['dataset', 'science_file'])
+    data.sort(['status', 'dataset', 'science_file'])
 
     data.write(args.outfile, format='csv', overwrite=True)
 
