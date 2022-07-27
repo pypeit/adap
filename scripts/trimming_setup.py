@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from pypeit import pypeitsetup, msgs
-
+from pypeit.inputfiles import PypeItFile
 from IPython import embed
 
 '''
@@ -44,7 +44,7 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
 
     # Create a PypeItSetup object for the raw files, excluding any files if needed
     raw_path = lcl_path.resolve() / "raw"
-    file_list = [str(raw_file) for raw_file in raw_path.glob('DE*.fits') if raw_file.name not in raw_files_to_exclude]
+    file_list = [str(raw_file) for raw_file in raw_path.glob('DE*.fits')]
     ps = pypeitsetup.PypeItSetup(file_list=file_list, 
                                  spectrograph_name = 'keck_deimos')
 
@@ -83,7 +83,8 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
 
     # ########################
     # Arcs
-    arcs = ps.fitstbl['frametype'] == arc_type
+    arcs = ps.fitstbl['frametype'] == arc_type 
+    not_excluded_arcs = arcs & np.isin(ps.fitstbl['filename'],raw_files_to_exclude, invert=True)
 
     arc_criteria = [best_arc_exp, best_dec]
 
@@ -108,7 +109,7 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
             continue
         
         # All matching this set
-        arc_set = arcs & (ps.fitstbl['lampstat01'].data == unique_lamps[ilamp])
+        arc_set = not_excluded_arcs & (ps.fitstbl['lampstat01'].data == unique_lamps[ilamp])
         
         # Criteria
         while True:
@@ -140,12 +141,13 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
 
     # #################
     # Flats
-    flats = ps.fitstbl['frametype'] == flat_type
+    flats = ps.fitstbl['frametype'] == flat_type 
+    not_excluded_flats = flats  & np.isin(ps.fitstbl['filename'],raw_files_to_exclude, invert=True)
 
     flat_criteria = [best_flat_exp, best_dec]
 
     while True:
-        criteria = np.stack([flats]+flat_criteria)
+        criteria = np.stack([not_excluded_flats]+flat_criteria)
         gd_flats = np.all(criteria, axis=0)
         # Have enough?
         if np.sum(gd_flats) > min_flats or len(flat_criteria) == 0:
@@ -164,6 +166,16 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
             filenames[idx] = '#'+filenames[idx]
 
 
+    # Science
+    science = ps.fitstbl['frametype'] == 'science'
+    keep_science = science & np.isin(ps.fitstbl['filename'],raw_files_to_exclude, invert=True)
+    all_science = np.where(science)[0]
+    all_sci_keep = np.where(keep_science)[0]
+    for idx in all_science:
+        if idx not in all_sci_keep:
+            filenames[idx] = '#'+filenames[idx]
+
+
     # Finish
     ps.fitstbl.table['filename'] = filenames
     ps.fitstbl.write_pypeit(target_dir,cfg_lines=config_lines)
@@ -178,6 +190,7 @@ def read_lines(file):
 def main():
     parser = argparse.ArgumentParser(description='Build a trimmed down setup file for ADAP raw data. It assumes the ADAP directory structure.')
     parser.add_argument("masks", type=str, nargs='+', help="Masks to run on" )
+    parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
 
     args = parser.parse_args()
 
@@ -191,17 +204,17 @@ def main():
     msgs.reset_log_file(logname)
     msgs.info(f"Creating trimmed setup for {args.masks}.")
     config_path = Path("adap/config")
-    raw_files_to_exclude = read_lines(config_path / "exclude_files.txt")
+    raw_files_to_exclude = [line for line in read_lines(config_path / "exclude_files.txt") if not line.startswith('#')]
 
     default_config_file = config_path / "default_pypeit_config"
     default_config_lines = read_lines(default_config_file)
 
     for mask in args.masks:
-        mask_path = Path(mask)
+        mask_path = Path(args.adap_root_dir) / mask
 
         for complete_path in mask_path.rglob("complete"):
             # Sanity check things
-            if not complete_path.is_dir() or len(complete_path.parents) != 4:
+            if not complete_path.is_dir() or len(complete_path.parents) < 4:
                 msgs.warn(f"Either non existant or invalid complete path {complete_path}")
                 continue
             msgs.info(f"Processing path {complete_path}.")

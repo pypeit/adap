@@ -1,2 +1,27 @@
+# gn_A science files that are shifted compared to the other frames
 DE.20080405.20442.fits
 DE.20080405.21722.fits
+# Unwanted  Arc files from gn_A
+DE.20080404.56681.fits
+DE.20080405.09235.fits
+DE.20080405.09306.fits
+DE.20080405.14891.fits
+DE.20080405.55776.fits
+DE.20080405.55848.fits
+DE.20080405.55910.fits
+DE.20080405.14957.fits
+# Unwanted  Arc files from gn_B
+DE.20080405.09647.fits
+DE.20080405.09718.fits
+DE.20080405.15062.fits
+DE.20080405.56252.fits
+DE.20080405.56333.fits
+DE.20080405.15133.fits
+# Unwanted  Arc files from gn_C 
+DE.20080405.10060.fits
+DE.20080405.10130.fits
+DE.20080405.15244.fits
+DE.20080405.56729.fits
+DE.20080405.56799.fits
+DE.20080405.56869.fits
+DE.20080405.15307.fits
