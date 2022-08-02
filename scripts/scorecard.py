@@ -95,7 +95,7 @@ def main():
                'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
                'maskdef_extract_count']
 
-    data = Table(names = columns, dtype=['U64', 'U22', 'U40', 'U7'] + [int for x in columns[4:]])
+    data = Table(names = columns, dtype=['U64', 'U22', 'U40', 'U8'] + [int for x in columns[4:]])
     stbm = SlitTraceBitMask()
     for reduce_path in reduce_paths:
         dataset = reduce_path.parent.relative_to(args.reorg_dir)
