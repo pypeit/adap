@@ -33,19 +33,9 @@ def update_gsheet(spreadsheet, dataset, pod_name):
                 worksheet.update(f"B{i+1}", pod_name)
                 break
         
+def claim_dataset(args, my_pod):
 
-
-
-
-def main():
-    parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.\n Authentication requres a "service_account.json" file in "~/.config/gspread/".')
-    parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
-    parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
-
-    args = parser.parse_args()
-
-    my_pod = os.environ["POD_NAME"]
-
+    dataset = None
     try:
         fd = os.open(args.work_queue, os.O_RDWR)
         os.lockf(fd, os.F_LOCK, 0)
@@ -59,7 +49,7 @@ def main():
             if not found and row[1] == 'IN QUEUE':
                 row[1] = my_pod
                 dataset = row[0]
-                print(f"Pod ${my_pod} claiming dataset {dataset}")
+                print(f"Pod {my_pod} claiming dataset {dataset}")
                 found = True
 
         file.close()
@@ -77,6 +67,22 @@ def main():
 
     finally:
         os.close(fd)
+
+    return dataset
+
+def main():
+    parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.\n Authentication requres a "service_account.json" file in "~/.config/gspread/".')
+    parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
+    parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
+
+    args = parser.parse_args()
+
+    my_pod = os.environ["POD_NAME"]
+
+    dataset = claim_dataset(args, my_pod)
+    while dataset is not None:
+        dataset = claim_dataset(args, my_pod)
+
 
 if __name__ == '__main__':    
     main()
