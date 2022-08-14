@@ -12,6 +12,7 @@ import subprocess as sp
 import time
 from datetime import datetime, timezone
 import gspread
+import traceback
 
 def log_message(args, msg):
     """Print a message to stdout and to a log file"""
@@ -203,51 +204,57 @@ def main():
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--scorecard_max_age", type=int, default=7, help="Max age of items in the scorecard's latest spreadsheet")
     args = parser.parse_args()
+    try:
+        my_pod = os.environ["POD_NAME"]
 
-    my_pod = os.environ["POD_NAME"]
-
-    dataset = claim_dataset(args, my_pod)
-    mask = dataset.split("/")[0]
-    while dataset is not None:
-        status = 'COMPLETE'
-        try:
-            run_script(["adap/download_dataset.sh", args.adap_root_dir, dataset])
-            run_script(["python",  "adap/trimming_setup.py", "--adap_root_dir", args.adap_root_dir, mask])
-        except Exception as e:
-            log_message(f"Failed during prepwork for {dataset}. Exception {e}")
-            status = 'FAILED'
-
-        if status != 'FAILED':
+        dataset = claim_dataset(args, my_pod)
+        mask = dataset.split("/")[0]
+        while dataset is not None:
+            status = 'COMPLETE'
             try:
-                for pypeit_file in Path(args.adap_root_dir).rglob("*.pypeit"):
-                    if run_pypeit_onfile(pypeit_file, "-o") == 'FAILED':
-                        status = 'FAILED'
-
-                scorecard_cmd = ["python", "adap/scorecard.py", args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status]
-                if 'PYPEIT_COMMIT' in os.environ:
-                    scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
-
-                run_script(scorecard_cmd)
+                run_script(["adap/download_dataset.sh", args.adap_root_dir, dataset])
+                run_script(["python",  "adap/trimming_setup.py", "--adap_root_dir", args.adap_root_dir, mask])
             except Exception as e:
-                log_message(f"Failed processing {dataset}. Exception {e}")
+                log_message(f"Failed during prepwork for {dataset}. Exception {e}")
                 status = 'FAILED'
 
-        # Try to upload any results regardless of status
-        try:            
-            run_script(["adap/upload_results.sh", args.adap_root_dir, dataset, args.logfile])
-            # This will upload the log for the dataset, so clear it to keep it from growing forever
-            clear_log(args)
+            if status != 'FAILED':
+                try:
+                    for pypeit_file in Path(args.adap_root_dir).rglob("*.pypeit"):
+                        if run_pypeit_onfile(pypeit_file, "-o") == 'FAILED':
+                            status = 'FAILED'
 
-        except Exception as e:
-            log_message(f"Failed uploading results for {dataset}. Exception: {e}")
-            status = 'FAILED'
+                    scorecard_cmd = ["python", "adap/scorecard.py", args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status]
+                    if 'PYPEIT_COMMIT' in os.environ:
+                        scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 
-        update_dataset_status(args, dataset, status)
+                    run_script(scorecard_cmd)
+                except Exception as e:
+                    log_message(f"Failed processing {dataset}. Exception {e}")
+                    status = 'FAILED'
 
-        # Done with this dataset, more to the next
-        dataset = claim_dataset(args, my_pod)
+            # Try to upload any results regardless of status
+            try:            
+                run_script(["adap/upload_results.sh", args.adap_root_dir, dataset, args.logfile])
+                # This will upload the log for the dataset, so clear it to keep it from growing forever
+                clear_log(args)
 
-    log_message("No more datasets in queue, exiting")
+            except Exception as e:
+                log_message(f"Failed uploading results for {dataset}. Exception: {e}")
+                status = 'FAILED'
+
+            update_dataset_status(args, dataset, status)
+
+            # Done with this dataset, more to the next
+            dataset = claim_dataset(args, my_pod)
+        log_message("No more datasets in queue, exiting")
+    except:
+        exc_lines = traceback.format_exc()
+        log_message("Exception caught in main, existing")
+        for line in exc_lines:
+            log_message(line)
+        return 1
+
     return 0
 
 if __name__ == '__main__':    
