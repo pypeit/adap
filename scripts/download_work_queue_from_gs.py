@@ -45,14 +45,6 @@ def main():
                                  'values': update_values}])
 
 
-
-
-        
-
-    
-
-
-
 if __name__ == '__main__':    
     main()
 
