@@ -124,7 +124,7 @@ def claim_dataset(args, my_pod):
 
             # Update the scorecard. This is done within the lock on the work queue
             # To prevent against race conditions accessing it
-            update_gsheet_status(args.gsheet, dataset, "In Progress: " + my_pod)
+            update_gsheet_status(args, dataset, "In Progress: " + my_pod)
             log_message(args, f"Pod: {my_pod} has claimed dataset {dataset}")
         else:
             log_message(args, "Work Queue is empty")
@@ -240,7 +240,7 @@ def main():
                 clear_log(args)
 
             except Exception as e:
-                log_message(f"Failed uploading results for {dataset}. Exception: {e}")
+                log_message(args, f"Failed uploading results for {dataset}. Exception: {e}")
                 status = 'FAILED'
 
             update_dataset_status(args, dataset, status)
