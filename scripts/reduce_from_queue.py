@@ -105,7 +105,7 @@ def claim_dataset(args, my_pod):
     dataset = None
 
     with lock_workqueue(args.work_queue) as wq_file:
-        csv_reader = csv.reader(wq_file, newline='\n')
+        csv_reader = csv.reader(wq_file)
         rows = []
         found=False        
         for row in csv_reader:
@@ -119,7 +119,7 @@ def claim_dataset(args, my_pod):
             # Rewrite the work queue file with the new info
             wq_file.truncate(0)
             wq_file.seek(0,io.SEEK_SET)
-            csv_writer = csv.writer(wq_file, newline='\n')
+            csv_writer = csv.writer(wq_file)
             csv_writer.writerows(rows)
 
             # Update the scorecard. This is done within the lock on the work queue
@@ -175,7 +175,7 @@ def run_pypeit_onfile(file, arguments):
 def update_dataset_status(args, dataset, status):
 
     with lock_workqueue(args.work_queue) as wq_file:
-        csv_reader = csv.reader(wq_file, newline='\n')
+        csv_reader = csv.reader(wq_file)
         rows = []
         found=False        
         for row in csv_reader:
@@ -187,7 +187,7 @@ def update_dataset_status(args, dataset, status):
         if found:
             wq_file.truncate(0)
             wq_file.seek(0,io.SEEK_SET)
-            csv_writer = csv.writer(wq_file, newline='\n')
+            csv_writer = csv.writer(wq_file)
             csv_writer.writerows(rows)
 
         update_gsheet_status(args, dataset, status)
@@ -252,7 +252,7 @@ def main():
         exc_lines = traceback.format_exc()
         log_message("Exception caught in main, existing")
         for line in exc_lines:
-            log_message(line)
+            log_message(args, line)
         return 1
 
     return 0
