@@ -149,6 +149,10 @@ def update_gsheet_worksheet(args, spreadsheet, worksheet_name, csv_array):
 
     # Get the worksheet
     worksheet = retry_gspread_call(lambda: spreadsheet.worksheet(worksheet_name))
+
+    # Sort it 
+    #retry_gspread_call(worksheet.sort())
+
     worksheet_rows = retry_gspread_call(lambda: worksheet.get_values())
 
     if len(worksheet_rows[0]) != len(csv_array.dtype.names):
@@ -235,9 +239,14 @@ def main():
         return 0
 
     # Do a case insensitive sort by using argsort on a new array of uppercase values
-    csv_keys = np.copy(csv_array[['dataset', 'science_file', 'reduce_dir']])
+    csv_keys = np.copy(csv_array[['dataset', 'science_file', 'reduce_dir', 'date']])
     csv_keys['dataset'] = [d.upper() for d in csv_keys['dataset']]
-    sort_idx = csv_keys.argsort(order=['dataset', 'science_file', 'reduce_dir'])
+
+    # Most worksheets use a dataset sort
+    dataset_sort_idx = csv_keys.argsort(order=['dataset', 'science_file', 'reduce_dir'])
+    
+    # Failed uses a reverse date sort
+    date_sort_idx = csv_keys.argsort(order=['date','dataset', 'science_file', 'reduce_dir'])[::-1]
 
 
     print (f"Accessing {args.spreadsheet} in G-Drive")
@@ -250,6 +259,11 @@ def main():
 
     for sheet in sheets:
         print(f"Updating {sheet}")
+        if sheet == "Failed":
+            sort_idx = date_sort_idx
+        else:
+            sort_idx = dataset_sort_idx
+
         update_gsheet_worksheet(args, spreadsheet, sheet, dataset_sheet_filter(sheet, csv_array[sort_idx]))
 
 
