@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copy log file
-cp $3 $1/$2/complete/
+cp $3 $1/$2/complete/reduce/
 
 # Copy PypeIt results and scorecard
 cd $1

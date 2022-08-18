@@ -44,7 +44,7 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
 
     # Create a PypeItSetup object for the raw files, excluding any files if needed
     raw_path = lcl_path.resolve() / "raw"
-    file_list = [str(raw_file) for raw_file in raw_path.glob('DE*.fits')]
+    file_list = [str(raw_file) for raw_file in raw_path.glob('*.fits')]
     ps = pypeitsetup.PypeItSetup(file_list=file_list, 
                                  spectrograph_name = 'keck_deimos')
 
@@ -203,7 +203,7 @@ def main():
 
     msgs.reset_log_file(logname)
     msgs.info(f"Creating trimmed setup for {args.masks}.")
-    config_path = Path("adap/config")
+    config_path = Path(args.adap_root_dir) / "adap" /"config"
     raw_files_to_exclude = [line for line in read_lines(config_path / "exclude_files.txt") if not line.startswith('#')]
 
     default_config_file = config_path / "default_pypeit_config"

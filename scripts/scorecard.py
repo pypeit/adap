@@ -3,6 +3,7 @@
 import os
 import argparse
 from pathlib import Path
+import datetime
 from pypeit.pypmsgs import PypeItError
 import numpy as np
 from astropy.stats import mad_std
@@ -94,9 +95,9 @@ def main():
                'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
                'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
-               'maskdef_extract_count', 'reduce_dir']
+               'maskdef_extract_count', 'date', 'reduce_dir']
 
-    data = Table(names = columns, dtype=['U64', 'U22', 'U40', 'U8'] + [int for x in columns[4:-2]] + ['U20'])
+    data = Table(names = columns, dtype=['U64', 'U22', 'U40', 'U8'] + [int for x in columns[4:-2]] + ['datetime64[D]', 'U20'])
     stbm = SlitTraceBitMask()
     for reduce_path in reduce_paths:
         dataset = reduce_path.parent.relative_to(args.reorg_dir)
@@ -111,6 +112,7 @@ def main():
             data[-1]['status'] = args.status
             data[-1]['git_commit'] = args.commit
             data[-1]['reduce_dir'] = reduce_path.name
+            data[-1]['date'] = datetime.date.today()
             science_stem = Path(science_file).stem
             spec2d_files = list(science_path.glob(f"spec2d_{science_stem}*.fits"))
             if len(spec2d_files) == 0:

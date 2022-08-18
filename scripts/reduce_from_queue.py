@@ -4,7 +4,6 @@ import argparse
 import os
 import csv
 import io
-import shutil
 import sys
 from pathlib import Path
 from contextlib import contextmanager
@@ -13,6 +12,8 @@ import time
 from datetime import datetime, timezone
 import gspread
 import traceback
+import random
+import shutil
 
 def log_message(args, msg):
     """Print a message to stdout and to a log file"""
@@ -24,6 +25,18 @@ def log_message(args, msg):
 
 def clear_log(args):
     os.remove(args.logfile)
+
+def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
+
+    for i in range(len(retry_delays)+1):
+        try:
+            return func()
+        except gspread.exceptions.APIError as e:
+            if i == len(retry_delays):
+                # We've passed the max # of retries, re-reaise the exception
+                raise
+            time.sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
+
 
 @contextmanager
 def lock_workqueue(work_queue_file):
@@ -58,47 +71,33 @@ def lock_workqueue(work_queue_file):
 
 
 def update_gsheet_status(args, dataset, status):
-    # Note need to retry with with 60s delay due to google rate limits
-    success = False
-    attempts = 1
-    while not success:
-        try:
+    # Note need to retry Google API calls due to rate limits
+    source_spreadsheet, source_worksheet = args.gsheet.split('/')
 
-            source_spreadsheet, source_worksheet = args.spreadsheet.split('/')
+    # This relies on the service json in ~/.config/gspread
+    account = retry_gspread_call(lambda: gspread.service_account())
 
-            # This relies on the service json in ~/.config/gspread
-            account = gspread.service_account()
+    # Get the spreadsheet from Google sheets
+    spreadsheet = retry_gspread_call(lambda: account.open(source_spreadsheet))
 
-            # Get the spreadsheet from Google sheets
-            spreadsheet = account.open(source_spreadsheet)
+    # Get the worksheet
+    worksheet = retry_gspread_call(lambda: spreadsheet.worksheet(source_worksheet))
 
-            # Get the worksheet
-            worksheet = spreadsheet.worksheet(source_worksheet)
+    work_queue = retry_gspread_call(lambda: worksheet.col_values(1))
 
-            work_queue = worksheet.col_values(1)
-
-            if len(work_queue) > 1:
-                found = False
-                # Note first row will be the title "dataset"
-                for i in range(1, len(work_queue)):
-                    if work_queue[i].strip() == dataset:
-                        log_message(args, f"Updating {dataset} status with {status}")
-                        worksheet.update(f"B{i+1}", status)
-                        found = True
-                        break
-                if not found:
-                    log_message(args, f"Did not find {dataset} to update status!")
-            else:
-                log_message(args, f"Could not update {dataset}, spreadsheet is empty!")
-            success = True
-        except Exception as e:
-            if attempts < 5:
-                log_message(args, "Retrying Google API task")
-                time.sleep(60)
-                attempts += 1
-            else:
-                log_message(args, f"Too many retries updating worksheet. Exception: {e}")
-                raise
+    if len(work_queue) > 1:
+        found = False
+        # Note first row will be the title "dataset"
+        for i in range(1, len(work_queue)):
+            if work_queue[i].strip() == dataset:
+                log_message(args, f"Updating {dataset} status with {status}")
+                retry_gspread_call(lambda: worksheet.update(f"B{i+1}", status))
+                found = True
+                break
+        if not found:
+            log_message(args, f"Did not find {dataset} to update status!")
+    else:
+        log_message(args, f"Could not update {dataset}, spreadsheet is empty!")
 
 def claim_dataset(args, my_pod):
 
@@ -137,16 +136,16 @@ def run_script(command):
         raise RuntimeError(f"Failed to run '{' '.join(command)}'.")
 
 
-def run_pypeit_onfile(file, arguments):
+def run_pypeit_onfile(args, file):
     """
     Run PypeIt on one pypeit file. It makes sure to change the currenct directory to that
     containing the passed in pypeit file.
 
     Args:
+        args():
+            Arguments to reduce_from_queue as returned by argparse.
         file (Path):
             Path of the .pypeit file to run PypeIt on
-        arguments(list of str):
-            Arguments to run_pypeit_parallel from command line.
 
     Returns:
         Popen : Popen object created when creating the child process to run PypeIt.
@@ -160,14 +159,18 @@ def run_pypeit_onfile(file, arguments):
         # with the multiple processes started by this script
         child_env['OMP_NUM_THREADS'] = '1'
 
+        log_message(args, f"Starting PypeIt run on {file}")
+    
         # Run PypeIt on the pypeit file, using the additional arguments from our command line,
         # with stdout and stderr going to a text file, from the directory of the pypeit file, with
         # the environment set to be single threaded
-        cp = sp.run(["run_pypeit", file.name] + arguments.pypeit_args, stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
+        cp = sp.run(["run_pypeit", file.name, "-o"], stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
 
         if cp.returncode != 0:
-            log_message(f"PypeIt returned non-zero status {cp.returncode}, setting status to FAILED")
+            log_message(args, f"PypeIt returned non-zero status {cp.returncode}, setting status to FAILED")
             return "FAILED"
+        else:
+            log_message(args, f"PypeIt returned successful status.")
 
     return "COMPLETE"
 
@@ -190,10 +193,22 @@ def update_dataset_status(args, dataset, status):
             csv_writer = csv.writer(wq_file)
             csv_writer.writerows(rows)
 
-        update_gsheet_status(args, dataset, status)
+        try:
+            update_gsheet_status(args, dataset, status)
+        except Exception as e:
+            log_message(args, f"Failed to update scorecard work queue status for {dataset}. Exception {e}")
 
-        run_script(["python", "update_gsheet_scorecard.py", args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), args.scorecard_max_age])
+        try:
+            run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), str(args.scorecard_max_age)])
+        except Exception as e:
+            log_message(args, f"Failed to update scorecard results for {dataset}. Exception {e}")
 
+def cleanup(args, dataset):
+    """Clean up after running a job and uploading its results"""
+    # Clear the log so it doesn't grow forever. upload_results will have uploaded it to S3
+    clear_log(args)
+
+    shutil.rmtree(Path(args.adap_root_dir) / dataset)
 
 
 def main():
@@ -208,51 +223,50 @@ def main():
         my_pod = os.environ["POD_NAME"]
 
         dataset = claim_dataset(args, my_pod)
-        mask = dataset.split("/")[0]
         while dataset is not None:
+            mask = dataset.split("/")[0]
             status = 'COMPLETE'
             try:
-                run_script(["adap/download_dataset.sh", args.adap_root_dir, dataset])
-                run_script(["python",  "adap/trimming_setup.py", "--adap_root_dir", args.adap_root_dir, mask])
+                run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "download_dataset.sh"), args.adap_root_dir, dataset])
+                run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, mask])
             except Exception as e:
-                log_message(f"Failed during prepwork for {dataset}. Exception {e}")
+                log_message(args, f"Failed during prepwork for {dataset}. Exception {e}")
                 status = 'FAILED'
 
             if status != 'FAILED':
                 try:
                     for pypeit_file in Path(args.adap_root_dir).rglob("*.pypeit"):
-                        if run_pypeit_onfile(pypeit_file, "-o") == 'FAILED':
+                        if run_pypeit_onfile(args, pypeit_file) == 'FAILED':
                             status = 'FAILED'
 
-                    scorecard_cmd = ["python", "adap/scorecard.py", args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status]
+                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--masks", mask]
                     if 'PYPEIT_COMMIT' in os.environ:
                         scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 
                     run_script(scorecard_cmd)
                 except Exception as e:
-                    log_message(f"Failed processing {dataset}. Exception {e}")
+                    log_message(args, f"Failed processing {dataset}. Exception {e}")
                     status = 'FAILED'
 
             # Try to upload any results regardless of status
             try:            
-                run_script(["adap/upload_results.sh", args.adap_root_dir, dataset, args.logfile])
-                # This will upload the log for the dataset, so clear it to keep it from growing forever
-                clear_log(args)
-
+                run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "upload_results.sh"), args.adap_root_dir, dataset, args.logfile])
             except Exception as e:
                 log_message(args, f"Failed uploading results for {dataset}. Exception: {e}")
                 status = 'FAILED'
 
             update_dataset_status(args, dataset, status)
+            
+            # Cleanup before moving to the next dataset
+            cleanup(args, dataset)
 
             # Done with this dataset, more to the next
             dataset = claim_dataset(args, my_pod)
-        log_message("No more datasets in queue, exiting")
+        log_message(args, "No more datasets in queue, exiting")
     except:
         exc_lines = traceback.format_exc()
-        log_message("Exception caught in main, existing")
-        for line in exc_lines:
-            log_message(args, line)
+        log_message(args, "Exception caught in main, existing")        
+        log_message(args, exc_lines)
         return 1
 
     return 0
