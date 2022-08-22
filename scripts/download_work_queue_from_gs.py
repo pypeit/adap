@@ -29,12 +29,12 @@ def main():
 
     if len(work_queue) > 1:
         update_values = []
-        start_row = 2
+        start_row = 4
         end_row = len(work_queue)
 
         with open(args.dest, "w") as f:
             # Note first row will be the title "dataset"
-            for i in range(1, len(work_queue)):
+            for i in range(start_row-1, len(work_queue)):
                 if work_queue[i] is not None and len(work_queue[i].strip()) > 0:
                     print(f"{work_queue[i].strip()},IN QUEUE", file=f)
                     update_values.append(["IN QUEUE"])
