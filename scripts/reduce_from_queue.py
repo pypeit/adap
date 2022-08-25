@@ -87,8 +87,7 @@ def update_gsheet_status(args, dataset, status):
 
     if len(work_queue) > 1:
         found = False
-        # Note first row will be the title "dataset"
-        for i in range(1, len(work_queue)):
+        for i in range(0, len(work_queue)):
             if work_queue[i].strip() == dataset:
                 log_message(args, f"Updating {dataset} status with {status}")
                 retry_gspread_call(lambda: worksheet.update(f"B{i+1}", status))

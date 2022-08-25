@@ -150,9 +150,6 @@ def update_gsheet_worksheet(args, spreadsheet, worksheet_name, csv_array):
     # Get the worksheet
     worksheet = retry_gspread_call(lambda: spreadsheet.worksheet(worksheet_name))
 
-    # Sort it 
-    #retry_gspread_call(worksheet.sort())
-
     worksheet_rows = retry_gspread_call(lambda: worksheet.get_values())
 
     if len(worksheet_rows[0]) != len(csv_array.dtype.names):
