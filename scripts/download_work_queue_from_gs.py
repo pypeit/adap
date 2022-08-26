@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.\n Authentication requres a "service_account.json" file in "~/.config/gspread/".')
     parser.add_argument('source', type=str, help="Source Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
     parser.add_argument('dest', type=str, help="File on local file system to write the work queue to.")
-
+    parser.add_argument('--refresh', default = False, action="store_true", help="Instead of overwriting the existing workqueue, add any new items from the worksheet tab.")
     args = parser.parse_args()
     source_spreadsheet, source_worksheet = args.source.split('/')
     # This relies on the service json in ~/.config/gspread
@@ -25,19 +25,31 @@ def main():
     # Get the worksheet
     worksheet = spreadsheet.worksheet(source_worksheet)
 
-    work_queue = worksheet.col_values(1)
+    work_queue_datasets = worksheet.col_values(1)
+    work_queue_status = worksheet.col_values(2)
 
-    if len(work_queue) > 1:
+    if len(work_queue_datasets) > 1:
         update_values = []
         start_row = 4
-        end_row = len(work_queue)
+        end_row = len(work_queue_datasets)
 
-        with open(args.dest, "w") as f:
+        open_mode = "a" if args.refresh else "w"
+        with open(args.dest, open_mode) as f:
             # Note first row will be the title "dataset"
-            for i in range(start_row-1, len(work_queue)):
-                if work_queue[i] is not None and len(work_queue[i].strip()) > 0:
-                    print(f"{work_queue[i].strip()},IN QUEUE", file=f)
-                    update_values.append(["IN QUEUE"])
+            for i in range(start_row-1, len(work_queue_datasets)):
+                if work_queue_datasets[i] is not None and len(work_queue_datasets[i].strip()) > 0:
+                    if args.refresh:
+                        # If refreshing, only add datasets with blank statuses
+                        if i >= len(work_queue_status) or work_queue_status[i].strip() == '':                     
+                            print(f"{work_queue_datasets[i].strip()},IN QUEUE", file=f)
+                            update_values.append(["IN QUEUE"])
+                        else:
+                            # If the status isn't blank, leave it as is
+                            update_values.append([work_queue_status[i]])
+                    else:
+                        # Overwriting and not refreshing, force it to "IN QUEUE"
+                        print(f"{work_queue_datasets[i].strip()},IN QUEUE", file=f)
+                        update_values.append(["IN QUEUE"])
                 else:
                     update_values.append([None])
         
