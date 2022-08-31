@@ -1,0 +1,28 @@
+spectrograph.py get_meta_value() - Bad Header, but we'll try to continue on.. 
+pypeit.py reduce_all() - No spec2d and spec1d saved to file
+pypeit.py reduce_exposure() - Calibrations for detector were unsuccessful!
+edgetrace.py initial_trace() - No edges found!  Trace data will be empty.
+edgetrace.py remove_traces() - All traces removed!
+edgetrace.py _masked_single_slit() - The single slit found has been rejected because it is too short.
+edgetrace.py maskdesign_matching() - No edges traced. Slitmask matching cannot be performed
+edgetrace.py maskdesign_matching() - Less than 3 slits are expected on this detector, slitmask matching cannot be performed
+edgetrace.py maskdesign_matching() - LEFT AND RIGHT EDGES *NOT* SYNCHRONIZED AFTER MASK DESIGN MATCHING
+slitdesign_matching.py best_offset() - Not enough lines to run!!!
+autoid.py full_template() - Not enough useful IDs
+wavetilts.py run() - Did not recover any lines for slit/order
+wavetilts.py run() - Less than 2 usable arc lines for slit/order
+slittrace.py mask_add_missing_obj() - Targeted object is off the detector
+slittrace.py get_maskdef_extract_fwhm() - The median FWHM cannot be determined because no objects were detected.
+slittrace.py average_maskdef_offset() - No slitmask offset could be measured. Assumed to be zero. 
+findobj_skymask.py create_skymask() - More than 90% of  usable area on this slit would be masked and not used by global sky subtraction.
+find_objects.py global_skysub() - Bad fit to sky.  Rejecting slit:
+skysub.py global_skysub() - This slit/order has of the pixels masked, which exceeds the threshold of 90%.
+skysub.py skyoptimal() - All pixels are masked in skyoptimal. Not performing local sky subtraction.
+skysub.py skyoptimal() - All pixels are masked in skyoptimal after first round of rejection. Not performing local sky subtraction.
+skysub.py local_skysub_extract() - ERROR: Bspline sky subtraction failed after 4 iterations of bkpt spacing
+extract.py extract_optimal() - Object profile is zero everywhere. This aperture is junk.
+extraction.py extract() - Optimal extraction could not be performed for object at pixel
+extraction.py extract() - Removing object at pixel
+flexure.py spec_flex_shift() - Flexure compensation failed for one of your objects
+flexure.py spec_flex_shift() - Setting the flexure correction shift to 0 pixels
+flexure.py spec_flex_shift() - Applying flexure shift larger than specified max!
