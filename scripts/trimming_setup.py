@@ -165,6 +165,14 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
         if idx not in keep_flats:
             filenames[idx] = '#'+filenames[idx]
 
+    # The reorg script should make sure everything is in the same setup group. But
+    # it uses rounding to be permissive about including files with a dispangle that
+    # are slightly different. For example 7499.6 is included with 7500.2.
+    # Setup is not as permissive and assigns those to other groups. 
+    # So we update those to group A.
+    not_group_a = ps.fitstbl.table['setup'] != 'A'
+    ps.fitstbl.table['setup'][not_group_a] = 'A'
+
 
     # Science
     science = ps.fitstbl['frametype'] == 'science'
@@ -178,7 +186,7 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
 
     # Finish
     ps.fitstbl.table['filename'] = filenames
-    ps.fitstbl.write_pypeit(target_dir,cfg_lines=config_lines)
+    ps.fitstbl.write_pypeit(target_dir,cfg_lines=config_lines, configs = ['A'])
 
 def read_lines(file):
     """Short helper method to read lines from a text file into a list, removing newlines."""
