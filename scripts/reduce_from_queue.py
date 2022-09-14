@@ -237,6 +237,9 @@ def main():
                     for pypeit_file in Path(args.adap_root_dir).rglob("*.pypeit"):
                         if run_pypeit_onfile(args, pypeit_file) == 'FAILED':
                             status = 'FAILED'
+                        logfile = pypeit_file.parent / "keck_deimos_A.log"
+                        run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
+
 
                     scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--masks", mask]
                     if 'PYPEIT_COMMIT' in os.environ:
