@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: adap-refresh-workqueue
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - args:
+        - apt-get update;  pip install gspread; apt-get install -y git; git clone https://github.com/pypeit/adap.git; cd adap; git checkout work_queue;
+          python scripts/download_work_queue_from_gs.py --refresh Scorecard/WorkQueue /work_queue/work_queue.csv
+        command:
+        - /bin/bash
+        - -c
+        image: localhost:30081/library/python:3.9
+        imagePullPolicy: Always
+        name: container
+        resources:
+          limits:
+            cpu: '1'
+            memory: 1Gi
+          requests:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - mountPath: /root/.config/gspread/service_account.json
+          name: gcloud-service-account
+          subPath: credentials
+        - mountPath: /work_queue
+          name: work-queue
+      nodeSelector:
+        nautilus.io/disktype: nvme
+      restartPolicy: Never
+      volumes:
+      - name: gcloud-service-account
+        secret:
+          secretName: gcloud-service-account
+      - name: work-queue
+        persistentVolumeClaim:
+            claimName: pypeit-adap-work-queue

@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: adap-reduce-from-queue
+spec:
+  backoffLimit: 2
+  parallelism: 1
+  template:
+    spec:
+      containers:
+      - name: reduce-worker
+        args:
+        - apt-get update;  apt-get install -y git build-essential; pip install --upgrade pip setuptools wheel;
+          pip install awscli ;  cd /tmp ; git clone https://github.com/pypeit/PypeIt.git; cd PypeIt; 
+          git checkout develop; 
+          pip install -e '.[dev,bottleneck]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
+          cd /tmp; mkdir adap_root; cd adap_root;
+          pip install gspread; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
+          aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
+          python scripts/reduce_from_queue.py Scorecard/WorkQueue /work_queue/work_queue.csv --adap_root_dir /tmp/adap_root --scorecard_max_age 7;
+          aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp --no-progress reduce_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log
+        command:
+        - /bin/bash
+        - -c
+        image: localhost:30081/library/python:3.9
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: '1'
+            ephemeral-storage: 40Gi
+            memory: 32Gi
+          requests:
+            cpu: '1'
+            ephemeral-storage: 40Gi
+            memory: 32Gi
+        volumeMounts:
+        - mountPath: /root/.config/gspread/service_account.json
+          name: gcloud-service-account
+          subPath: credentials
+        - mountPath: /work_queue
+          name: work-queue
+        - mountPath: /tmp
+          name: ephemeral
+        - mountPath: /root/.aws/credentials
+          name: prp-s3-credentials
+          subPath: credentials
+        env:
+           - name: POD_NAME
+             valueFrom:
+                fieldRef:
+                   fieldPath: metadata.name
+           - name: ENDPOINT_URL
+             value: http://rook-ceph-rgw-nautiluss3.rook
+           - name: S3_ENDPOINT
+             value: rook-ceph-rgw-nautiluss3.rook
+      nodeSelector:
+        nautilus.io/disktype: nvme
+      restartPolicy: Never
+      volumes:
+      - name: gcloud-service-account
+        secret:
+          secretName: gcloud-service-account
+      - name: work-queue
+        persistentVolumeClaim:
+            claimName: pypeit-adap-work-queue
+      - name: prp-s3-credentials
+        secret:
+          secretName: prp-s3-credentials            
+      - emptyDir: {}
+        name: ephemeral

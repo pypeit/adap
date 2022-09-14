@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: adap-upload-workqueue
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - args:
+        - pip install --upgrade pip setuptools wheel; pip install awscli;  aws --endpoint $ENDPOINT_URL s3 cp --no-progress /work_queue/work_queue.csv s3://pypeit/adap/results/work_queue.csv
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: ENDPOINT_URL
+          value: http://rook-ceph-rgw-nautiluss3.rook
+        image: localhost:30081/library/python:3.9
+        imagePullPolicy: Always
+        name: container
+        resources:
+          limits:
+            cpu: '1'
+            memory: 1Gi
+          requests:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - mountPath: /root/.aws/credentials
+          name: prp-s3-credentials
+          subPath: credentials
+        - mountPath: /work_queue
+          name: work-queue
+      restartPolicy: Never
+      volumes:
+      - name: work-queue
+        persistentVolumeClaim:
+            claimName: pypeit-adap-work-queue
+      - name: prp-s3-credentials
+        secret:
+          secretName: prp-s3-credentials
