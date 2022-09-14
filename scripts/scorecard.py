@@ -3,6 +3,7 @@
 import os
 import argparse
 from pathlib import Path
+import datetime
 from pypeit.pypmsgs import PypeItError
 import numpy as np
 from astropy.stats import mad_std
@@ -61,6 +62,7 @@ def main():
     parser.add_argument("reorg_dir", type=str, help = "Root of directory structure created by adap_reorg_setup.py")
     parser.add_argument("outfile", type=str, help='Output csv file.')
     parser.add_argument("--commit", type=str, default = "", help='Optional, git commit id for the PypeIt version used')
+    parser.add_argument("--status", type=str, default = None, help='Status of running the reduction')
     parser.add_argument("--masks", type=str, nargs='+', help="Specific masks to run on" )
     parser.add_argument("--rms_thresh", type=float, default=0.4)
     parser.add_argument("--wave_cov_thresh", type=float, default=60.0)
@@ -93,9 +95,9 @@ def main():
                'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
                'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
-               'maskdef_extract_count']
+               'maskdef_extract_count', 'date', 'reduce_dir']
 
-    data = Table(names = columns, dtype=['U64', 'U22', 'U40', 'U8'] + [int for x in columns[4:]])
+    data = Table(names = columns, dtype=['U64', 'U22', 'U40', 'U8'] + [int for x in columns[4:-2]] + ['datetime64[D]', 'U20'])
     stbm = SlitTraceBitMask()
     for reduce_path in reduce_paths:
         dataset = reduce_path.parent.relative_to(args.reorg_dir)
@@ -107,9 +109,10 @@ def main():
             data.add_row()
             data[-1]['dataset'] = dataset.parent 
             data[-1]['science_file'] = science_file
-            data[-1]['status'] = 'FAILED'
+            data[-1]['status'] = args.status
             data[-1]['git_commit'] = args.commit
-
+            data[-1]['reduce_dir'] = reduce_path.name
+            data[-1]['date'] = datetime.date.today()
             science_stem = Path(science_file).stem
             spec2d_files = list(science_path.glob(f"spec2d_{science_stem}*.fits"))
             if len(spec2d_files) == 0:
@@ -172,10 +175,10 @@ def main():
                         total_bad_reduce_slits.update(spec2dobj.slits.slitord_id[bad_reduce_slits])
                         bad_chi_slits.update(spec2dobj.slits.slitord_id[chis_out_of_range])
                         all_slit_ids.update(spec2dobj.slits.slitord_id)
-                    data[-1]['status'] = 'COMPLETE'
 
                 except PypeItError:
                     print(f"Failed to load spec2d {spec2d_files[0]}")
+                    data[-1]['status'] = 'FAILED'
 
                 total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
                 bad_slits =  total_bad_coverage | total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits
@@ -217,12 +220,12 @@ def main():
                             data[-1]['obj_rms_over_thresh'] += 1
                 except PypeItError:
                     print(f"Failed to load spec1d {spec1d_file}")
+                    data[-1]['status'] = 'FAILED'
+
 
     data.sort(['status', 'dataset', 'science_file'])
 
     data.write(args.outfile, format='csv', overwrite=True)
-    split_to_csv_tabs(data, Path(args.outfile).parent)
-
 
 
 if __name__ == '__main__':    
