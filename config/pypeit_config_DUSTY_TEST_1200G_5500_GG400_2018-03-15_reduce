@@ -11,7 +11,9 @@
        use_2dmodel_mask = False
        boxcar_radius = 1.0
 
+[flexure]
+   spec_method = skip
+
 [calibrations]
   [[flatfield]]
     saturated_slits = continue
-
