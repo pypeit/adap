@@ -235,10 +235,19 @@ def main():
             if status != 'FAILED':
                 try:
                     for pypeit_file in Path(args.adap_root_dir).rglob("*.pypeit"):
+
+                        # Run PypeIt
                         if run_pypeit_onfile(args, pypeit_file) == 'FAILED':
                             status = 'FAILED'
+
+                        # Find warnings in log file
                         logfile = pypeit_file.parent / "keck_deimos_A.log"
                         run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
+
+                        # Backup any results from an old run
+                        reduce_dir = pypeit_file.parent.parent.name
+                        s3_reduce_dir = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}"
+                        run_script(["aws", "--endpoint", os.environ["ENDPOINT_URL"], "s3", "mv", s3_reduce_dir, s3_reduce_dir + "_old", "--recursive", "--no-progress"])
 
 
                     scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--masks", mask]
@@ -246,6 +255,8 @@ def main():
                         scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 
                     run_script(scorecard_cmd)
+
+
                 except Exception as e:
                     log_message(args, f"Failed processing {dataset}. Exception {e}")
                     status = 'FAILED'

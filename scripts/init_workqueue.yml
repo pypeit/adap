@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
       - args:
-        - apt-get update;  pip install gspread; apt-get install -y git; git clone https://github.com/pypeit/adap.git; cd adap; git checkout work_queue;
+        - apt-get update;  pip install gspread; apt-get install -y git; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
           python scripts/download_work_queue_from_gs.py Scorecard/WorkQueue /work_queue/work_queue.csv
         command:
         - /bin/bash

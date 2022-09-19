@@ -4,7 +4,7 @@ metadata:
   name: adap-reduce-from-queue
 spec:
   backoffLimit: 2
-  parallelism: 1
+  parallelism: 2
   template:
     spec:
       containers:
@@ -27,11 +27,11 @@ spec:
         resources:
           limits:
             cpu: '1'
-            ephemeral-storage: 40Gi
+            ephemeral-storage: 100Gi
             memory: 32Gi
           requests:
             cpu: '1'
-            ephemeral-storage: 40Gi
+            ephemeral-storage: 100Gi
             memory: 32Gi
         volumeMounts:
         - mountPath: /root/.config/gspread/service_account.json
