@@ -132,7 +132,7 @@ def claim_dataset(args, my_pod):
 def run_script(command):
     cp = sp.run(command)
     if cp.returncode != 0:
-        raise RuntimeError(f"Failed to run '{' '.join(command)}'.")
+        raise RuntimeError(f"Failed to run '{' '.join(command)}', return code: {cp.returncode}.")
 
 
 def run_pypeit_onfile(args, file):
@@ -202,6 +202,17 @@ def update_dataset_status(args, dataset, status):
         except Exception as e:
             log_message(args, f"Failed to update scorecard results for {dataset}. Exception {e}")
 
+
+def backup_old_results(args, dataset, reduce_dir):
+    """Back up old results from a previous reduction of this dataset."""
+    log_message(args, f"Backing up old results...")
+    s3_reduce_dir = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}"
+    try:
+        run_script(["aws", "--endpoint", os.environ["ENDPOINT_URL"], "s3", "mv", s3_reduce_dir, s3_reduce_dir + "_old", "--recursive", "--no-progress"])
+    except Exception as e:
+        # If this fails, we still want to continue as we don't want to lose the current results
+        log_message(args, f"Failed to backup results: {e}")
+
 def cleanup(args, dataset):
     """Clean up after running a job and uploading its results"""
     # Clear the log so it doesn't grow forever. upload_results will have uploaded it to S3
@@ -245,9 +256,7 @@ def main():
                         run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
 
                         # Backup any results from an old run
-                        reduce_dir = pypeit_file.parent.parent.name
-                        s3_reduce_dir = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}"
-                        run_script(["aws", "--endpoint", os.environ["ENDPOINT_URL"], "s3", "mv", s3_reduce_dir, s3_reduce_dir + "_old", "--recursive", "--no-progress"])
+                        backup_old_results(args, dataset, pypeit_file.parent.parent.name)
 
 
                     scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--masks", mask]
