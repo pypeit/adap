@@ -15,6 +15,8 @@ import traceback
 import random
 import shutil
 
+import cloudstorage
+
 def log_message(args, msg):
     """Print a message to stdout and to a log file"""
     msg_with_time = datetime.now(timezone.utc).isoformat() + " " + msg
@@ -37,6 +39,16 @@ def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
                 raise
             time.sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
 
+def retry_cloud(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
+
+    for i in range(len(retry_delays)+1):
+        try:
+            return func()
+        except Exception:
+            if i == len(retry_delays):
+                # We've passed the max # of retries, re-reaise the exception
+                raise
+            time.sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
 
 @contextmanager
 def lock_workqueue(work_queue_file):
@@ -90,7 +102,7 @@ def update_gsheet_status(args, dataset, status):
         for i in range(0, len(work_queue)):
             if work_queue[i].strip() == dataset:
                 log_message(args, f"Updating {dataset} status with {status}")
-                retry_gspread_call(lambda: worksheet.update(f"B{i+1}", status))
+                retry_gspread_call(lambda: worksheet.update(f"B{i+1}", status + "-" + os.getenv("POD_NAME", "unknown pod")))
                 found = True
                 break
         if not found:
@@ -206,12 +218,75 @@ def update_dataset_status(args, dataset, status):
 def backup_old_results(args, dataset, reduce_dir):
     """Back up old results from a previous reduction of this dataset."""
     log_message(args, f"Backing up old results...")
-    s3_reduce_dir = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}"
+    s3_reduce_dir = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}/"
+    s3_backup_dir = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}_old/"
+    
     try:
-        run_script(["aws", "--endpoint", os.environ["ENDPOINT_URL"], "s3", "mv", s3_reduce_dir, s3_reduce_dir + "_old", "--recursive", "--no-progress"])
+        for (url, size) in cloudstorage.list_objects(s3_reduce_dir):
+            relative_path = url.removeprefix(s3_reduce_dir)
+            try:
+                retry_cloud(lambda: cloudstorage.copy(url, s3_backup_dir + relative_path))
+            except Exception as e:
+                # If the copy fails, do not do the delete, but still continue on to the next item
+                log_message(args, f"Failed to backup: {url}, error: {e}")
+                continue
+
+            try:
+                retry_cloud(lambda: cloudstorage.delete(url))
+            except Exception as e:
+                # If the copy fails, do not do the delete, but still continue on to the next item
+                log_message(args, f"Failed to remove: {url}, after backup, error: {e}")
+                
     except Exception as e:
         # If this fails, we still want to continue as we don't want to lose the current results
         log_message(args, f"Failed to backup results: {e}")
+
+def download_dataset(args, dataset):
+    dataset_raw_path = f"{dataset}/complete/raw/"
+    local_path = Path(args.adap_root_dir) / dataset_raw_path 
+    remote_source = f"s3://pypeit/adap/raw_data_reorg/{dataset_raw_path}"
+    os.makedirs(local_path, exist_ok=True)
+
+    for (url, size) in cloudstorage.list_objects(remote_source):
+        try:
+            retry_cloud(lambda: cloudstorage.download(url, local_path))
+        except Exception as e:
+            log_message(args, f"Failed to download {url}, error: {e}")
+            raise
+
+def upload_results(args, dataset):
+    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete"
+    dataset_remote_path = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete"
+    dataset_reduce_paths = list(dataset_local_path.glob("reduce*"))
+    failed = False
+    if len(dataset_reduce_paths) == 0:
+        log_message(args, "No reduce results to upload.")
+    else:
+        for reduce_path in dataset_reduce_paths:
+            log_message(args, f"Uploading results in {reduce_path} to {dataset_remote_path}...")
+            for file in reduce_path.rglob('*'):
+                if not file.is_file():
+                    # Skip directories
+                    continue
+    
+                dest = f"{dataset_remote_path}/{reduce_path.name}/{file.relative_to(reduce_path)}"
+    
+                try:
+                    # Use longer retry delays to give results a good chance of beng uploaded
+                    retry_cloud(lambda: cloudstorage.upload(file, dest), retry_delays = [30, 120, 300, 90])
+                except Exception as e:
+                    log_message(args, f"Failed to upload {file}, error: {e}")
+                    failed = True
+
+        # Upload the log for this run
+        log_destfile = dataset_remote_path + "/reduce/" + Path(args.logfile).name
+        log_message(args, f"Uploading log to {log_destfile}.")
+        retry_cloud(lambda: cloudstorage.upload(args.logfile, log_destfile), retry_delays = [30, 120, 300, 90])
+
+
+    if failed:
+        raise RuntimeError("Failed to upload results.")
+
 
 def cleanup(args, dataset):
     """Clean up after running a job and uploading its results"""
@@ -228,16 +303,17 @@ def main():
     parser.add_argument("--logfile", type=str, default="reduce_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--scorecard_max_age", type=int, default=7, help="Max age of items in the scorecard's latest spreadsheet")
+    parser.add_argument("--endpoint_url", type=str, default = os.getenv("ENDPOINT_URL", default="https://s3-west.nrp-nautilus.io"), help="The URL used to access S3. Defaults $ENDPOINT_URL, or the PRP Nautilus external URL.")
     args = parser.parse_args()
     try:
         my_pod = os.environ["POD_NAME"]
-
+        cloudstorage.initialize_cloud_storage("s3://pypeit", args)
         dataset = claim_dataset(args, my_pod)
         while dataset is not None:
             mask = dataset.split("/")[0]
             status = 'COMPLETE'
             try:
-                run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "download_dataset.sh"), args.adap_root_dir, dataset])
+                download_dataset(args, dataset)
                 run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, mask])
             except Exception as e:
                 log_message(args, f"Failed during prepwork for {dataset}. Exception {e}")
@@ -258,6 +334,7 @@ def main():
                         # Backup any results from an old run
                         backup_old_results(args, dataset, pypeit_file.parent.parent.name)
 
+                        run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
 
                     scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--masks", mask]
                     if 'PYPEIT_COMMIT' in os.environ:
@@ -272,7 +349,7 @@ def main():
 
             # Try to upload any results regardless of status
             try:            
-                run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "upload_results.sh"), args.adap_root_dir, dataset, args.logfile])
+                upload_results(args, dataset)
             except Exception as e:
                 log_message(args, f"Failed uploading results for {dataset}. Exception: {e}")
                 status = 'FAILED'
