@@ -5,7 +5,7 @@ import os
 import csv
 import io
 import sys
-from pathlib import Path
+from pathlib import Path, PosixPath
 from contextlib import contextmanager
 import subprocess as sp
 import time
@@ -86,8 +86,8 @@ def update_gsheet_status(args, dataset, status):
     # Note need to retry Google API calls due to rate limits
     source_spreadsheet, source_worksheet = args.gsheet.split('/')
 
-    # This relies on the service json in ~/.config/gspread
-    account = retry_gspread_call(lambda: gspread.service_account())
+    # This relies on a service account json
+    account = retry_gspread_call(lambda: gspread.service_account(filename=args.google_creds))
 
     # Get the spreadsheet from Google sheets
     spreadsheet = retry_gspread_call(lambda: account.open(source_spreadsheet))
@@ -102,7 +102,7 @@ def update_gsheet_status(args, dataset, status):
         for i in range(0, len(work_queue)):
             if work_queue[i].strip() == dataset:
                 log_message(args, f"Updating {dataset} status with {status}")
-                retry_gspread_call(lambda: worksheet.update(f"B{i+1}", status + "-" + os.getenv("POD_NAME", "unknown pod")))
+                retry_gspread_call(lambda: worksheet.update(f"B{i+1}", status))
                 found = True
                 break
         if not found:
@@ -176,7 +176,7 @@ def run_pypeit_onfile(args, file):
         # with stdout and stderr going to a text file, from the directory of the pypeit file, with
         # the environment set to be single threaded
         cp = sp.run(["run_pypeit", file.name, "-o"], stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
-
+        #cp = sp.run(["python", f"{args.adap_root_dir}/adap/scripts/mem_profile_pypeit", str(pypeit_dir / "cloud_develop"), file.name, "-o"], stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
         if cp.returncode != 0:
             log_message(args, f"PypeIt returned non-zero status {cp.returncode}, setting status to FAILED")
             return "FAILED"
@@ -215,24 +215,24 @@ def update_dataset_status(args, dataset, status):
             log_message(args, f"Failed to update scorecard results for {dataset}. Exception {e}")
 
 
-def backup_old_results(args, dataset, reduce_dir):
+def backup_old_results(args, s3_storage, dataset, reduce_dir):
     """Back up old results from a previous reduction of this dataset."""
     log_message(args, f"Backing up old results...")
-    s3_reduce_dir = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}/"
-    s3_backup_dir = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}_old/"
+    s3_reduce_dir = f"pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}/"
+    s3_backup_dir = f"pypeit/adap/raw_data_reorg/{dataset}/complete/old_{reduce_dir}/"
     
     try:
-        for (url, size) in cloudstorage.list_objects(s3_reduce_dir):
+        for (url, size) in s3_storage.list_objects(s3_reduce_dir):
             relative_path = url.removeprefix(s3_reduce_dir)
             try:
-                retry_cloud(lambda: cloudstorage.copy(url, s3_backup_dir + relative_path))
+                retry_cloud(lambda: s3_storage.copy(url, s3_backup_dir + relative_path))
             except Exception as e:
                 # If the copy fails, do not do the delete, but still continue on to the next item
                 log_message(args, f"Failed to backup: {url}, error: {e}")
                 continue
 
             try:
-                retry_cloud(lambda: cloudstorage.delete(url))
+                retry_cloud(lambda: s3_storage.delete(url))
             except Exception as e:
                 # If the copy fails, do not do the delete, but still continue on to the next item
                 log_message(args, f"Failed to remove: {url}, after backup, error: {e}")
@@ -241,22 +241,22 @@ def backup_old_results(args, dataset, reduce_dir):
         # If this fails, we still want to continue as we don't want to lose the current results
         log_message(args, f"Failed to backup results: {e}")
 
-def download_dataset(args, dataset):
+def download_dataset(args, s3_storage, dataset):
     dataset_raw_path = f"{dataset}/complete/raw/"
     local_path = Path(args.adap_root_dir) / dataset_raw_path 
-    remote_source = f"s3://pypeit/adap/raw_data_reorg/{dataset_raw_path}"
+    remote_source = f"pypeit/adap/raw_data_reorg/{dataset_raw_path}"
     os.makedirs(local_path, exist_ok=True)
 
-    for (url, size) in cloudstorage.list_objects(remote_source):
+    for (url, size) in s3_storage.list_objects(remote_source):
         try:
-            retry_cloud(lambda: cloudstorage.download(url, local_path))
+            retry_cloud(lambda: s3_storage.download(url, local_path))
         except Exception as e:
             log_message(args, f"Failed to download {url}, error: {e}")
             raise
 
-def upload_results(args, dataset):
+def upload_results(args, s3_storage, dataset):
     dataset_local_path = Path(args.adap_root_dir) / dataset / "complete"
-    dataset_remote_path = f"s3://pypeit/adap/raw_data_reorg/{dataset}/complete"
+    dataset_remote_path = f"pypeit/adap/raw_data_reorg/{dataset}/complete"
     dataset_reduce_paths = list(dataset_local_path.glob("reduce*"))
     failed = False
     if len(dataset_reduce_paths) == 0:
@@ -273,19 +273,47 @@ def upload_results(args, dataset):
     
                 try:
                     # Use longer retry delays to give results a good chance of beng uploaded
-                    retry_cloud(lambda: cloudstorage.upload(file, dest), retry_delays = [30, 120, 300, 90])
+                    retry_cloud(lambda: s3_storage.upload(file, dest), retry_delays = [30, 120, 300, 90])
                 except Exception as e:
                     log_message(args, f"Failed to upload {file}, error: {e}")
                     failed = True
 
-        # Upload the log for this run
-        log_destfile = dataset_remote_path + "/reduce/" + Path(args.logfile).name
-        log_message(args, f"Uploading log to {log_destfile}.")
-        retry_cloud(lambda: cloudstorage.upload(args.logfile, log_destfile), retry_delays = [30, 120, 300, 90])
-
-
     if failed:
         raise RuntimeError("Failed to upload results.")
+
+def backup_log(args, s3_storage, dataset):
+    # Upload the log for this run
+    log_destfile = f"pypeit/adap/raw_data_reorg/{dataset}/complete/reduce/{Path(args.logfile).name}"
+    log_message(args, f"Uploading log to s3 {log_destfile}.")
+    try:
+        retry_cloud(lambda: s3_storage.upload(args.logfile, log_destfile))
+    except Exception as e:
+        log_message(args, f"Failed to upload log to s3://{log_destfile}, error: {e}")
+
+def backup_logs_to_gdrive(args, gdrive_storage, dataset, reduce_dir):
+    # Upload the logs for this run to Google Drive
+    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete" / reduce_dir / "keck_deimos_A"
+    dataset_gdrive_path = PosixPath("logs") / dataset.replace('/', '_')
+
+    logs_to_backup = [ 'keck_deimos_A.log', 'keck_deimos_A_useful_warns.log', 'run_pypeit_stdout.txt']
+
+    source_files = [ dataset_local_path / log for log in logs_to_backup ]    
+    dest_files = [ dataset_gdrive_path  / (reduce_dir + "_" + log) for log in logs_to_backup]
+
+    if reduce_dir == "reduce":
+        # There's only one reduce_from_queue log, so we only back it up for the default "reduce" dir
+        log_path = Path(args.logfile)
+        source_files.append(log_path)
+        dest_files.append(dataset_gdrive_path /  log_path.name)
+
+    log_message(args, f"Uploading logs to Google Drive.")
+
+    for (source, dest) in zip(source_files, dest_files):
+
+        try:
+            retry_cloud(lambda: gdrive_storage.upload(source, dest), retry_delays = [30, 120, 300, 90])
+        except Exception as e:
+            log_message(args, f"Failed to upload log to Google Drive {dest}, error: {e}")
 
 
 def cleanup(args, dataset):
@@ -297,23 +325,27 @@ def cleanup(args, dataset):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.\n Authentication requres a "service_account.json" file in "~/.config/gspread/".')
+    parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
     parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
     parser.add_argument("--logfile", type=str, default="reduce_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--scorecard_max_age", type=int, default=7, help="Max age of items in the scorecard's latest spreadsheet")
     parser.add_argument("--endpoint_url", type=str, default = os.getenv("ENDPOINT_URL", default="https://s3-west.nrp-nautilus.io"), help="The URL used to access S3. Defaults $ENDPOINT_URL, or the PRP Nautilus external URL.")
+    parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")
     args = parser.parse_args()
+
     try:
         my_pod = os.environ["POD_NAME"]
-        cloudstorage.initialize_cloud_storage("s3://pypeit", args)
+        log_message(args, f"Started on pod {my_pod} and python {sys.implementation}")
+        s3_storage = cloudstorage.initialize_cloud_storage("s3", args.endpoint_url)
+        gdrive_storage = cloudstorage.initialize_cloud_storage("googledrive", args.google_creds)
         dataset = claim_dataset(args, my_pod)
         while dataset is not None:
             mask = dataset.split("/")[0]
             status = 'COMPLETE'
             try:
-                download_dataset(args, dataset)
+                download_dataset(args, s3_storage, dataset)
                 run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, mask])
             except Exception as e:
                 log_message(args, f"Failed during prepwork for {dataset}. Exception {e}")
@@ -332,7 +364,11 @@ def main():
                         run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
 
                         # Backup any results from an old run
-                        backup_old_results(args, dataset, pypeit_file.parent.parent.name)
+                        backup_old_results(args, s3_storage, dataset, pypeit_file.parent.parent.name)
+
+                        backup_log(args, s3_storage, dataset)
+
+                        backup_logs_to_gdrive(args, gdrive_storage, dataset, pypeit_file.parent.parent.name)
 
                         run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
 
@@ -349,7 +385,7 @@ def main():
 
             # Try to upload any results regardless of status
             try:            
-                upload_results(args, dataset)
+                upload_results(args, s3_storage, dataset)
             except Exception as e:
                 log_message(args, f"Failed uploading results for {dataset}. Exception: {e}")
                 status = 'FAILED'

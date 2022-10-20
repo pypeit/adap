@@ -54,7 +54,7 @@ def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
             time.sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
 
 def build_array_from_rows(data_rows):
-    scorecard_dtypes = ['U64', 'U22', 'U40', 'U8'] + [int for x in data_rows[0][4:-2]] + ['datetime64[D]', 'U20']
+    scorecard_dtypes = ['U64', 'U22', 'datetime64[D]', 'U8'] + [int for x in data_rows[0][4:-2]] + ['U40', 'U20']
     scorecard_names = data_rows[0]
     # numpy requires tuples for structured arrays
     scorecard_values = [tuple(x) for x in data_rows[1:]]

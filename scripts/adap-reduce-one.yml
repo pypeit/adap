@@ -1,10 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: adap-reduce-from-queue
+  name: adap-reduce-one
 spec:
   backoffLimit: 2
-  parallelism: 2
+  parallelism: 1
   template:
     spec:
       containers:
@@ -14,10 +14,12 @@ spec:
           pip install awscli boto3 google-api-python-client psutil;  cd /tmp ; git clone https://github.com/pypeit/PypeIt.git; cd PypeIt; 
           git checkout develop; 
           pip install -e '.[dev,pyqt5,bottleneck]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
-          cd /tmp; mkdir adap_root; cd adap_root;
+          cd /tmp; 
+          echo "${DATASET},IN QUEUE" > work_queue.csv;
+          mkdir adap_root; cd adap_root;
           pip install gspread; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
           aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
-          python scripts/reduce_from_queue.py Scorecard/WorkQueue /work_queue/work_queue.csv --adap_root_dir /tmp/adap_root --scorecard_max_age 7;
+          python scripts/reduce_from_queue.py Scorecard/WorkQueue /tmp/work_queue.csv --adap_root_dir /tmp/adap_root --scorecard_max_age 7;
           aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp --no-progress reduce_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log
         command:
         - /bin/bash
@@ -28,17 +30,15 @@ spec:
           limits:
             cpu: '1'
             ephemeral-storage: 50Gi
-            memory: 32Gi
+            memory: 64Gi
           requests:
             cpu: '1'
             ephemeral-storage: 50Gi
-            memory: 32Gi
+            memory: 64Gi
         volumeMounts:
         - mountPath: /root/.config/gspread/service_account.json
           name: gcloud-service-account
           subPath: credentials
-        - mountPath: /work_queue
-          name: work-queue
         - mountPath: /tmp
           name: ephemeral
         - mountPath: /root/.aws/credentials
@@ -57,6 +57,8 @@ spec:
              value: noninteractive
            - name: QT_QPA_PLATFORM
              value: offscreen
+           - name: DATASET
+             value: GNZD1B/830G_9000_OG550/2010-04-13_2010-04-14
       nodeSelector:
         nautilus.io/disktype: nvme
       restartPolicy: Never
@@ -64,9 +66,6 @@ spec:
       - name: gcloud-service-account
         secret:
           secretName: gcloud-service-account
-      - name: work-queue
-        persistentVolumeClaim:
-            claimName: pypeit-adap-work-queue
       - name: prp-s3-credentials
         secret:
           secretName: prp-s3-credentials            

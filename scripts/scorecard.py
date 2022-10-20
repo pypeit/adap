@@ -91,13 +91,13 @@ def main():
                         reduce_paths.append(reduce_path)
 
     
-    columns = ['dataset', 'science_file', 'git_commit', 'status', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
+    columns = ['dataset', 'science_file', 'date', 'status', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
                'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
                'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
-               'maskdef_extract_count', 'date', 'reduce_dir']
+               'maskdef_extract_count', 'git_commit', 'reduce_dir']
 
-    data = Table(names = columns, dtype=['U64', 'U22', 'U40', 'U8'] + [int for x in columns[4:-2]] + ['datetime64[D]', 'U20'])
+    data = Table(names = columns, dtype=['U64', 'U22', 'datetime64[D]', 'U8'] + [int for x in columns[4:-2]] + ['U40', 'U20'])
     stbm = SlitTraceBitMask()
     for reduce_path in reduce_paths:
         dataset = reduce_path.parent.relative_to(args.reorg_dir)
