@@ -4,16 +4,16 @@ metadata:
   name: adap-reduce-from-queue
 spec:
   backoffLimit: 2
-  parallelism: 2
+  parallelism: 1
   template:
     spec:
       containers:
       - name: reduce-worker
         args:
-        - apt-get update;  apt-get install -y qt5-default; 
+        - apt-get update;  
           pip install awscli boto3 google-api-python-client psutil;  cd /tmp ; git clone https://github.com/pypeit/PypeIt.git; cd PypeIt; 
           git checkout develop; 
-          pip install -e '.[dev,pyqt5,bottleneck]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
+          pip install -e '.[dev,bottleneck]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           cd /tmp; mkdir adap_root; cd adap_root;
           pip install gspread; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
           aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;

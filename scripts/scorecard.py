@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os
+import re
 import argparse
 from pathlib import Path
 import datetime
@@ -54,7 +54,35 @@ def split_to_csv_tabs(t, outpath):
             # 'scorecard_C.csv' for single letter ranges
             t[idx].write(outpath / f"scorecard_{f'{range[0]}-{range[1]}' if range[0] != range[1] else range[0]}.csv", overwrite=True)
         
+def get_exec_time(log_file):
+    """
+    Return the execution time (in seconds) from a PypeIt log file.
+    """
+    regex = re.compile("Execution time: (\S.*)$")
 
+    with open(log_file, "r") as f:
+        for line in f:
+            m = regex.search(line)
+            if m is not None:
+                exec_time = m.group(1)
+                days = 0
+                hours = 0
+                minutes = 0
+                seconds = 0
+                for s in exec_time.split():
+                    if s[-1] == "d":
+                        days = int(s[0:-1])
+                    elif s[-1] == "h":
+                        hours = int(s[0:-1])
+                    elif s[-1] == "m":
+                        minutes = int(s[0:-1])
+                    elif s[-1] == "s":
+                        seconds = float(s[0:-1])
+
+                td = datetime.timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+                return round(td.total_seconds())
+                    
+    return 0
 
 
 def main():
@@ -62,12 +90,14 @@ def main():
     parser.add_argument("reorg_dir", type=str, help = "Root of directory structure created by adap_reorg_setup.py")
     parser.add_argument("outfile", type=str, help='Output csv file.')
     parser.add_argument("--commit", type=str, default = "", help='Optional, git commit id for the PypeIt version used')
+    parser.add_argument("--mem", type=int, default=0, help="Optional, The maximum memory usage during the PypeIt reduction.")
     parser.add_argument("--status", type=str, default = None, help='Status of running the reduction')
     parser.add_argument("--masks", type=str, nargs='+', help="Specific masks to run on" )
     parser.add_argument("--rms_thresh", type=float, default=0.4)
     parser.add_argument("--wave_cov_thresh", type=float, default=60.0)
     parser.add_argument("--lower_std_chi", type=float, default=0.6)
     parser.add_argument("--upper_std_chi", type=float, default=1.6)
+    parser.add_argument("--expected_det", type=int, default=4, help="Exected number of detectors to reduce. If fewer are reduced the dataset is considered to be failed.")
 
     args = parser.parse_args()
 
@@ -95,14 +125,20 @@ def main():
                'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
                'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
-               'maskdef_extract_count', 'git_commit', 'reduce_dir']
+               'maskdef_extract_count', 'exec_time', 'mem_usage', 'git_commit', 'reduce_dir']
 
     data = Table(names = columns, dtype=['U64', 'U22', 'datetime64[D]', 'U8'] + [int for x in columns[4:-2]] + ['U40', 'U20'])
     stbm = SlitTraceBitMask()
+    memory_usage = {}
     for reduce_path in reduce_paths:
         dataset = reduce_path.parent.relative_to(args.reorg_dir)
         pypeit_file = str(reduce_path / "keck_deimos_A" / "keck_deimos_A.pypeit")
+        log_path = str(reduce_path / "keck_deimos_A" / "keck_deimos_A.log")
         science_path = reduce_path / "keck_deimos_A" / "Science"
+
+        print(f"Searching {log_path} for execution time...")
+        reduce_exec_time = get_exec_time(log_path)
+
         pf = PypeItFile.from_file(pypeit_file)
         science_idx = pf.data['frametype'] == 'science'
         for science_file in pf.data['filename'][science_idx]:
@@ -133,11 +169,8 @@ def main():
                 total_bad_reduce_slits = set()
                 all_slit_ids = set()
 
-                # only count as bad if it's bad in all dets?
-                # nooooo not quite. Only count as good if it's good in all dets.
-                # should we count good instead of or in additon to bad?
-                # or count as bad if it's bad in any detector
-                # data[science_file] = {x: 0 for x in columns}
+                # Find slits that don't meet the wavelength coverage threshold, the rms threshold, or
+                # that have bits set in the bitmask flags
                 try:
                     allspec2d = AllSpec2DObj.from_fits(spec2d_files[0], chk_version=False)
                     for det in allspec2d.detectors:
@@ -180,6 +213,10 @@ def main():
                     print(f"Failed to load spec2d {spec2d_files[0]}")
                     data[-1]['status'] = 'FAILED'
 
+                # Consider the dataset failed if the expected # of detectors were not reduced
+                if data[-1]['det_count'] != args.expected_det:
+                    data[-1]['status'] = 'FAILED'
+
                 total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
                 bad_slits =  total_bad_coverage | total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits
 
@@ -194,6 +231,8 @@ def main():
                 data[-1]['bad_flat_count'] = len(total_bad_flat_slits)
                 data[-1]['skip_flat_count'] = len(total_skip_flat_slits)
                 data[-1]['bad_reduce_count'] = len(total_bad_reduce_slits)
+                data[-1]['exec_time'] = reduce_exec_time
+                data[-1]['mem_usage'] = args.mem
 
 
             spec1d_files = list(science_path.glob(f"spec1d_{science_stem}*.fits"))

@@ -14,6 +14,7 @@ import gspread
 import traceback
 import random
 import shutil
+import psutil
 
 import cloudstorage
 
@@ -159,7 +160,8 @@ def run_pypeit_onfile(args, file):
             Path of the .pypeit file to run PypeIt on
 
     Returns:
-        Popen : Popen object created when creating the child process to run PypeIt.
+        str : The status of the pypeit run. Either "COMPLETED" or "FAILED".
+        int : The maximum memory used by PypeIt.
     """
        
     pypeit_dir = file.parent
@@ -175,15 +177,40 @@ def run_pypeit_onfile(args, file):
         # Run PypeIt on the pypeit file, using the additional arguments from our command line,
         # with stdout and stderr going to a text file, from the directory of the pypeit file, with
         # the environment set to be single threaded
-        cp = sp.run(["run_pypeit", file.name, "-o"], stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
+        cp = sp.Popen(["run_pypeit", file.name, "-o"], stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
         #cp = sp.run(["python", f"{args.adap_root_dir}/adap/scripts/mem_profile_pypeit", str(pypeit_dir / "cloud_develop"), file.name, "-o"], stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
-        if cp.returncode != 0:
-            log_message(args, f"PypeIt returned non-zero status {cp.returncode}, setting status to FAILED")
-            return "FAILED"
-        else:
-            log_message(args, f"PypeIt returned successful status.")
 
-    return "COMPLETE"
+        returncode = None
+        process = psutil.Process(cp.pid)
+        
+        max_mem = 0
+
+        while returncode is None:
+            # Try to get memory usage information for the child,
+            # ignore errors if we can't
+            try:
+                mem = process.memory_full_info().uss
+                if max_mem < mem:
+                    max_mem = mem
+            except psutil.NoSuchProcess:
+                pass
+            except psutil.AccessDenied:
+                pass
+            # Wait 2 seconds for the child before checking the memory again
+            try:
+                returncode = cp.wait(2)
+            except sp.TimeoutExpired:
+                # Normal, means the child didn't finish within the 2 second timeout
+                pass
+
+    log_message(args, f"PypeIt Max Memory Usage for {file}: {max_mem}")
+    if returncode != 0:
+        log_message(args, f"PypeIt returned non-zero status {returncode}, setting status to FAILED")
+        return "FAILED", max_mem
+    else:
+        log_message(args, f"PypeIt returned successful status.")
+
+    return "COMPLETE", max_mem
 
 
 def update_dataset_status(args, dataset, status):
@@ -356,8 +383,7 @@ def main():
                     for pypeit_file in Path(args.adap_root_dir).rglob("*.pypeit"):
 
                         # Run PypeIt
-                        if run_pypeit_onfile(args, pypeit_file) == 'FAILED':
-                            status = 'FAILED'
+                        status, max_mem = run_pypeit_onfile(args, pypeit_file)
 
                         # Find warnings in log file
                         logfile = pypeit_file.parent / "keck_deimos_A.log"
@@ -372,7 +398,7 @@ def main():
 
                         run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
 
-                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--masks", mask]
+                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem), "--masks", mask]
                     if 'PYPEIT_COMMIT' in os.environ:
                         scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 
@@ -393,7 +419,7 @@ def main():
             update_dataset_status(args, dataset, status)
             
             # Cleanup before moving to the next dataset
-            cleanup(args, dataset)
+            #cleanup(args, dataset)
 
             # Done with this dataset, more to the next
             dataset = claim_dataset(args, my_pod)

@@ -10,7 +10,7 @@ from datetime import date
 import numpy as np
 import gspread
 
-MAX_SCORECARD_COL = 'W'
+MAX_SCORECARD_COL = 'Y'
 def split_to_csv_tabs(t, outpath):
     """Split the score card table into smaller CSVs that will go into tabs in the Google sheet.
        The datasets are split based on the first letter of the mask name, according to ranges 
