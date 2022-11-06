@@ -419,7 +419,7 @@ def main():
             update_dataset_status(args, dataset, status)
             
             # Cleanup before moving to the next dataset
-            #cleanup(args, dataset)
+            cleanup(args, dataset)
 
             # Done with this dataset, more to the next
             dataset = claim_dataset(args, my_pod)
