@@ -9,6 +9,7 @@ from datetime import date
 
 import numpy as np
 import gspread
+from gspread.utils import ValueInputOption
 
 MAX_SCORECARD_COL = 'Y'
 def split_to_csv_tabs(t, outpath):
@@ -133,12 +134,12 @@ def update_worksheet_with_dataset(args, worksheet, worksheet_array, dataset_csv_
 
     next_csv_row = 0
     if insert_rows != 0:
-        retry_gspread_call(lambda: worksheet.insert_rows(convert_array_to_gspread(dataset_csv_array[next_csv_row:next_csv_row+insert_rows]), row=start, value_input_option='USER_ENTERED'))
+        retry_gspread_call(lambda: worksheet.insert_rows(convert_array_to_gspread(dataset_csv_array[next_csv_row:next_csv_row+insert_rows]), row=start, inherit_from_before=True, value_input_option= ValueInputOption.user_entered))
         next_csv_row += insert_rows
         start += insert_rows
     if update_rows != 0:
         range = f'A{start}:{MAX_SCORECARD_COL}{start+update_rows-1}'
-        retry_gspread_call(lambda: worksheet.update(range, convert_array_to_gspread(dataset_csv_array[next_csv_row:next_csv_row+update_rows]), value_input_option='USER_ENTERED'))
+        retry_gspread_call(lambda: worksheet.update(range, convert_array_to_gspread(dataset_csv_array[next_csv_row:next_csv_row+update_rows]), value_input_option=ValueInputOption.user_entered))
         next_csv_row += update_rows
         start += update_rows
     if delete_rows != 0:
