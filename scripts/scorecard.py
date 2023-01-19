@@ -12,6 +12,7 @@ from pypeit.specobjs import SpecObjs
 from pypeit.spec2dobj import AllSpec2DObj
 from pypeit.slittrace import SlitTraceBitMask
 from pypeit.inputfiles import PypeItFile
+from pypeit.par import PypeItPar
 
 def get_1d_std_chis_out_of_range(sobjs, lower_thresh, upper_thresh):
     num_out_of_range = 0
@@ -140,6 +141,15 @@ def main():
         reduce_exec_time = get_exec_time(log_path)
 
         pf = PypeItFile.from_file(pypeit_file)
+
+        # Read the expected # of detectors from the pypeit file, overriding the command line
+        par = PypeItPar.from_cfg_lines(pf.cfg_lines)
+        if par['rdx']['detnum'] is not None:
+            if isinstance(par['rdx']['detnum'], list):
+                args.expected_det = len(par['rdx']['detnum'])
+            else:
+                args.expected_det = 1
+
         science_idx = pf.data['frametype'] == 'science'
         for science_file in pf.data['filename'][science_idx]:
             data.add_row()
@@ -215,6 +225,7 @@ def main():
 
                 # Consider the dataset failed if the expected # of detectors were not reduced
                 if data[-1]['det_count'] != args.expected_det:
+                    print(f"Marking '{data[-1]['science_file']}' as failed. det_count {data[-1]['det_count']} does not match expected {args.expected_det}.")
                     data[-1]['status'] = 'FAILED'
 
                 total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits

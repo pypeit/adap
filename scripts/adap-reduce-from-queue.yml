@@ -15,9 +15,10 @@ spec:
           git checkout develop; 
           pip install -e '.[dev,bottleneck]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           cd /tmp; mkdir adap_root; cd adap_root;
-          pip install gspread; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
+          pip install gspread==5.6.2; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
           aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
           python scripts/reduce_from_queue.py Scorecard/WorkQueue /work_queue/work_queue.csv --adap_root_dir /tmp/adap_root --scorecard_max_age 7;
+          du -sh /tmp >> reduce_from_queue.log; tail -1 reduce_from_queue.log;
           aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp --no-progress reduce_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log
         command:
         - /bin/bash
@@ -27,12 +28,12 @@ spec:
         resources:
           limits:
             cpu: '1'
-            ephemeral-storage: 50Gi
-            memory: 32Gi
+            ephemeral-storage: 40Gi
+            memory: 40Gi
           requests:
             cpu: '1'
-            ephemeral-storage: 50Gi
-            memory: 32Gi
+            ephemeral-storage: 40Gi
+            memory: 40Gi
         volumeMounts:
         - mountPath: /root/.config/gspread/service_account.json
           name: gcloud-service-account
@@ -63,7 +64,7 @@ spec:
       volumes:
       - name: gcloud-service-account
         secret:
-          secretName: gcloud-service-account
+          secretName: adap-scorecard-gcloud
       - name: work-queue
         persistentVolumeClaim:
             claimName: pypeit-adap-work-queue

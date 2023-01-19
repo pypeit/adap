@@ -194,6 +194,10 @@ def read_lines(file):
         lines = [line.rstrip() for line in f]
     return lines
     
+def update_custom_pypeit(complete_path, reduce_dir, pypeit_file):
+    # Update the raw data directory
+    pypeit_file.file_paths = [str(complete_path / "raw")]
+    pypeit_file.write(complete_path / reduce_dir / "keck_deimos_A" / "keck_deimos_A.pypeit")
 
 def main():
     parser = argparse.ArgumentParser(description='Build a trimmed down setup file for ADAP raw data. It assumes the ADAP directory structure.')
@@ -229,21 +233,30 @@ def main():
 
             setup = complete_path.parent.parent.name
             date = complete_path.parent.name
-            tailored_config_files = config_path.glob(f"pypeit_config_{mask}_{setup}_{date}_*")
+            tailored_config_files = config_path.glob(f"{mask}_{setup}_{date}_*")
             reduce_configs= []
             for tailored_config_file in tailored_config_files:
                 reduce_subdir = tailored_config_file.name.split("_")[-1]
                 msgs.info(f"Reading tailored config file: {tailored_config_file}")
-                config_lines = read_lines(tailored_config_file)
-                reduce_configs.append((reduce_subdir, config_lines))
+                if tailored_config_file.suffix == ".ini":
+                    config_lines = read_lines(tailored_config_file)
+                    reduce_configs.append((reduce_subdir, config_lines))
+                else:
+                    # A complete custom .pypeit file
+                    pf = PypeItFile.from_file(tailored_config_file)
+                    reduce_configs.append((reduce_subdir, pf))
 
             if len(reduce_configs) == 0:
                 msgs.info(f"Using default config file.")
                 reduce_configs.append(("reduce", default_config_lines))
 
             for reduce_config in reduce_configs:
-                msgs.info(f"Creating setup for {complete_path/reduce_config[0]}")
-                make_trimmed_setup(complete_path, raw_files_to_exclude, reduce_config[0], reduce_config[1])
+                if isinstance(reduce_config[1], PypeItFile):
+                    msgs.info(f"Updating custom pypeit file for {complete_path/reduce_config[0]}")
+                    update_custom_pypeit(complete_path, reduce_config[0], reduce_config[1])
+                else:
+                    msgs.info(f"Creating setup for {complete_path/reduce_config[0]}")
+                    make_trimmed_setup(complete_path, raw_files_to_exclude, reduce_config[0], reduce_config[1])
 
 
 if __name__ == '__main__':
