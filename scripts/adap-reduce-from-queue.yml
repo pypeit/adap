@@ -10,8 +10,7 @@ spec:
       containers:
       - name: reduce-worker
         args:
-        - apt-get update;  
-          pip install awscli boto3 google-api-python-client psutil;  cd /tmp ; git clone https://github.com/pypeit/PypeIt.git; cd PypeIt; 
+        - pip install awscli boto3 google-api-python-client psutil;  cd /tmp ; git clone https://github.com/pypeit/PypeIt.git; cd PypeIt; 
           git checkout develop; 
           pip install -e '.[dev,bottleneck]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           cd /tmp; mkdir adap_root; cd adap_root;
@@ -23,7 +22,7 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: localhost:30081/profxj/pypeit:latest
+        image: localhost:30081/profxj/pypeit_v1:latest
         imagePullPolicy: Always
         resources:
           limits:

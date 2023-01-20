@@ -195,7 +195,10 @@ def read_lines(file):
     return lines
     
 def update_custom_pypeit(complete_path, reduce_dir, pypeit_file):
-    # Update the raw data directory
+    # Create the destination directory
+    (complete_path / reduce_dir / "keck_deimos_A").mkdir(parents=True, exist_ok=True)
+
+    # Update the raw data directory in the pypeit file
     pypeit_file.file_paths = [str(complete_path / "raw")]
     pypeit_file.write(complete_path / reduce_dir / "keck_deimos_A" / "keck_deimos_A.pypeit")
 
@@ -236,7 +239,7 @@ def main():
             tailored_config_files = config_path.glob(f"{mask}_{setup}_{date}_*")
             reduce_configs= []
             for tailored_config_file in tailored_config_files:
-                reduce_subdir = tailored_config_file.name.split("_")[-1]
+                reduce_subdir = tailored_config_file.stem.split("_")[-1]
                 msgs.info(f"Reading tailored config file: {tailored_config_file}")
                 if tailored_config_file.suffix == ".ini":
                     config_lines = read_lines(tailored_config_file)

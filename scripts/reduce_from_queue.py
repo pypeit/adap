@@ -380,7 +380,7 @@ def main():
 
             if status != 'FAILED':
                 try:
-                    for pypeit_file in Path(args.adap_root_dir).rglob("*.pypeit"):
+                    for pypeit_file in (Path(args.adap_root_dir)/dataset).rglob("*.pypeit"):
 
                         # Run PypeIt
                         status, max_mem = run_pypeit_onfile(args, pypeit_file)
