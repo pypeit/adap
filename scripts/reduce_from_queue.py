@@ -242,27 +242,19 @@ def update_dataset_status(args, dataset, status):
             log_message(args, f"Failed to update scorecard results for {dataset}. Exception {e}")
 
 
-def backup_old_results(args, s3_storage, dataset, reduce_dir):
+def cleanup_old_results(args, s3_storage, dataset, reduce_dir):
     """Back up old results from a previous reduction of this dataset."""
-    log_message(args, f"Backing up old results...")
+    log_message(args, f"Cleaning up old results...")
     s3_reduce_dir = f"pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}/"
-    s3_backup_dir = f"pypeit/adap/raw_data_reorg/{dataset}/complete/old_{reduce_dir}/"
     
     try:
         for (url, size) in s3_storage.list_objects(s3_reduce_dir):
-            relative_path = url.removeprefix(s3_reduce_dir)
-            try:
-                retry_cloud(lambda: s3_storage.copy(url, s3_backup_dir + relative_path))
-            except Exception as e:
-                # If the copy fails, do not do the delete, but still continue on to the next item
-                log_message(args, f"Failed to backup: {url}, error: {e}")
-                continue
 
             try:
                 retry_cloud(lambda: s3_storage.delete(url))
             except Exception as e:
                 # If the copy fails, do not do the delete, but still continue on to the next item
-                log_message(args, f"Failed to remove: {url}, after backup, error: {e}")
+                log_message(args, f"Failed to remove: {url}: {e}")
                 
     except Exception as e:
         # If this fails, we still want to continue as we don't want to lose the current results
@@ -276,7 +268,10 @@ def download_dataset(args, s3_storage, dataset):
 
     for (url, size) in s3_storage.list_objects(remote_source):
         try:
+            start_time = time.time()
             retry_cloud(lambda: s3_storage.download(url, local_path))
+            end_time = time.time()
+            log_message(args, f"Downloaded {url} in {end_time-start_time} s ({float(size*8)/(10**6*(end_time-start_time))} Mb/s)")
         except Exception as e:
             log_message(args, f"Failed to download {url}, error: {e}")
             raise
@@ -342,6 +337,15 @@ def backup_logs_to_gdrive(args, gdrive_storage, dataset, reduce_dir):
         except Exception as e:
             log_message(args, f"Failed to upload log to Google Drive {dest}, error: {e}")
 
+def backup_results_to_gdrive(args, gdrive_storage, dataset, reduce_dir):
+    # Upload the logs for this run to Google Drive
+    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete" / reduce_dir
+    dataset_gdrive_path = PosixPath("backups") / dataset / "complete" / reduce_dir
+
+    log_message(args, f"Uploading results to Google Drive.")
+
+    run_script(['rclone', '--config', Path(args.adap_root_dir) / "adap" / "config" / "rclone.conf", 'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', dataset_local_path, dataset_gdrive_path])
+
 
 def cleanup(args, dataset):
     """Clean up after running a job and uploading its results"""
@@ -389,12 +393,14 @@ def main():
                         logfile = pypeit_file.parent / "keck_deimos_A.log"
                         run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
 
-                        # Backup any results from an old run
-                        backup_old_results(args, s3_storage, dataset, pypeit_file.parent.parent.name)
+                        # Cleanup results from an old run
+                        cleanup_old_results(args, s3_storage, dataset, pypeit_file.parent.parent.name)
 
                         backup_log(args, s3_storage, dataset)
 
                         backup_logs_to_gdrive(args, gdrive_storage, dataset, pypeit_file.parent.parent.name)
+
+                        backup_results_to_gdrive(args, gdrive_storage, dataset, pypeit_file.parent.parent.name)
 
                         run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
 

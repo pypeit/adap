@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: adap-reduce-from-queue
+  name: adap-reduce-from-queue2
 spec:
   backoffLimit: 2
   parallelism: 1
@@ -10,8 +10,8 @@ spec:
       containers:
       - name: reduce-worker
         args:
-        - pip install awscli boto3 google-api-python-client psutil;  cd /tmp ; git clone https://github.com/pypeit/PypeIt.git; cd PypeIt; 
-          git checkout develop; 
+        - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil;  cd PypeIt; git fetch; 
+          git checkout 1.12.1; git pull --ff-only; 
           pip install -e '.[dev,bottleneck]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           cd /tmp; mkdir adap_root; cd adap_root;
           pip install gspread==5.6.2; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
@@ -26,13 +26,13 @@ spec:
         imagePullPolicy: Always
         resources:
           limits:
-            cpu: '1'
+            cpu: '1.5'
             ephemeral-storage: 40Gi
-            memory: 40Gi
+            memory: 48Gi
           requests:
             cpu: '1'
             ephemeral-storage: 40Gi
-            memory: 40Gi
+            memory: 32Gi
         volumeMounts:
         - mountPath: /root/.config/gspread/service_account.json
           name: gcloud-service-account
