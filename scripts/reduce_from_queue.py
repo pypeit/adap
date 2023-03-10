@@ -271,7 +271,7 @@ def download_dataset(args, s3_storage, dataset):
             start_time = time.time()
             retry_cloud(lambda: s3_storage.download(url, local_path))
             end_time = time.time()
-            log_message(args, f"Downloaded {url} in {end_time-start_time} s ({float(size*8)/(10**6*(end_time-start_time))} Mb/s)")
+            log_message(args, f"Downloaded {url} in {end_time-start_time:.2f} s ({float(size*8)/(10**6*(end_time-start_time)):.2f} Mb/s)")
         except Exception as e:
             log_message(args, f"Failed to download {url}, error: {e}")
             raise
@@ -295,7 +295,11 @@ def upload_results(args, s3_storage, dataset):
     
                 try:
                     # Use longer retry delays to give results a good chance of beng uploaded
+                    start_time = time.time()
+                    size = file.stat().st_size
                     retry_cloud(lambda: s3_storage.upload(file, dest), retry_delays = [30, 120, 300, 90])
+                    end_time = time.time()
+                    log_message(args, f"Uploaded {file} in {end_time-start_time:.2f} s ({float(size*8)/(10**6*(end_time-start_time)):.2f} Mb/s)")
                 except Exception as e:
                     log_message(args, f"Failed to upload {file}, error: {e}")
                     failed = True
@@ -340,7 +344,7 @@ def backup_logs_to_gdrive(args, gdrive_storage, dataset, reduce_dir):
 def backup_results_to_gdrive(args, gdrive_storage, dataset, reduce_dir):
     # Upload the logs for this run to Google Drive
     dataset_local_path = Path(args.adap_root_dir) / dataset / "complete" / reduce_dir
-    dataset_gdrive_path = PosixPath("backups") / dataset / "complete" / reduce_dir
+    dataset_gdrive_path = "gdrive:" + str(PosixPath("backups") / dataset / "complete" / reduce_dir)
 
     log_message(args, f"Uploading results to Google Drive.")
 
