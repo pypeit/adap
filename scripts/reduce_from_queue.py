@@ -177,7 +177,7 @@ def run_pypeit_onfile(args, file):
         # Run PypeIt on the pypeit file, using the additional arguments from our command line,
         # with stdout and stderr going to a text file, from the directory of the pypeit file, with
         # the environment set to be single threaded
-        cp = sp.Popen(["run_pypeit", file.name, "-o"], stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
+        cp = sp.Popen(["run_pypeit", file.name] + args.pypeit_args, stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
         #cp = sp.run(["python", f"{args.adap_root_dir}/adap/scripts/mem_profile_pypeit", str(pypeit_dir / "cloud_develop"), file.name, "-o"], stdout=stdout_file, stderr=sp.STDOUT, cwd=pypeit_dir, env=child_env)
 
         returncode = None
@@ -341,14 +341,21 @@ def backup_logs_to_gdrive(args, gdrive_storage, dataset, reduce_dir):
         except Exception as e:
             log_message(args, f"Failed to upload log to Google Drive {dest}, error: {e}")
 
-def backup_results_to_gdrive(args, gdrive_storage, dataset, reduce_dir):
-    # Upload the logs for this run to Google Drive
-    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete" / reduce_dir
-    dataset_gdrive_path = "gdrive:" + str(PosixPath("backups") / dataset / "complete" / reduce_dir)
-
-    log_message(args, f"Uploading results to Google Drive.")
-
-    run_script(['rclone', '--config', Path(args.adap_root_dir) / "adap" / "config" / "rclone.conf", 'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', dataset_local_path, dataset_gdrive_path])
+def backup_results_to_gdrive(args, dataset):
+    # Upload the results for this run to Google Drive
+    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete"
+    dataset_gdrive_path = PosixPath("backups") / dataset / "complete"
+    dataset_reduce_paths = list(dataset_local_path.glob("reduce*"))
+                                          
+    if len(dataset_reduce_paths) == 0:
+        log_message(args, f"No results backup to Google Drive.")
+    else:
+        log_message(args, f"Backing up results to Google Drive.")
+        for reduce_path in dataset_reduce_paths:
+            reduce_folder = reduce_path.name
+            gdrive_dest = "gdrive:" + str(dataset_gdrive_path / reduce_folder)
+            log_message(args, f"Backing up {reduce_path} to {gdrive_dest} .")
+            run_script(['rclone', '--config', Path(args.adap_root_dir) / "adap" / "config" / "rclone.conf", 'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', reduce_path, gdrive_dest])
 
 
 def cleanup(args, dataset):
@@ -368,6 +375,7 @@ def main():
     parser.add_argument("--scorecard_max_age", type=int, default=7, help="Max age of items in the scorecard's latest spreadsheet")
     parser.add_argument("--endpoint_url", type=str, default = os.getenv("ENDPOINT_URL", default="https://s3-west.nrp-nautilus.io"), help="The URL used to access S3. Defaults $ENDPOINT_URL, or the PRP Nautilus external URL.")
     parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")
+    parser.add_argument("pypeit_args", type=str, nargs="*", default=["-o"], help="Arguments to pass to run_pypeit")
     args = parser.parse_args()
 
     try:
@@ -404,8 +412,6 @@ def main():
 
                         backup_logs_to_gdrive(args, gdrive_storage, dataset, pypeit_file.parent.parent.name)
 
-                        backup_results_to_gdrive(args, gdrive_storage, dataset, pypeit_file.parent.parent.name)
-
                         run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
 
                     scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem), "--masks", mask]
@@ -425,6 +431,14 @@ def main():
             except Exception as e:
                 log_message(args, f"Failed uploading results for {dataset}. Exception: {e}")
                 status = 'FAILED'
+
+            # Try to backup results to gdrive
+            try:            
+                backup_results_to_gdrive(args, dataset)
+            except Exception as e:
+                log_message(args, f"Failed backup up results for {dataset}. Exception: {e}")
+                if status != 'FAILED':
+                    status = "WARNING"
 
             update_dataset_status(args, dataset, status)
             
