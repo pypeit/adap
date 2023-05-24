@@ -29,16 +29,33 @@ def log_message(args, msg):
 def clear_log(args):
     os.remove(args.logfile)
 
+def signal_proof_sleep(seconds):
+    # I've noticed the time.sleep() function doesn't alway sleep as long as I want. My theory,
+    # based on the docs, is that some network errors contacting S3/Google Drive cause a signal
+    # which raises an exception. In any event this code make sure that the retries sleep for
+    # the desired # of seconds.
+    start_time = time.time()
+    current_time = start_time
+    while current_time < start_time + seconds:
+        time.sleep(1)
+        current_time = time.time()
+
+
 def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
 
     for i in range(len(retry_delays)+1):
         try:
             return func()
         except gspread.exceptions.APIError as e:
-            if i == len(retry_delays):
+            if i < len(retry_delays):
                 # We've passed the max # of retries, re-reaise the exception
                 raise
-            time.sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
+        except:
+            # an exception type we don't want to retry
+            raise
+        
+        # A failure happened, sleep before retrying
+        signal_proof_sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
 
 def retry_cloud(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
 
@@ -49,7 +66,7 @@ def retry_cloud(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
             if i == len(retry_delays):
                 # We've passed the max # of retries, re-reaise the exception
                 raise
-            time.sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
+            signal_proof_sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
 
 @contextmanager
 def lock_workqueue(work_queue_file):

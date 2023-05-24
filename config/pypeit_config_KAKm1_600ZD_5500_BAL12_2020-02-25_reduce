@@ -17,3 +17,4 @@
 [calibrations]
   [[flatfield]]
     saturated_slits = continue
+    slit_illum_finecorr = False

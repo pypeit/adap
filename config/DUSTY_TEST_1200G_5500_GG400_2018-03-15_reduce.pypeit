@@ -21,7 +21,7 @@
 [calibrations]
     [[flatfield]]
         saturated_slits = continue
-
+        slit_illum_finecorr = False
 # Setup
 setup read
 Setup A:

@@ -55,7 +55,7 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
     target_dir.mkdir(parents=True, exist_ok=True)
 
     # Run setup
-    ps.run(sort_dir=str(target_dir), setup_only=True)
+    ps.run(setup_only=True)
 
     # Remove rows with None, as these cause PypeIt to crash
     rows_with_none = find_none_rows(ps.fitstbl.table)
@@ -172,7 +172,7 @@ def make_trimmed_setup(lcl_path, raw_files_to_exclude, reduce_dir, config_lines)
     # So we update those to group A.
     not_group_a = ps.fitstbl.table['setup'] != 'A'
     ps.fitstbl.table['setup'][not_group_a] = 'A'
-
+    ps.fitstbl.table['calib'][not_group_a] = 0
 
     # Science
     science = ps.fitstbl['frametype'] == 'science'
