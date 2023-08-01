@@ -85,9 +85,8 @@ def run_scorecard_task(args, dataset):
 
 
     # Clean up local data to avoid filling up space.
-    for reduce_path in root_path.rglob("reduce*"):
-        logger.info(f"Cleaning up local copy of {reduce_path}")
-        shutil.rmtree(str(reduce_path))
+    logger.info(f"Cleaning up local copy of {dataset}")
+    shutil.rmtree(str(root_path / dataset))
     
     return 'COMPLETE'
 

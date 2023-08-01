@@ -47,7 +47,7 @@ def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
         try:
             return func()
         except gspread.exceptions.APIError as e:
-            if i < len(retry_delays):
+            if i == len(retry_delays):
                 # We've passed the max # of retries, re-reaise the exception
                 raise
         except:
