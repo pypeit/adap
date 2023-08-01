@@ -239,7 +239,7 @@ class RClonePath():
 
     def _copy(self, source, dest):
         # Run rclone copy with nice looking progress
-        run_script(["rclone", '--config', self.rclone_config,  'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', '--retries-sleep', '60', str(source), str(dest)])
+        run_script(["rclone", '--config', self.rclone_config,  'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', '--retries-sleep', '60s', str(source), str(dest)])
 
     def unlink(self):
         run_script(["rclone", '--config', self.rclone_config,  'delete', str(self)], log_output=True)
