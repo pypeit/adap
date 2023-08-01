@@ -22,71 +22,71 @@ def run_scorecard_task(args, dataset):
     else:
         source_loc = RClonePath(args.rclone_conf, "gdrive", "backups", dataset, "complete")
 
-    reduce_paths = list(source_loc.glob("reduce*"))
-    for reduce_path in reduce_paths:
+    try:
+        reduce_paths = list(source_loc.glob("reduce*"))
+        for reduce_path in reduce_paths:
 
-        # Download the reduce path from s3
-        relative_path = Path(dataset, "complete", reduce_path.path.name)
-        local_path = root_path / relative_path
-        reduce_path.download(local_path)
+            # Download the reduce path from s3
+            relative_path = Path(dataset, "complete", reduce_path.path.name)
+            local_path = root_path / relative_path
+            reduce_path.download(local_path)
 
-    # Make sure there's data to make a scorecard out of
-    if len(reduce_paths) == 0:
-        logger.error(f"No reduce paths found for {dataset}")
-        return "FAILED"
-    
-    # Make sure there's a "reduce" path 
-    scorecard_path = root_path / dataset / "complete" / "reduce"
-    if not scorecard_path.is_dir():
-        logger.error(f"Couldn't find reduce path to place scorecard for {dataset}.")
-        return "FAILED"
-
-    # This process can't fill in all of the data available during reduction.
-    # So if there's a pre-existing scorecard, load it and save those values
-    scorecard_file = scorecard_path / "scorecard.csv"
-    if scorecard_file.exists():
-        orig_scorecard_data = Table.read(scorecard_file, format="csv")
+        # Make sure there's data to make a scorecard out of
+        if len(reduce_paths) == 0:
+            logger.error(f"No reduce paths found for {dataset}")
+            return "FAILED"
         
-        mem_usage = orig_scorecard_data['mem_usage'][0]
-        status = orig_scorecard_data['status'][0]
-        git_commit = orig_scorecard_data['git_commit'][0]
-        date_reduced = orig_scorecard_data['date'][0]
-    else:
-        mem_usage = 0
-        status='COMPLETE'
-        git_commit = None
-        date_reduced = None
-        
-    # Build command, adding the commit if available
-    mask = dataset.split("/")[0]
-    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, str(scorecard_file), "--status", status, "--mem", str(mem_usage), "--masks", mask]
-    if git_commit is not None:
-        scorecard_cmd += ['--commit', git_commit]
+        # Make sure there's a "reduce" path 
+        scorecard_path = root_path / dataset / "complete" / "reduce"
+        if not scorecard_path.is_dir():
+            logger.error(f"Couldn't find reduce path to place scorecard for {dataset}.")
+            return "FAILED"
 
-    if date_reduced is not None:
-        scorecard_cmd += ['--date_reduced', date_reduced]
+        # This process can't fill in all of the data available during reduction.
+        # So if there's a pre-existing scorecard, load it and save those values
+        scorecard_file = scorecard_path / "scorecard.csv"
+        if scorecard_file.exists():
+            orig_scorecard_data = Table.read(scorecard_file, format="csv")
+            
+            mem_usage = orig_scorecard_data['mem_usage'][0]
+            status = orig_scorecard_data['status'][0]
+            git_commit = orig_scorecard_data['git_commit'][0]
+            date_reduced = orig_scorecard_data['date'][0]
+        else:
+            mem_usage = 0
+            status='COMPLETE'
+            git_commit = None
+            date_reduced = None
+            
+        # Build command, adding the commit if available
+        mask = dataset.split("/")[0]
+        scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, str(scorecard_file), "--status", status, "--mem", str(mem_usage), "--masks", mask]
+        if git_commit is not None:
+            scorecard_cmd += ['--commit', git_commit]
 
-    logger.info(f"Running scorecard on {dataset}")
-    run_script(scorecard_cmd)
+        if date_reduced is not None:
+            scorecard_cmd += ['--date_reduced', date_reduced]
 
-    # Upload scorecard output to the same place we downloaded the data from
-    if args.source == "s3":
-        dest_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap", "raw_data_reorg", dataset, "complete", "reduce")
-    else:
-        dest_loc = RClonePath(args.rclone_conf, "gdrive", "backups", dataset, "complete", "reduce")
+        logger.info(f"Running scorecard on {dataset}")
+        run_script(scorecard_cmd)
 
-    for file in scorecard_path.glob("scorecard*.csv"):
-        dest_loc.upload(file)
+        # Upload scorecard output to the same place we downloaded the data from
+        if args.source == "s3":
+            dest_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap", "raw_data_reorg", dataset, "complete", "reduce")
+        else:
+            dest_loc = RClonePath(args.rclone_conf, "gdrive", "backups", dataset, "complete", "reduce")
 
-    # Update the scorecard in google sheets. We set the maximum age to 10,000 because we don't want to change the 
-    # latest tab, as this task doesn't re-run any pypeit reductions anyway.
-    logger.info(f"Updating scorecard spreadsheet on {dataset}")
-    run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), "10000"])
+        for file in scorecard_path.glob("scorecard*.csv"):
+            dest_loc.upload(file)
 
-
-    # Clean up local data to avoid filling up space.
-    logger.info(f"Cleaning up local copy of {dataset}")
-    shutil.rmtree(str(root_path / dataset))
+        # Update the scorecard in google sheets. We set the maximum age to 10,000 because we don't want to change the 
+        # latest tab, as this task doesn't re-run any pypeit reductions anyway.
+        logger.info(f"Updating scorecard spreadsheet on {dataset}")
+        run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), "10000"])
+    finally:
+        # Always clean up local data to avoid filling up space.
+        logger.info(f"Cleaning up local copy of {dataset}")
+        shutil.rmtree(str(root_path / dataset))
     
     return 'COMPLETE'
 
