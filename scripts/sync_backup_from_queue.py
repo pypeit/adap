@@ -3,22 +3,36 @@ import logging
 import sys
 import os
 from pathlib import Path
-
+import shutil
 
 logger = logging.getLogger(__name__)
 
-from astropy.table import Table
-
-from utils import run_task_on_queue, RCloneLocation, run_script
+from utils import init_logging, run_task_on_queue, RClonePath
 
 
 def sync_dataset(args, dataset):
 
-    dataset_relative_path = Path(dataset ,"complete")
-    dataset_local_path = Path(args.adap_root_dir, dataset_relative_path)
-    for file in dataset_local_path.iterdir():
-        run_script(['rclone', '--config', args.rclone_conf, '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', 'sync', str(file),  "gdrive:backups/" + str(dataset_relative_path / file.name)], log_output=True)
+    root_path = Path(args.adap_root_dir)
+    # Download data from s3 to sync
+    source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap", "raw_data_reorg", dataset, "complete")
+    for reduce_path in source_loc.glob("reduce*"):
+
+        # Download the reduce path from s3
+        relative_path = Path(dataset, "complete", reduce_path.path.name)
+        local_path = root_path / relative_path
+        reduce_path.download(local_path)
+
+        # Sync the google drive with the data downloaded from s3        
+        gdrive_path = RClonePath(args.rclone_conf, "gdrive", "backups", relative_path)
+        gdrive_path.sync_from(local_path)
+
+        # Clean up local data to avoid filling up space.
+        logger.info(f"Cleaning up local copy of {local_path}")
+        shutil.rmtree(local_path)
+
     return "COMPLETE"
+
+
 
 def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
@@ -30,12 +44,10 @@ def main():
     parser.add_argument("--rclone_conf", type=str, default = f"{os.environ['HOME']}/.config/rclone/rclone.conf", help="rclone configuration.")
     args = parser.parse_args()
 
+    init_logging(args.logfile)
+
     try:
-        source_loc = RCloneLocation(args, "s3", "{}/complete/reduce*", glob=True)
-        log_backup_loc = RCloneLocation(args, "gdrive", "{}/complete/", glob=False)
-        dest_loc = None
-        backup_loc = None
-        run_task_on_queue(args, sync_dataset, source_loc, dest_loc, backup_loc, cleanup=False, log_backup_loc=log_backup_loc)
+        run_task_on_queue(args, sync_dataset)
     except:
         logger.error("Exception caught in main, exiting",exc_info=True)        
         return 1

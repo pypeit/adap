@@ -7,7 +7,7 @@ import datetime
 from pypeit.pypmsgs import PypeItError
 import numpy as np
 from astropy.stats import mad_std
-from astropy.table import Table
+from astropy.table import Table, vstack
 from pypeit.specobjs import SpecObjs
 from pypeit.spec2dobj import AllSpec2DObj
 from pypeit.slittrace import SlitTraceBitMask
@@ -85,7 +85,6 @@ def get_exec_time(log_file):
                     
     return 0
 
-
 def main():
     parser = argparse.ArgumentParser(description='Build score card for completed pypeit reductions.\nAssumes the directory structure created by adap_reorg_setup.py')
     parser.add_argument("reorg_dir", type=str, help = "Root of directory structure created by adap_reorg_setup.py")
@@ -94,6 +93,7 @@ def main():
     parser.add_argument("--mem", type=int, default=0, help="Optional, The maximum memory usage during the PypeIt reduction.")
     parser.add_argument("--status", type=str, default = None, help='Status of running the reduction')
     parser.add_argument("--masks", type=str, nargs='+', help="Specific masks to run on" )
+    parser.add_argument("--date_reduced", type=datetime.date.fromisoformat, default = datetime.date.today(), help="When the data was reduced. Defaults to today.")
     parser.add_argument("--rms_thresh", type=float, default=0.4)
     parser.add_argument("--wave_cov_thresh", type=float, default=60.0)
     parser.add_argument("--lower_std_chi", type=float, default=0.6)
@@ -121,16 +121,21 @@ def main():
                     if reduce_path.name.startswith('reduce'):
                         reduce_paths.append(reduce_path)
 
-    
+    # Filename and table for writing the bad slit ids
+    outpath = Path(args.outfile)
+    bad_slits_outfile = outpath.parent / (outpath.stem + "_bad_slits" + outpath.suffix)
+    bad_slits_data = Table(names=["slit_id", "spec2d"], dtype=["U11", "U80"])
+
     columns = ['dataset', 'science_file', 'date', 'status', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
                'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
                'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
                'maskdef_extract_count', 'exec_time', 'mem_usage', 'git_commit', 'reduce_dir']
 
+
     data = Table(names = columns, dtype=['U64', 'U22', 'datetime64[D]', 'U8'] + [int for x in columns[4:-2]] + ['U40', 'U20'])
     stbm = SlitTraceBitMask()
-    memory_usage = {}
+
     for reduce_path in reduce_paths:
         dataset = reduce_path.parent.relative_to(args.reorg_dir)
         pypeit_file = str(reduce_path / "keck_deimos_A" / "keck_deimos_A.pypeit")
@@ -158,7 +163,7 @@ def main():
             data[-1]['status'] = args.status
             data[-1]['git_commit'] = args.commit
             data[-1]['reduce_dir'] = reduce_path.name
-            data[-1]['date'] = datetime.date.today()
+            data[-1]['date'] = args.date_reduced
             science_stem = Path(science_file).stem
             spec2d_files = list(science_path.glob(f"spec2d_{science_stem}*.fits"))
             if len(spec2d_files) == 0:
@@ -207,17 +212,20 @@ def main():
                         bad_reduce_slits = np.array([stbm.flagged(x, 'BADREDUCE') for x in spec2dobj.slits.mask])
 
                         # Combine the results for this detector/mosaic with the 
-                        # totals. A set of slitord_id (spat_id)s is used to prevent
+                        # totals. A set of det:slitord_id (spat_id)s is used to prevent
                         # us from counting slits twice per science file
-                        total_bad_coverage.update(spec2dobj.wavesol['SpatID'][nonzero_rms_slits][bad_coverage])
-                        total_bad_slit_rms.update(spec2dobj.wavesol['SpatID'][nonzero_rms_slits][bad_slit_rms])
-                        total_bad_wv_slits.update(spec2dobj.slits.slitord_id[bad_wv_slits])
-                        total_bad_tilt_slits.update(spec2dobj.slits.slitord_id[bad_tilt_slits])
-                        total_bad_flat_slits.update(spec2dobj.slits.slitord_id[bad_flat_slits])
-                        total_skip_flat_slits.update(spec2dobj.slits.slitord_id[skip_flat_slits])
-                        total_bad_reduce_slits.update(spec2dobj.slits.slitord_id[bad_reduce_slits])
-                        bad_chi_slits.update(spec2dobj.slits.slitord_id[chis_out_of_range])
-                        all_slit_ids.update(spec2dobj.slits.slitord_id)
+                        wave_sol_combined_ids = np.array([f"{det}:{spatid}" for spatid in spec2dobj.wavesol['SpatID'][nonzero_rms_slits]])
+                        total_bad_coverage.update(wave_sol_combined_ids[bad_coverage])
+                        total_bad_slit_rms.update(wave_sol_combined_ids[bad_slit_rms])
+
+                        combined_slit_ids = np.array([f"{det}:{spatid}" for spatid in spec2dobj.slits.slitord_id])
+                        total_bad_wv_slits.update(combined_slit_ids[bad_wv_slits])
+                        total_bad_tilt_slits.update(combined_slit_ids[bad_tilt_slits])
+                        total_bad_flat_slits.update(combined_slit_ids[bad_flat_slits])
+                        total_skip_flat_slits.update(combined_slit_ids[skip_flat_slits])
+                        total_bad_reduce_slits.update(combined_slit_ids[bad_reduce_slits])
+                        bad_chi_slits.update(combined_slit_ids[chis_out_of_range])
+                        all_slit_ids.update(combined_slit_ids)
 
                 except PypeItError:
                     print(f"Failed to load spec2d {spec2d_files[0]}")
@@ -230,6 +238,9 @@ def main():
 
                 total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
                 bad_slits =  total_bad_coverage | total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits
+                
+                # Gather the bad_slits for writing out
+                bad_slits_data = vstack((bad_slits_data, Table([list(bad_slits), [science_file] * len(bad_slits)], names=["slit_id", "spec2d"], dtype=["U11", "U80"])), join_type='exact')
 
                 data[-1]['bad_slit_count'] = len(bad_slits)
                 data[-1]['slit_count'] = len(all_slit_ids)
@@ -276,7 +287,7 @@ def main():
     data.sort(['status', 'dataset', 'science_file'])
 
     data.write(args.outfile, format='csv', overwrite=True)
-
+    bad_slits_data.write(str(bad_slits_outfile), format='csv', overwrite=True)
 
 if __name__ == '__main__':    
     main()

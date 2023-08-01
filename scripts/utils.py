@@ -10,48 +10,32 @@ import subprocess as sp
 import time
 import gspread
 import random
-import shutil
-import logging 
+import logging
+import logging.handlers
 from fnmatch import fnmatch
 
 logger = logging.getLogger(__name__)
 
-class LogManager:
-    
-    
-    def __init__(self, logfile):
-        """Sets up logging to logfile and log level, with a mirror of the output going to stderr"""
-        self.logfile = logfile
+def init_logging(logfile):
+    """Sets up logging to logfile and log level, with a mirror of the output going to stderr"""
 
-        # Format for logging to file
-        self.formatter = logging.Formatter(fmt="{levelname:8} {asctime} {message}", style='{')
+    # Format for logging to file
+    formatter = logging.Formatter(fmt="{levelname:8} {asctime} {message}", style='{')
 
-        self.formatter.converter=time.gmtime
-        self.formatter.default_msec_format = "%s.%03d"
+    formatter.converter=time.gmtime
+    formatter.default_msec_format = "%s.%03d"
 
-        # Configure a file handler to write detailed information to the log file
-        self.open()
+    # Configure a file handler to write detailed information to the log file
+    file_handler = logging.handlers.WatchedFileHandler(logfile)
+    file_handler.setLevel("DEBUG")
+    file_handler.setFormatter(formatter)
 
-        # Setup a basic formatter for output to stderr
-        stream_handler = logging.StreamHandler()
-        stream_handler.setLevel("INFO")
-        stream_handler.setFormatter(logging.Formatter())
+    # Setup a basic formatter for output to stderr
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel("INFO")
+    stream_handler.setFormatter(logging.Formatter())
 
-        logger.setLevel("DEBUG")
-        logger.addHandler(stream_handler)
-
-    def close(self):
-        self._file_handler.close()
-        logger.removeHandler(self._file_handler)
-
-    def clear(self):
-        os.unlink(self.logfile)
-
-    def open(self):
-        self._file_handler = logging.FileHandler(self.logfile)
-        self._file_handler.setLevel("DEBUG")
-        self._file_handler.setFormatter(self.formatter)
-        logger.addHandler(self._file_handler)
+    logging.basicConfig(handlers=[stream_handler, file_handler], force=True,  level="DEBUG")
 
 def signal_proof_sleep(seconds):
     # I've noticed the time.sleep() function doesn't alway sleep as long as I want. My theory,
@@ -173,8 +157,13 @@ def claim_dataset(args, my_pod):
 
     return dataset
 
-def run_script(command, capture_output=False, log_output=False):
+def run_script(command, capture_output=False, save_output=None, log_output=False):
     logger.debug(f"Running: '{' '.join(command)}'")
+
+    if save_output is not None:
+        with open(save_output, "w") as f:
+            cp = sp.run(command, stdout=f, stderr=sp.STDOUT, encoding='UTF-8', errors='replace')
+
     if capture_output or log_output:       
         cp = sp.run(command, stdout=sp.PIPE, stderr=sp.STDOUT, encoding='UTF-8', errors='replace')
 
@@ -221,125 +210,123 @@ def update_dataset_status(args, dataset, status):
         except Exception as e:
             logger.error(f"Failed to update scorecard work queue status for {dataset}.", exc_info=True)
 
-
-
-class RCloneLocation():
-    def __init__(self, args, service, path_template, glob=False, recursive=False, exclude=None):
+class RClonePath():
+    def __init__(self, rclone_conf, service, *path_components):
         self.service=service
         if service not in ['s3', 'gdrive']:
             raise ValueError(f"Unknown service {service}")
-        self.path_template = path_template
-        self.glob=glob
-        self.root_dir = Path(args.adap_root_dir)
-        self.cloud_root_dirs = {"s3": "pypeit/adap/raw_data_reorg/",
-                                "gdrive": "backups/"}
-        self.rclone_config = args.rclone_conf
-        self.recursive = recursive
-        self.exclude=exclude
+        self.rclone_config = rclone_conf
 
-    def ls(self, path):
-        paths_to_search = [Path(path)]
+        self.path = Path(*path_components)
+
+    def ls(self, recursive=False):
+        paths_to_search = [self.path]
         combined_results = []
         while len(paths_to_search) != 0:
             path = paths_to_search.pop()
-            results = run_script(["rclone", '--config', self.rclone_config, 'lsf', self.service + ":" + self.cloud_root_dirs[self.service] + str(path)], capture_output=True)
+            results = run_script(["rclone", '--config', self.rclone_config, 'lsf', self.service + ":" + str(path)], capture_output=True)
             for result in results:                    
-                if self.recursive and results.endswith("/"):
+                if recursive and results.endswith("/"):
                     paths_to_search.append(path / result)
-                combined_results.append(path / result)
+                combined_results.append(RClonePath(self.rclone_config, self.service, path, result))
         return combined_results
 
-    def copy(self, source, dest):
+    def glob(self, pattern):
+        return [rp for rp in self.ls(False) if fnmatch(rp.path.name, pattern)]
+
+    def rglob(self, pattern):
+        return [rp for rp in self.ls(True) if fnmatch(rp.path.name, pattern)]
+
+    def _copy(self, source, dest):
         # Run rclone copy with nice looking progress
         run_script(["rclone", '--config', self.rclone_config,  'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', str(source), str(dest)])
 
-    def rm(self, path):
-        run_script(["rclone", '--config', self.rclone_config,  'delete', str(path)], log_output=True)
+    def unlink(self):
+        run_script(["rclone", '--config', self.rclone_config,  'delete', str(self)], log_output=True)
 
+    def download(self, dest):        
+        logger.info(f"Downloading {self} to {dest}")
+        self._copy(self, dest)
 
-    def expand_path_template(self, dataset):
-        expanded_paths = []
-        path = Path(self.path_template.format(dataset))
+    def upload(self, source):
+        logger.info(f"Uploading {source} to {self}")
+        self._copy(source, self)
 
-        if self.glob:
-            pattern = path.name
-            for file in self.ls(path.parent):
-                logger.debug(f"Testing {file.name} against {pattern}")
-                if fnmatch(file.name, pattern):
-                    exclude = False
-                    if self.exclude is not None:
-                        for exclude_pattern in self.exclude:
-                            logger.debug(f"Testing {file.name} against exclude pattern {exclude_pattern}")
-                            if fnmatch(file.name, exclude_pattern):
-                                exclude=True
-                                break
-                    
-                    if not exclude:
-                        expanded_paths.append(file)
+    def sync_from(self, path):
+        logger.info(f"Syncing {self} from {path}")
+        run_script(["rclone", '--config', self.rclone_config,  'sync', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', str(path), str(self)], log_output=True)                
 
+    def __str__(self):
+        return f"{self.service}:{self.path}"
+    
+    def __truediv__(self, other):
+        if isinstance(other, RClonePath):
+            if self.rclone_config != other.rclone_config:
+                raise ValueError("Cannot combine rclone paths with different configurations.")
+            if self.service != other.service:
+                raise ValueError("Cannot combine rclone paths from different services.")
+
+            return RClonePath(self.rclone_config, self.service, self.path, other.path)
         else:
-            expanded_paths.append(path)
-        return expanded_paths
+            return RClonePath(self.rclone_config, self.service, self.path, other)
 
-    def expand_local_path_template(self, dataset):
-        path = Path(self.path_template.format(dataset))
-        if self.glob:
-            if self.recursive:
-                results = list(path.parent.rglob(path.name))
-            else:
-                results = list(path.parent.glob(path.name))
+def backup_task_log(log_manager, backup_loc):
+    # Cleanup the local task log
+    try:
+        log_manager.close()
+        try:
+            backup_loc.upload(log_manager.logfile)
+        except Exception as e:
+            logger.error("Failed to backup task logs", exc_info=True)
+        log_manager.clear()
+        log_manager.open()
+    except Exception as e:
+        logger.error("Failed to clean up and re-initialize task logs.", exc_info=True)
+        # Treat an inability to access/clean up logs as fatal
+        return
+
+
+def run_task_on_queue(args, task):
+
+    try:
+        my_pod = os.environ["POD_NAME"]
+        logger.info(f"Started on pod {my_pod} and python {sys.implementation}")
+
+        dataset = claim_dataset(args, my_pod)
+
+        if args.adap_root_dir is not None:
+            root_dir = Path(args.adap_root_dir)
         else:
-            results = [path]
+            root_dir = Path(".")
+    except Exception as e:
+        logger.error(f"Failed initializing.", exc_info=True)
+        return
 
-        if self.exclude is not None:
-            filtered_results = []
-            for result in results:
-                for exclude_pattern in self.exclude:
-                    exclude=False
-                    if fnmatch(result.name, exclude_pattern):
-                        exclude = True
-                        break
-                if not exclude:
-                    filtered_results.append(result)
-            return filtered_results
-        else:
-            return results
+    # Go through the queue and run the task on each dataset
+    while dataset is not None:
+        status = 'COMPLETE'
 
+        # Run the task
+        try:
+            status = task(args, dataset)
+        except Exception as e:
+            logger.error(f"Failed processing {dataset}.", exc_info=True)
+            status = 'FAILED'
 
-    def download(self, dataset):
+        try:
+            update_dataset_status(args, dataset, status)
+        except Exception as e:
+            logger.error(f"Failed to update dataset status for {dataset} to {status}.", exc_info=True)
         
-        relative_paths = self.expand_path_template(dataset)
-        if len(relative_paths) == 0:
-            logger.warning(f"No data to download for {dataset}")
-            return relative_paths
-        else:        
-            for path in relative_paths:
-                logger.info(f"Downloading {path}")
-                self.copy(self.service + ":" + self.cloud_root_dirs[self.service] + str(path), self.root_dir / path)
 
-            return relative_paths
+        # Done with this dataset, move to the next
+        try:
+            dataset = claim_dataset(args, my_pod)
+        except Exception as e:
+            logger.error("Failed to claim dataset.", exc_info=True)
+            dataset = None
 
-    def cleanup(self, dataset):
-        relative_paths = self.expand_path_template(dataset)
-        if len(relative_paths) == 0:
-            logger.info(f"No data to cleanup for {dataset}")
-        else:
-            for path in relative_paths:
-                logger.info(f"Cleaning up {path}")
-                self.rm(self.service + ":" + self.cloud_root_dirs[self.service] + str(path))
-
-    def upload(self, dataset):
-        relative_paths = self.local_path_template(dataset)
-        if len(relative_paths) == 0:
-            logger.warning(f"No data to upload for {dataset}")
-        else:
-            for path in relative_paths:
-                logger.info(f"Uploading {path}")
-                self.copy(self.root_dir / path, self.service + ":" + self.cloud_root_dirs[self.service] + str(path))
-
-    def upload_file(self, local_path, dest_path):
-        self.copy(str(local_path), self.service + ":" + self.cloud_root_dirs[self.service] + str(dest_path))
-
+"""
 def run_task_on_queue(args, task, source_loc, dest_loc, backup_loc, cleanup, log_backup_loc=None):
 
     try:
@@ -441,3 +428,4 @@ def run_task_on_queue(args, task, source_loc, dest_loc, backup_loc, cleanup, log
         except Exception as e:
             logger.error("Failed to claim dataset.", exc_info=True)
             dataset = None
+"""
