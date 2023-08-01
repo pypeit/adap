@@ -71,10 +71,7 @@ def run_scorecard_task(args, dataset):
         run_script(scorecard_cmd)
 
         # Upload scorecard output to the same place we downloaded the data from
-        if args.source == "s3":
-            dest_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap", "raw_data_reorg", dataset, "complete", "reduce")
-        else:
-            dest_loc = RClonePath(args.rclone_conf, "gdrive", "backups", dataset, "complete", "reduce")
+        dest_loc = RClonePath(args.rclone_conf, "gdrive", "backups", dataset, "complete", "reduce")
 
         for file in scorecard_path.glob("scorecard*.csv"):
             dest_loc.upload(file)
