@@ -8,6 +8,7 @@ race conditions. So the work queue is downloaded into a file in  a persistent vo
 """
 import argparse
 import gspread
+import os
 
 def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.\n Authentication requres a "service_account.json" file in "~/.config/gspread/".')
@@ -22,7 +23,7 @@ def main():
     status_col_name = "B"
     if "@" in source_worksheet:
         source_worksheet, status_col_name = source_worksheet.split('@')
-    status_col = (ord(status_col_name) - ord('A'))+2
+    status_col = (ord(status_col_name) - ord('A'))+1
 
     # This relies on the service json in ~/.config/gspread
     account = gspread.service_account()
@@ -41,7 +42,8 @@ def main():
         start_row = 4
         end_row = len(work_queue_datasets)
 
-        open_mode = "a" if args.refresh else "w"
+        open_mode = "w"
+
         with open(args.dest, open_mode) as f:
             # Note first row will be the title "dataset"
             for i in range(start_row-1, len(work_queue_datasets)):
