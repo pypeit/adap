@@ -16,6 +16,14 @@ def main():
     parser.add_argument('--refresh', default = False, action="store_true", help="Instead of overwriting the existing workqueue, add any new items from the worksheet tab.")
     args = parser.parse_args()
     source_spreadsheet, source_worksheet = args.source.split('/')
+
+    # Allow specifying the column to store status in in the worksheet name
+    # This only works for columns up to 'Z'
+    status_col_name = "B"
+    if "@" in source_worksheet:
+        source_worksheet, status_col_name = source_worksheet.split('@')
+    status_col = ord(status_col_name) - ord('A')
+
     # This relies on the service json in ~/.config/gspread
     account = gspread.service_account()
 
@@ -26,7 +34,7 @@ def main():
     worksheet = spreadsheet.worksheet(source_worksheet)
 
     work_queue_datasets = worksheet.col_values(1)
-    work_queue_status = worksheet.col_values(2)
+    work_queue_status = worksheet.col_values(status_col)
 
     if len(work_queue_datasets) > 1:
         update_values = []
@@ -53,7 +61,7 @@ def main():
                 else:
                     update_values.append([None])
         
-        worksheet.batch_update([{'range': f'B{start_row}:B{end_row}',
+        worksheet.batch_update([{'range': f'{status_col_name}{start_row}:{status_col_name}{end_row}',
                                  'values': update_values}])
 
 

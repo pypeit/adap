@@ -102,6 +102,11 @@ def update_gsheet_status(args, dataset, status):
     # Note need to retry Google API calls due to rate limits
     source_spreadsheet, source_worksheet = args.gsheet.split('/')
 
+    # Allow specifying the column to store status in in the worksheet name
+    status_col = "B"
+    if "@" in source_worksheet:
+        source_worksheet, status_col = source_worksheet.split('@')
+
     # This relies on a service account json
     account = retry_gspread_call(lambda: gspread.service_account(filename=args.google_creds))
 
@@ -118,7 +123,7 @@ def update_gsheet_status(args, dataset, status):
         for i in range(0, len(work_queue)):
             if work_queue[i].strip() == dataset:
                 logger.info(f"Updating {dataset} status with {status}")
-                retry_gspread_call(lambda: worksheet.update(f"B{i+1}", status))
+                retry_gspread_call(lambda: worksheet.update(f"{status_col}{i+1}", status))
                 found = True
                 break
         if not found:
@@ -157,21 +162,21 @@ def claim_dataset(args, my_pod):
 
     return dataset
 
-def run_script(command, capture_output=False, save_output=None, log_output=False):
+def run_script(command, return_output=False, save_output=None, log_output=False):
     logger.debug(f"Running: '{' '.join(command)}'")
 
     if save_output is not None:
         with open(save_output, "w") as f:
             cp = sp.run(command, stdout=f, stderr=sp.STDOUT, encoding='UTF-8', errors='replace')
 
-    if capture_output or log_output:       
+    elif return_output or log_output:       
         cp = sp.run(command, stdout=sp.PIPE, stderr=sp.STDOUT, encoding='UTF-8', errors='replace')
 
         if cp.returncode == 0:
             if log_output:
                 for line in cp.stdout.splitlines():
                     logger.info(line)
-            if capture_output:
+            if return_output:
                 return cp.stdout.splitlines()
     else:
         cp = sp.run(command)
@@ -224,9 +229,9 @@ class RClonePath():
         combined_results = []
         while len(paths_to_search) != 0:
             path = paths_to_search.pop()
-            results = run_script(["rclone", '--config', self.rclone_config, 'lsf', self.service + ":" + str(path)], capture_output=True)
+            results = run_script(["rclone", '--config', self.rclone_config, 'lsf', self.service + ":" + str(path)], return_output=True)
             for result in results:                    
-                if recursive and results.endswith("/"):
+                if recursive and result.endswith("/"):
                     paths_to_search.append(path / result)
                 combined_results.append(RClonePath(self.rclone_config, self.service, path, result))
         return combined_results
