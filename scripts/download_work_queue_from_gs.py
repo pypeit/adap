@@ -22,7 +22,7 @@ def main():
     status_col_name = "B"
     if "@" in source_worksheet:
         source_worksheet, status_col_name = source_worksheet.split('@')
-    status_col = ord(status_col_name) - ord('A')
+    status_col = (ord(status_col_name) - ord('A'))+2
 
     # This relies on the service json in ~/.config/gspread
     account = gspread.service_account()
