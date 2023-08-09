@@ -316,7 +316,7 @@ def run_task_on_queue(args, task):
             status = task(args, dataset)
         except Exception as e:
             logger.error(f"Failed processing {dataset}.", exc_info=True)
-            status = 'FAILED'
+            status = f'FAILED on {my_pod}'
 
         try:
             update_dataset_status(args, dataset, status)

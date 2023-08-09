@@ -25,8 +25,10 @@ def filter_output(source_log, dest_log):
 
 def coadd2d_task(args, observing_config):
 
-    init_logging(args.logfile)
     root_path = Path(args.adap_root_dir)
+    local_config_path = root_path / observing_config
+    coadd2d_output = local_config_path / "2D_Coadd"
+    dest_loc = None
     original_path = Path.cwd()
 
     try:
@@ -36,7 +38,6 @@ def coadd2d_task(args, observing_config):
         else:
             source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap", "raw_data_reorg", observing_config)
 
-        local_config_path = root_path / observing_config
 
         reduce_paths = list(source_loc.rglob("Science"))
         for reduce_path in reduce_paths:
@@ -66,7 +67,6 @@ def coadd2d_task(args, observing_config):
             pass
 
 
-        coadd2d_output = local_config_path / "2D_Coadd"
         logger.info("Creating 2D_Coadd dir")
         coadd2d_output.mkdir(exist_ok=True)    
 
@@ -96,36 +96,53 @@ def coadd2d_task(args, observing_config):
 
         # Run setup
         logger.info(f"Running coadd2d setup on {observing_config}")
-        run_script(setup_2d_command, save_output="pypeit_setup_coadd2d.log")
-
-        # Remove ansi escape code and unwanted log messages from log
-        filter_output("pypeit_setup_coadd2d.log", "pypeit_setup_coadd2d.log.txt")
+        
+        try:
+            run_script(setup_2d_command, save_output="pypeit_setup_coadd2d.log")
+        finally:
+            # Always try to cleanup log
+            if Path("pypeit_setup_coadd2d.log").exists():
+                # Remove ansi escape code and unwanted log messages from log
+                filter_output("pypeit_setup_coadd2d.log", "pypeit_setup_coadd2d.log.txt")
 
         # Run the generated coadd2d files
         for coadd2d_file in coadd2d_output.glob("keck_deimos*.coadd2d"):
             logger.info(f"Running coadd2d file {coadd2d_file.name}")
-            run_script(["pypeit_coadd_2dspec", coadd2d_file.name], save_output=f"{coadd2d_file.stem}.log")
-            filter_output(f"{coadd2d_file.stem}.log", f"{coadd2d_file.stem}.log.txt")
+            try:
+                run_script(["pypeit_coadd_2dspec", coadd2d_file.name], save_output=f"{coadd2d_file.stem}.log")
+            finally:
+                if Path(f"{coadd2d_file.stem}.log").exists():
+                    filter_output(f"{coadd2d_file.stem}.log", f"{coadd2d_file.stem}.log.txt")
 
-        # Remove our logs so they will be restarted
-        if not args.test:
-            # Upload the results
-            logger.info(f"Uploading output to {dest_loc}")
-            dest_loc.upload(coadd2d_output)
-
-            # Upload our logs
-            logger.info(f"Uploading {args.logfile}")
-            dest_loc.upload(args.logfile)
-
-            os.unlink(args.logfile)
     finally:
+        
         # Make sure we return to the original current working directory and cleanup after ourselves.
         os.chdir(original_path)
 
-        # Cleanup local data
+        # Always try to upload results and logs even on failures
+        if not args.test and dest_loc is not None:
+            # Upload the results
+            if coadd2d_output.exists():
+                logger.info(f"Uploading output to {dest_loc}")
+                dest_loc.upload(coadd2d_output)
+
+            # Upload our logs
+            logfile = root_path / args.logfile
+            if logfile.exists():
+                logger.info(f"Uploading {logfile}")
+                dest_loc.upload(logfile)
+
+                # Remove our log file so it doesn't grow too large over the lifetime of the pod
+                logfile.unlink()
+            else:
+                logger.warning(f"Logfile {logfile} does not exist?")
+
+
+        # Cleanup local data to keep the pod storage from growing too large
         if not args.test:
             logger.info(f"Removing local data in {local_config_path}")
             shutil.rmtree(local_config_path,ignore_errors=True)
+
     return "COMPLETE"
 
 def main():
@@ -141,6 +158,7 @@ def main():
     args = parser.parse_args()
 
     try:
+        init_logging(Path(args.adap_root_dir, args.logfile))
         run_task_on_queue(args, coadd2d_task)
     except:
         logger.error("Exception caught in main, exiting",exc_info=True)        
