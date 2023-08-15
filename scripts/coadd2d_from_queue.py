@@ -5,6 +5,9 @@ import os
 from pathlib import Path
 import shutil
 from pypeit import msgs
+from pypeit.spec2dobj import AllSpec2DObj;
+from pypeit.io import fits_open
+from pypeit.spectrographs.util import load_spectrograph
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +25,34 @@ def filter_output(source_log, dest_log):
                 # Use existing pypmsgs code to clean out ansi escape sequences
                 clean_line = msgs._cleancolors(line)
                 dest.write(clean_line)
+
+def get_detectors(spec2d_file):
+    if not spec2d_file.exists():
+        raise ValueError("Could not find a spec2d file to get detectors from")
+    detectors = []
+    # Get the spectrograph to parse mosaics
+    with  fits_open(str(spec2d_file)) as hdul:
+        header = hdul[0].header
+    spectrograph = load_spectrograph(header['PYP_SPEC'])
+    allowed_mosaics = spectrograph.allowed_mosaics
+    all2dspec = AllSpec2DObj.from_fits(str(spec2d_file))
+    logger.info(f"Found detectors {all2dspec.detectors} in {spec2d_file.name}")
+    for detector in all2dspec.detectors:
+        print(detector)
+        if detector.startswith("DET"):
+            detectors.append(str(int(detector[3:])))
+        elif detector.startswith("MSC"):
+            mosaic =  int(detector[3:]) - 1
+            if mosaic < len(allowed_mosaics):
+                detectors.append(",".join([str(det) for det in allowed_mosaics[mosaic]]))
+            else:
+                logger.warning(f"Unrecognized mosaic {detector}, not passing detectors to pypeit_setup_coadd2d")    
+                return []
+        else:
+            logger.warning(f"Unrecognized detector {detector}, not passing detectors to pypeit_setup_coadd2d")
+            return []
+
+    return detectors
 
 def coadd2d_task(args, observing_config):
 
@@ -72,9 +103,14 @@ def coadd2d_task(args, observing_config):
 
         os.chdir(coadd2d_output)
 
-        
         # Build coadd2d setup command
         setup_2d_command = ["pypeit_setup_coadd2d",  "--spat_toler", "20"]
+
+        # Find the first spec2d and get the list of detectors from it
+        spec2d_file = list(local_config_path.rglob("spec2d*.fits"))[0]        
+        detectors = get_detectors(spec2d_file)
+        if len(detectors) > 0:
+            setup_2d_command += ["--det"] + detectors
 
         # Find the science diretories
         sci_dirs = []
