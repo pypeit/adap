@@ -12,6 +12,7 @@ from pypeit.spectrographs.util import load_spectrograph
 logger = logging.getLogger(__name__)
 
 from astropy.table import Table
+import numpy as np
 
 from utils import run_task_on_queue, RClonePath, run_script, init_logging
 
@@ -26,7 +27,7 @@ def filter_output(source_log, dest_log):
                 clean_line = msgs._cleancolors(line)
                 dest.write(clean_line)
 
-def get_detectors(spec2d_file):
+def get_detectors(spec2d_file, bad_slits):
     if not spec2d_file.exists():
         raise ValueError("Could not find a spec2d file to get detectors from")
     detectors = []
@@ -37,8 +38,20 @@ def get_detectors(spec2d_file):
     allowed_mosaics = spectrograph.allowed_mosaics
     all2dspec = AllSpec2DObj.from_fits(str(spec2d_file))
     logger.info(f"Found detectors {all2dspec.detectors} in {spec2d_file.name}")
+
     for detector in all2dspec.detectors:
-        print(detector)
+        # Find out if there are any good slits in this detector
+        excluded_slit_mask = np.array([f'{detector}:{slit_id}' in bad_slits for slit_id in all2dspec[detector].slits.slitord_id ])
+        good_mask = np.logical_not((all2dspec[detector].slits.mask !=0) | excluded_slit_mask)
+        if len(all2dspec[detector].slits.slitord_id[good_mask]) == 0:
+            # Skip this detector, it has no good slits
+            logger.info(f"Skipping {detector} because it has no good slits")
+
+            # Filter out bad_slits that are in this detector, as they don't need to be passed to
+            # pypeit_setup_coadd2d
+            bad_slits = [slit_id for slit_id in bad_slits if slit_id.split(':')[0] != detector]
+            continue
+
         if detector.startswith("DET"):
             detectors.append(str(int(detector[3:])))
         elif detector.startswith("MSC"):
@@ -51,8 +64,8 @@ def get_detectors(spec2d_file):
         else:
             logger.warning(f"Unrecognized detector {detector}, not passing detectors to pypeit_setup_coadd2d")
             return []
-
-    return detectors
+    
+    return detectors, bad_slits
 
 def coadd2d_task(args, observing_config):
 
@@ -106,12 +119,6 @@ def coadd2d_task(args, observing_config):
         # Build coadd2d setup command
         setup_2d_command = ["pypeit_setup_coadd2d",  "--spat_toler", "20"]
 
-        # Find the first spec2d and get the list of detectors from it
-        spec2d_file = list(local_config_path.rglob("spec2d*.fits"))[0]        
-        detectors = get_detectors(spec2d_file)
-        if len(detectors) > 0:
-            setup_2d_command += ["--det"] + detectors
-
         # Find the science diretories
         sci_dirs = []
         for sci_dir in local_config_path.rglob("Science"):
@@ -127,8 +134,17 @@ def coadd2d_task(args, observing_config):
             for slit_id in t['slit_id']:
                 bad_slits.add(slit_id)
 
+        # Find the first spec2d and get the list of detectors from it. The bad_slits are used
+        # to filter out detectors that have no good slits, and any bad slits for skipped detectors
+        # are filtered out of bad_slits
+        spec2d_file = list(local_config_path.rglob("spec2d*.fits"))[0]        
+        detectors, bad_slits = get_detectors(spec2d_file, bad_slits)
+        if len(detectors) > 0:
+            setup_2d_command += ["--det"] + detectors
+
+        # Filter out bad slits for detectors that aren't going to be passed to pypeit_setup_coadd2d
         if len(bad_slits) > 0:
-            setup_2d_command += ["--exclude_slits"] + [str(slit_id) for slit_id in bad_slits]
+            setup_2d_command += ["--exclude_slits"] + list(bad_slits)
 
         # Run setup
         logger.info(f"Running coadd2d setup on {observing_config}")
