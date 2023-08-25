@@ -51,17 +51,23 @@ def get_metadata_reduced(header_keys, file_info):
         
     """
     # Source objects are handled by get_metadata_coadded
-    if isinstance(file_info, tuple) and isinstance(file_info[0], SourceObject):
-        return (None, None)
+    if isinstance(file_info, tuple):
+        if isinstance(file_info[0], SourceObject):
+            # Source objects are handled by get_metadata_coadded
+            return (None, None)
+        elif len(file_info) == 2 and isinstance(file_info[0], Path) and isinstance(file_info[1], Path):
+            # A file that doesn't get a metadata row but should get added to the archive
+            # file_info[0]  is the source root directory, and file_info[1] is the full path to the file
+            return (None, [(file_info[1], get_archive_reldir(file_info[0], file_info[1]))])
 
-    # Anything else should be a tuple of header, spec1d file, spec1d text info file, spec2d file, pypeit file
+    # Anything else should be a tuple of source_root, spec1d path, spec1d text info path, spec2d path, pypeit path
 
     # Place the files in a subdir of the archive based on the observation date
     # This is intended to prevent any one directory from having too many files
-    spec1d_file = file_info[0]
-    header = fits.getheader(spec1d_file,0)
-    subdir_name = get_archive_subdir(header)
-    dest_files = [os.path.join(subdir_name, os.path.basename(x)) if x is not None else None for x in file_info]
+    source_root = file_info[0]
+    spec1d_file = file_info[1]
+    header = fits.getheader(str(spec1d_file),0)
+    dest_files = [None if file is None else get_archive_reldir(source_root,file) for file in file_info[1:]]
 
     # Extract koa id from source image filename in header
     id = extract_id(header)
@@ -69,7 +75,7 @@ def get_metadata_reduced(header_keys, file_info):
     # Build data row, which starts with koaid, filenames within the archvie, + the metadata
     data_row = [id] + dest_files + [None if x not in header else header[x] for x in header_keys]
 
-    return ([data_row], zip(file_info, dest_files))
+    return ([data_row], [(spec1d_file, dest_files[0])])
 
 def get_metadata_coadded(spec1d_header_keys, spec_obj_keys, file_info):
     """
@@ -109,17 +115,21 @@ def get_metadata_coadded(spec1d_header_keys, spec_obj_keys, file_info):
 
     source_object = file_info[0]
     par_file = file_info[1]
+    coadd2d_file = file_info[2]
+    source_root = file_info[3]
 
     # Place the file in a subdir of the archive based on the observation date
     # This is intended to prevent any one directory from having too many files
-    header = fits.getheader(source_object.coaddfile)
-    subdir_name = get_archive_subdir(header)
-    coaddfile = os.path.join(subdir_name, os.path.basename(source_object.coaddfile))
+    header = fits.getheader(str(source_object.coaddfile))
+    coaddfile_dest = get_archive_reldir(source_root, source_object.coaddfile)
+
+    if coadd2d_file is not None:
+        coadd2d_file = get_archive_reldir(source_root, coadd2d_file)
+
     if par_file is not None:
-        par_file_dest_basename =  os.path.splitext(os.path.basename(coaddfile))[0] + "_" + par_file.name
-        par_file_dest = os.path.join(subdir_name, par_file_dest_basename)
-    else:
-        par_file_dest = None
+        par_file = get_archive_reldir(source_root, par_file)
+
+
 
     result_rows = []
     for i in range(len(source_object.spec1d_header_list)):
@@ -138,13 +148,12 @@ def get_metadata_coadded(spec1d_header_keys, spec_obj_keys, file_info):
 
         # Use the MJD in the spec1d file to build it's subdirectory, just like get_metadata_reduced does
         # when the spec1d is added to the archive
-        subdir_name = get_archive_subdir(header)
-        spec1d_filename = os.path.join(subdir_name, os.path.basename(source_object.spec1d_file_list[i]))
+        spec1d_filename = get_archive_reldir(source_root, Path(source_object.spec1d_file_list[i]))
 
         header_data = [header[x] if x in header else None for x in spec1d_header_keys]
-        result_rows.append([coaddfile, par_file_dest] + spec_obj_data + [id, spec1d_filename] + header_data)
+        result_rows.append([coaddfile_dest, coadd2d_file, par_file] + spec_obj_data + [id, spec1d_filename] + header_data)
 
-    return (result_rows, [(source_object.coaddfile, coaddfile), (par_file, par_file_dest)])
+    return (result_rows, [(source_object.coaddfile, coaddfile_dest)])
 
 def extract_id(header):
     """
@@ -179,22 +188,32 @@ def extract_id(header):
         # For non KOA products, we use the filename
         return filename
 
-def get_archive_subdir(header):
+def get_archive_reldir(source_root, source_file):
     """
-    Builds a subdirectory name for a file within the archive based on header keywords.  
+    Builds a relative path name for a file within the archive based on the original source root.
 
     Args:
-        header (:obj:`astropy.io.fits.Header`): FITS header of the file to put into the archive.
+        source_root (:obj:`pathlib.Path`): The root path of the source directory structure. 
+                                           This is removed from the final path.
+        source_file (:obj:`pathlib.Path`): The full path of the source file to be placed in the 
+                                           archive.
 
     Returns:
-        :obj:`str`: Subdirectory under the archive root to place the file.  
+        :obj:`str`: Relative path for the file under he archive root.
     """
-    if 'PROGID' in header and 'SEMESTER' in header:
-        return header['SEMESTER'] + '_' + header['PROGID']
-    else:
-        # If there's not enough information in the header to determine the subdirectory name,
-        # place the file in the root directory
-        return ""
+    relative_src_parts = source_file.relative_to(source_root).parts
+
+    
+    # The first two parts of the path should be the slit mask and observing config, which we keep
+    final_path = Path(*relative_src_parts[0:2])
+
+    # Strip out the extra directories not needed
+    for part in relative_src_parts[2:]:
+        if part in ['complete','reduce']:
+            continue
+        final_path = final_path / part
+    return str(final_path)
+
 
 def find_archvie_files_from_spec1d(args, spec1d_file):
     """
@@ -248,22 +267,16 @@ def find_archvie_files_from_spec1d(args, spec1d_file):
     # A file specified in the config or command line takes precedence. Otherwise search in the parent directory
     # of the spec1d file
     pypeit_file = None
-    if args.pypeit_file is not None:
-        if not os.path.exists(args.pypeit_file):
-            missing_archive_msgs.append(f"Could not archive passed in .pypeit file {args.pypeit_file}, file not found.")
-        else:
-            pypeit_file = args.pypeit_file
-    else:
-        found_pypeit_files = list(spec1d_file.parent.parent.glob("*.pypeit"))
+    found_pypeit_files = list(spec1d_file.parent.parent.glob("*.pypeit"))
 
-        if len(found_pypeit_files) == 0:
-            missing_archive_msgs.append(f'Could not archive matching .pypeit file for {spec1d_file}, file not found.')
-        elif len(found_pypeit_files) > 1:
-            missing_archive_msgs.append(f'Could not archive matching .pypeit file for {spec1d_file}, found more than one file.')
-        else:
-            pypeit_file = found_pypeit_files[0]
+    if len(found_pypeit_files) == 0:
+        missing_archive_msgs.append(f'Could not archive matching .pypeit file for {spec1d_file}, file not found.')
+    elif len(found_pypeit_files) > 1:
+        missing_archive_msgs.append(f'Could not archive matching .pypeit file for {spec1d_file}, found more than one file.')
+    else:
+        pypeit_file = found_pypeit_files[0]
     
-    return str(spec1d_text_file), str(spec2d_file), str(pypeit_file), missing_archive_msgs
+    return spec1d_text_file, spec2d_file, pypeit_file, missing_archive_msgs
 
 def read_coadd_history(header):
     """
@@ -393,8 +406,8 @@ def create_archive(archive_root, copy_to_archive):
     COADDED_SPEC1D_COLUMN_NAMES = ['dispname', 'slmsknam', 'binning', 'mjd', 'airmass', 'exptime','guidfwhm', 'progpi', 'semester', 'progid']
 
     # The SpecObj keys and column names for coadded_files_meta.dat
-    COADDED_SOBJ_KEYS  =        ['MASKDEF_OBJNAME', 'MASKDEF_ID', 'NAME',        'DET', 'RA',    'DEC',    'med_s2n', 'MASKDEF_EXTRACT', 'WAVE_RMS']
-    COADDED_SOBJ_COLUMN_NAMES = ['maskdef_objname', 'maskdef_id', 'pypeit_name', 'det', 'objra', 'objdec', 's2n',     'maskdef_extract', 'wave_rms']
+    COADDED_SOBJ_KEYS  =        ['MASKDEF_OBJNAME', 'MASKDEF_ID', 'NAME',        'DET', 'RA',    'DEC',    'S2N', 'MASKDEF_EXTRACT', 'WAVE_RMS']
+    COADDED_SOBJ_COLUMN_NAMES = ['maskdef_objname', 'maskdef_id', 'pypeit_name', 'det', 'objra', 'objdec', 's2n', 'maskdef_extract', 'wave_rms']
 
     # Create the ArchieMetadata objects for reduced_files_meta and coadded_files_meta
     reduced_names = ['koaid', 'spec1d_file', 'spec1d_info', 'spec2d_file', 'pypeit_file'] + REDUCED_COLUMN_NAMES
@@ -407,7 +420,7 @@ def create_archive(archive_root, copy_to_archive):
     coadded_formats = {'s2n':      '%.2f',
                         'wave_rms': '%.3f'}
 
-    coadded_col_names = ['filename', 'par_file'] + \
+    coadded_col_names = ['coadd1d_filename', 'coadd2d_filename', 'coadd1d_par_file'] + \
                         COADDED_SOBJ_COLUMN_NAMES + \
                         ['source_id', 'spec1d_filename'] + \
                         COADDED_SPEC1D_COLUMN_NAMES
@@ -424,6 +437,49 @@ def create_archive(archive_root, copy_to_archive):
     # Return an archive object with the metadata objects
     return ArchiveDir(archive_root, archive_metadata_list, copy_to_archive=copy_to_archive)
 
+def keep_in_archive(relative_path):
+    path_parts = relative_path.parts
+    # Exclude keck_deimos_A not under "reduce". These probably originate from the original
+    # organizing of raw files
+    for i in range(len(path_parts)):
+        if path_parts[i] == "keck_deimos_A":
+            if i == 0 or path_parts[i-1] !="reduce":
+                return False
+
+    parent = relative_path.parent
+    ext = relative_path.suffix
+    
+    if ext == ".gz":
+        if parent.name == "keck_deimos_A" and relative_path.name == "QA.tar.gz":
+            return True
+        else:
+            if relative_path.name.lower().endswith(".fits.gz"):
+                if parent.name in ['Science', 'Calibrations', '1D_Coadd', 'Science_coadd']:
+                    return True
+    elif ext == ".fits":
+        if parent.name in ['Science', 'Calibrations', '1D_Coadd', 'Science_coadd']:
+            return True
+    elif ext == ".png":
+        if parent.name == 'PNGs' and parent.parent.name == "QA_coadd":
+            return True
+    elif ext == ".par":
+        if parent.name in ["keck_deimos_A", "1D_Coadd", "2D_Coadd"]:
+            return True
+    elif ext in ['.calib', '.pypeit', '.log']:
+        if parent.name == "keck_deimos_A":
+            return True
+    elif ext =='.coadd2d':
+        if parent.name == "2D_Coadd":
+            return True
+    elif ext == '.txt':
+        if parent.name == '1D_Coadd' and relative_path.name == "collate_warnings.txt":
+            return True
+        elif relative_path.name.startswith("spec1d"):
+            return True
+    elif ext == '.dat' and relative_path.name =="collate_report.dat" and parent.name == '1D_Coadd':
+        return True
+        
+    return False
 
 
 
@@ -435,11 +491,8 @@ class ArchiveScript(scriptbase.ScriptBase):
         parser = super().get_parser(description='Create an archive of fits files and metadata for submission to KOA.',
                                     width=width, formatter=scriptbase.SmartFormatter)
 
-        parser.add_argument('archive_dir', type=str, help="Directory to contain the archive.")
-        parser.add_argument('source_dirs', type=str, nargs='*',
-                            help='One or more source directories containing pypeit output to archive.')
-        parser.add_argument('--no_copy', default=False, action='store_true', help="Just create metadata without copying files")
-        parser.add_argument('--pypeit_file', type=str, help="PypeIt file to associate spec1d files. If not specified this script will look in the parent directory of each spec1d file.")
+        parser.add_argument('archive_dir', type=str, help="Directory containing the files being sent to KOA.")
+        parser.add_argument('--copy', type=str, default=None, help="Copy the archive to the given location")
         parser.add_argument('--report', type=str, default="report.txt", help="Location of a report file indicating any missing files. Defaults to report.txt.")
         return parser
 
@@ -448,19 +501,22 @@ class ArchiveScript(scriptbase.ScriptBase):
 
         # Create the archive objects. This will create directories if needed, or open up
         # metadata for files in a pre-existing archive
-        archive = create_archive(args.archive_dir, not args.no_copy)
-
+        if args.copy is not None:
+            dest_archive_root = Path(args.copy)
+            dest_archive_root.mkdir(parents=True, exist_ok=True)
+            copy_to_archive=True
+        else:
+            dest_archive_root = Path(args.archive_dir)
+            copy_to_archive=False
+        archive = create_archive(dest_archive_root, copy_to_archive)
+        source_archive_root = Path(args.archive_dir)
         unrecognized_messages = []
         missing_file_messages = []
         spec1d_map = dict()
         coadded_files = []
-        # Known extensions in pypeit directories that aren't directly read but shouldn't
-        # cause warnings. .txt and .pypeit files will be archived when their associated
-        # spec1d is archived.
-        exts_to_skip = ['.pypeit', '.txt', '.png', '.calib', '.html', '.par', '.dat']
 
         # Recursively scan all of the source directories from the command line arguments
-        dirs_to_scan = list([Path(x) for x in args.source_dirs])
+        dirs_to_scan = [Path(source_archive_root)]
         while len(dirs_to_scan) > 0:
             dir = dirs_to_scan.pop()
             for file in dir.iterdir():
@@ -484,7 +540,7 @@ class ArchiveScript(scriptbase.ScriptBase):
                             if len(messages) > 0:
                                 missing_file_messages.append(messages)
 
-                            archive.add([(str(file), txt_file, spec2d_file, pypeit_file)])
+                            archive.add([(source_archive_root, file, txt_file, spec2d_file, pypeit_file)])
 
                             # Keep a map of spec1d files so we can find them
                             # easily when building the SourceObjects for
@@ -498,39 +554,39 @@ class ArchiveScript(scriptbase.ScriptBase):
 
                             coadded_files.append(file)
                         else:
-                            # Ignore other pypeit files we don't want to archive
-                            pass
+                            if keep_in_archive(file.relative_to(source_archive_root)):
+                                archive.add([(source_archive_root, file)])
+                            else:
+                                unrecognized_messages.append(f"Unrecognized  PypeIt FITS file: {file}")
                     else:
                         unrecognized_messages.append(f"Could not get DMODCLS from FITS file: {file}")
-                elif file.suffix in exts_to_skip:
-                    # Ignore these, they'll be picked up when adding spec1ds to the archive
-                    pass
+                elif keep_in_archive(file.relative_to(source_archive_root)):
+                    archive.add([(source_archive_root, file)])
                 else:
-                    unrecognized_messages.append(f"{file} has an unknown extension")
+                    unrecognized_messages.append(f"{file} is not a file to archive.")
         
-        # Go through the coadded files, use their history to build SourceObjects, and
+        # Go through the coadded files, use their associated collate.dat files to build SourceObjects, and
         # add those to the archive
         spec = load_spectrograph("keck_deimos")
         coadded_file_messages = []
-        for coadded_file in coadded_files:            
+        for coadded_file in coadded_files:
+            source_object = None       
             try:
-                hdr = fits.getheader(coadded_file)
-                spec1d_obj_lists = read_coadd_history(hdr)
-                source_object = None
-                for (spec1d_file, obj_list) in spec1d_obj_lists:
-                    if spec1d_file not in spec1d_map:
-                        coadded_file_messages.append(f"Could not include {coadded_file} in archive because one of its spec1d files: {spec1d_file} was not found in any of the source directories.")
-                        source_object = None
-                        break
-
-                    full_spec1d_file = spec1d_map[spec1d_file]
+                dat_file = coadded_file.with_name("collate_report.dat")
+                collate_report_table = Table.read(str(dat_file), format="ipac")
+                related_rows = collate_report_table['filename'] == coadded_file.name
+                # There will probably only be one object per spec1d file since we mosaic, but I do this
+                # just in case.
+                spec1d_grouped_table = collate_report_table[related_rows].group_by(['spec1d_filename'])
+                for spec1d_group in spec1d_grouped_table.groups:
+                    spec1d_filename = spec1d_group[0]['spec1d_filename']
+                    full_spec1d_file = spec1d_map[spec1d_filename]
                     sobjs = SpecObjs.from_fitsfile(full_spec1d_file)
-                    
-                    for obj_name in obj_list:
+                    for obj_name in spec1d_group['pypeit_name']:
                         sobj = sobjs[sobjs.name_indices(obj_name)][0]
                         if source_object is None:
                             source_object = SourceObject(sobj, sobjs.header, full_spec1d_file, spec, 'ra/dec')
-                            source_object.coaddfile = str(coadded_file)
+                            source_object.coaddfile = coadded_file
                         else:
                             source_object.spec_obj_list.append(sobj)
                             source_object.spec1d_header_list.append(sobjs.header)
@@ -543,11 +599,21 @@ class ArchiveScript(scriptbase.ScriptBase):
 
             if source_object is not None:
                 par_file = coadded_file.parent.joinpath('collate1d.par')
-                if par_file.exists():
-                    archive.add([(source_object, par_file)])
-                else:
+                if not par_file.exists():
                     missing_file_messages.append(f'Could not archive matching collate1d.par file for {coadded_file}.')
-                    archive.add([(source_object, None)])
+                    par_file = None
+                
+                coadd2d_file = None
+                coadd2d_dir = coadded_file.parent.with_name("2D_Coadd")
+                if coadd2d_dir.exists() and coadd2d_dir.is_dir():
+                    coadd2d_files = list((coadd2d_dir / "Science_coadd").rglob("spec2d*.fits")) 
+                    if len(coadd2d_files) >= 1:
+                        if coadd2d_files[0].exists():
+                            coadd2d_file = coadd2d_files[0]
+                if coadd2d_file is None:
+                    missing_file_messages.append(f'Could not archive matching coadd2d file for {coadded_file}.')
+
+                archive.add([(source_object, par_file, coadd2d_file, source_archive_root)])
 
         archive.save()
 
@@ -564,10 +630,9 @@ class ArchiveScript(scriptbase.ScriptBase):
             for msg in missing_file_messages:
                 print(msg, file=f)
 
-        if not args.no_copy:
-            print(f"Copying README to archive root.")
-            script_path = Path(__file__).parent.absolute().joinpath("archive_README")
-            shutil.copy2(script_path, Path(args.archive_dir).joinpath("README"))
+        print(f"Copying README to archive root.")
+        script_path = Path(__file__).parent.absolute().joinpath("archive_README")
+        shutil.copy2(script_path, dest_archive_root.joinpath("README"))
 
 
 
