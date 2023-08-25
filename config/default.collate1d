@@ -1,0 +1,60 @@
+# User-defined coadding and fluxing parameters can be given but are not required
+[coadd1d]
+sigrej_exp = 5
+
+[fluxcalib]
+extinct_correct = True
+
+# User-defined collating parameters
+[collate1d]
+
+# Whether to match using ra/dec sky coordinates or via spatial pixel coordinates on the exposure.
+match_using=ra/dec
+
+# How close two spectra must be in order to be considered the same object.
+# This can be specified in a variety of formats.
+
+# For ra/dec matching, this is an angular distance. For pixel matching it's an
+# integer or floating point number.
+# For example:
+#     3.5      Arcseconds (the default unit)
+#     2m       Arcminutes
+#     0.0003d  Decimal degrees
+#     0d3m4.3s Degrees, arcminutes, arcseconds
+#     1h2m3s   Hours, minutes, seconds
+#     300      Pixel distance
+#
+tolerance = 0.5
+
+# What slit bitmask flags to exclude from the matching.
+# If this list is not empty, each spec1d file to be coadded
+# must have a matching spec2d file.
+
+exclude_slit_trace_bm = BADWVCALIB,BADTILTCALIB,BADFLATCALIB,SKIPFLATCALIB,BADREDUCE
+
+# Exclude SERENDIP objects
+exclude_serendip = True
+
+# Whether to flux calibrate spec1d files using archival senfuncs.
+# Defaults to False
+flux = True
+
+# Whether to perform reference frame correciton on spec1d files.
+# Options can be None, observed,heliocentric,barycentric. Defaults to None.
+#refframe = heliocentric
+
+# Whether to ignore existing flux calibrated data in the spec1ds.
+# Defaults to False. Even when this is False, if the flux calibration data
+# (e.g. OPT_FLAM or BOX_FLAM) is not available the uncalibrated data is coadded.
+#ignore_flux = False
+
+# Exclude any object with a wavelength wave_rms > than this threshold
+wv_rms_thresh = 0.4
+
+# Where to place coadded files and report files. Defaults to
+# current directory.
+#outdir = /work/output
+
+spec1d read
+filename
+spec1d end
