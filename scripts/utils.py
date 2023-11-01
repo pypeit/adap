@@ -8,11 +8,10 @@ from pathlib import Path, PosixPath
 from contextlib import contextmanager
 import subprocess as sp
 import time
-import gspread
+import gspread_utils
 import random
 import logging
 import logging.handlers
-from fnmatch import fnmatch
 
 logger = logging.getLogger(__name__)
 
@@ -36,34 +35,6 @@ def init_logging(logfile):
     stream_handler.setFormatter(logging.Formatter())
 
     logging.basicConfig(handlers=[stream_handler, file_handler], force=True,  level="DEBUG")
-
-def signal_proof_sleep(seconds):
-    # I've noticed the time.sleep() function doesn't alway sleep as long as I want. My theory,
-    # based on the docs, is that some network errors contacting S3/Google Drive cause a signal
-    # which raises an exception. In any event this code make sure that the retries sleep for
-    # the desired # of seconds.
-    start_time = time.time()
-    current_time = start_time
-    while current_time < start_time + seconds:
-        time.sleep(1)
-        current_time = time.time()
-
-
-def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
-
-    for i in range(len(retry_delays)+1):
-        try:
-            return func()
-        except gspread.exceptions.APIError as e:
-            if i == len(retry_delays):
-                # We've passed the max # of retries, re-reaise the exception
-                raise
-        except:
-            # an exception type we don't want to retry
-            raise
-        
-        # A failure happened, sleep before retrying
-        signal_proof_sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
 
 
 @contextmanager
@@ -100,30 +71,21 @@ def lock_workqueue(work_queue_file):
 
 def update_gsheet_status(args, dataset, status):
     # Note need to retry Google API calls due to rate limits
-    source_spreadsheet, source_worksheet = args.gsheet.split('/')
 
-    # Allow specifying the column to store status in in the worksheet name
-    status_col = "B"
-    if "@" in source_worksheet:
-        source_worksheet, status_col = source_worksheet.split('@')
+    spreadsheet, worksheet, status_col = gspread_utils.open_spreadsheet(args.gsheet)
+    if status_col is None:
+        # Default to B if no status column was given
+        status_col = "B"
 
-    # This relies on a service account json
-    account = retry_gspread_call(lambda: gspread.service_account(filename=args.google_creds))
 
-    # Get the spreadsheet from Google sheets
-    spreadsheet = retry_gspread_call(lambda: account.open(source_spreadsheet))
-
-    # Get the worksheet
-    worksheet = retry_gspread_call(lambda: spreadsheet.worksheet(source_worksheet))
-
-    work_queue = retry_gspread_call(lambda: worksheet.col_values(1))
+    work_queue = gspread_utils.retry_gspread_call(lambda: worksheet.col_values(1))
 
     if len(work_queue) > 1:
         found = False
         for i in range(0, len(work_queue)):
             if work_queue[i].strip() == dataset:
                 logger.info(f"Updating {dataset} status with {status}")
-                retry_gspread_call(lambda: worksheet.update(f"{status_col}{i+1}", status))
+                gspread_utils.retry_gspread_call(lambda: worksheet.update(f"{status_col}{i+1}", status))
                 found = True
                 break
         if not found:
@@ -214,66 +176,6 @@ def update_dataset_status(args, dataset, status):
             update_gsheet_status(args, dataset, status)
         except Exception as e:
             logger.error(f"Failed to update scorecard work queue status for {dataset}.", exc_info=True)
-
-class RClonePath():
-    def __init__(self, rclone_conf, service, *path_components):
-        self.service=service
-        if service not in ['s3', 'gdrive']:
-            raise ValueError(f"Unknown service {service}")
-        self.rclone_config = rclone_conf
-
-        self.path = Path(*path_components)
-
-    def ls(self, recursive=False):
-        paths_to_search = [self.path]
-        combined_results = []
-        while len(paths_to_search) != 0:
-            path = paths_to_search.pop()
-            results = run_script(["rclone", '--config', self.rclone_config, 'lsf', self.service + ":" + str(path)], return_output=True)
-            for result in results:                    
-                if recursive and result.endswith("/"):
-                    paths_to_search.append(path / result)
-                combined_results.append(RClonePath(self.rclone_config, self.service, path, result))
-        return combined_results
-
-    def glob(self, pattern):
-        return [rp for rp in self.ls(False) if fnmatch(rp.path.name, pattern)]
-
-    def rglob(self, pattern):
-        return [rp for rp in self.ls(True) if fnmatch(rp.path.name, pattern)]
-
-    def _copy(self, source, dest):
-        # Run rclone copy with nice looking progress
-        run_script(["rclone", '--config', self.rclone_config,  'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', '--retries-sleep', '60s', str(source), str(dest)])
-
-    def unlink(self):
-        run_script(["rclone", '--config', self.rclone_config,  'delete', str(self)], log_output=True)
-
-    def download(self, dest):        
-        logger.info(f"Downloading {self} to {dest}")
-        self._copy(self, dest)
-
-    def upload(self, source):
-        logger.info(f"Uploading {source} to {self}")
-        self._copy(source, self)
-
-    def sync_from(self, path):
-        logger.info(f"Syncing {self} from {path}")
-        run_script(["rclone", '--config', self.rclone_config,  'sync', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', str(path), str(self)], log_output=True)                
-
-    def __str__(self):
-        return f"{self.service}:{self.path}"
-    
-    def __truediv__(self, other):
-        if isinstance(other, RClonePath):
-            if self.rclone_config != other.rclone_config:
-                raise ValueError("Cannot combine rclone paths with different configurations.")
-            if self.service != other.service:
-                raise ValueError("Cannot combine rclone paths from different services.")
-
-            return RClonePath(self.rclone_config, self.service, self.path, other.path)
-        else:
-            return RClonePath(self.rclone_config, self.service, self.path, other)
 
 def backup_task_log(log_manager, backup_loc):
     # Cleanup the local task log

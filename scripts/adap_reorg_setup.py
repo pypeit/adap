@@ -42,29 +42,9 @@ from pypeit.par.pypeitpar import PypeItPar
 from pypeit.pypeitsetup import PypeItSetup
 from pypeit.core.framematch import FrameTypeBitMask
 
-
-from utils import RClonePath
+from metadata_info import config_path_grouping, is_metadata_complete,exclude_pypeit_types
+from rclone import RClonePath
     
-# How the destination config path is grouped. Each element is a directory represented by a subarray. The subarray is the
-# keys used to build the directory name. The keys are stored as a tuple with the name and numpy dtype
-_config_path_grouping = [("decker","<U")], [("dispname","<U"), ("dispangle", "float64"), ("filter1", "<U")]
-
-
-
-def is_metadata_complete(metadata):
-    """Determine if a PypeItMetadata object has enough data to be reduced.
-       For DEIMOS minimum requirements for this are a science frame, a flat frame, and
-       an arc frame.
-    """
-    if len(metadata.table) == 0:
-        # This can happen if all of the files in this directory were removed from the metadata
-        # due to unknown types.
-        return False
-
-    num_science_frames = np.sum(metadata.find_frames('science'))
-    num_flat_frames = np.sum(np.logical_or(metadata.find_frames('pixelflat'), metadata.find_frames('illumflat')))
-    num_arc_frames = np.sum(metadata.find_frames('arc'))
-    return (num_science_frames >= 1 and num_flat_frames >= 1 and num_arc_frames >= 1)
 
 
 def write_to_report(args, msg, exc_info=False):
@@ -205,13 +185,15 @@ def group_by_config(args, spectrograph, local_files):
 
 def read_grouping_metadata(args, spectrograph, local_file):
     """Read metadata from a file needed to group it."""
+    instrument = spectrograph.header_name
     print(f"Getting grouping metadata for {local_file}")
     headarr = spectrograph.get_headarr(str(local_file))
     mjd = spectrograph.get_meta_value(headarr, "mjd", required=True)
     metadata = []
-    for group in _config_path_grouping:
+    for group in config_path_grouping[instrument]:
         group_metadata = []
         for key, dtype in group:
+            # TODO is this the best way to handle dispangle and similar things
             if key == "dispangle" and dtype == "float64":
                 value = round(spectrograph.get_meta_value(headarr, key, required=True))
             else:
@@ -275,13 +257,13 @@ class ReorgSetup(scriptbase.ScriptBase):
                                                 'pypeit_setup on them.',
                                     width=width, formatter=scriptbase.SmartFormatter)
 
+        parser.add_argument('spectrograph_name', type=str, help="The name of the spectrograph that created the raw data.")
         parser.add_argument('out_dir', type=str, help="Output directory where the organized directry tree of files will be created.")
         parser.add_argument('source_dirs', type=str, nargs='+', help="One or more source directories containing raw data files.")
         parser.add_argument('--source', type=str, default="local", choices=["local","s3", "gdrive"], help='The source cloud where the are stored, or "local" for a files on the local system.')
         parser.add_argument('--dest', type=str, default="local", choices=["local","s3", "gdrive"], help='The cloud the files will be are copied to, or "local" for the local system.')
         parser.add_argument('--date_window', type=float, default=3.0, help="How long a time range to use when grouping files. Measured in days. Defaults to 3 days.")
         parser.add_argument('--move_files', default=False, action="store_true", help="Whether or not to move the files from their original location instead of copying. Defaults to false.")
-        parser.add_argument('--spectrograph_name', type=str, default='keck_deimos', help="The name of the spectrograph that created the raw data. Defaults to keck_deimos.")
         parser.add_argument('--symlink', default=False, action="store_true", help="Use symlinks instead of copying files. Both the source and destination must be on the local machine.")
         parser.add_argument('--local_out', type=Path, default=Path("adap_setup_tmp"), help="A temporary directory used when working with files onthe cloud. Defaults to 'adap_setup_tmp'.")
         parser.add_argument('--report', type=str, default="reorg_report_file.txt", help="Name of the report file to create detailing any issues that occurred when running this script. Defaults to 'reorg_report_file.txt'.")
@@ -292,6 +274,7 @@ class ReorgSetup(scriptbase.ScriptBase):
     def main(args):
         start_time = datetime.datetime.now()
         spectrograph = load_spectrograph(args.spectrograph_name)
+        instrument = spectrograph.header_name
         cfg_lines = ['[rdx]', 'ignore_bad_headers = True', f'spectrograph = {args.spectrograph_name}']
         default_cfg = spectrograph.default_pypeit_par().to_config()
         par = PypeItPar.from_cfg_lines(cfg_lines=default_cfg, merge_with=cfg_lines)
@@ -322,18 +305,25 @@ class ReorgSetup(scriptbase.ScriptBase):
                 # Determine if the date group is "complete" to decide on the destination path name
                 metadata = PypeItMetaData(spectrograph, par, files=date_group.local_files)
                 metadata.get_frame_types(flag_unknown=True)
-                complete_str = "complete" if is_metadata_complete(metadata) else "incomplete"
+                is_complete, file_counts = is_metadata_complete(metadata,instrument)
+                complete_str = "complete" if  is_complete else "incomplete"
+                if not is_complete:
+                    write_to_report(args, f"Incomplete dataset {config_path / date_group.get_dir_name()} files: {file_counts}")
+
                 dest_path = config_path / date_group.get_dir_name() / complete_str / "raw"
-                # Exclude bias frames for DEIMOS data.
-                excluded_types = FrameTypeBitMask().flagged(metadata['framebit'],['bias'])
+                # Exclude any frames appropriate for this instrument
+                if len(exclude_pypeit_types[instrument]) > 0:
+                    excluded_types = FrameTypeBitMask().flagged(metadata['framebit'],exclude_pypeit_types[instrument])
+                else:
+                    excluded_types = np.zeros_like(metadata['framebit'],dtype=bool)
                 # Also exclude unknown types
                 unknown_types = [True if filename.startswith("#") else False for filename in metadata['filename']]
                 excluded_rows = np.logical_or(excluded_types, unknown_types)
                 rows_to_transfer = np.logical_not(excluded_rows)
-                for row in metadata[excluded_rows]:
-                    write_to_report(args,f"Excluding {row['frametype']} file {row['directory']}/{row['filename']}")
+                for row in metadata[excluded_types]:
+                    write_to_report(args,f"Excluding {row['frametype']} file {row['directory']}/{row['filename']} for instrument {instrument}")
                 for row in metadata[unknown_types]:
-                    write_to_report(args,f"Excluding unknown type file {row['directory']}/{row['filename'].replace('# ','')}")
+                    write_to_report(args,f"Excluding unknown type file {row['directory']}/{row['filename'].replace('# ','')} for instrument {instrument}")
                 for row in metadata[rows_to_transfer]:
                     transfer_file(args, f"{row['directory']}/{row['filename']}", dest_path)
 
