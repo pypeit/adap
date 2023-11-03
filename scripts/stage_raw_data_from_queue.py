@@ -62,7 +62,7 @@ def stage_task(args, observing_config):
         if not local_reorg_contents.exists():
             reorg_contents.download(root_path)
 
-        instrument = config_path.parents[-2].name # -1 is ".", -2 is the first directory
+        instrument = list(config_path.parents)[-2].name # -1 is ".", -2 is the first directory
         raw_files = list(parse_reorg_contents(local_reorg_contents, observing_config))
         if len(raw_files) == 0:
             raise ValueError(f"No raw files found for {observing_config}")
@@ -79,10 +79,6 @@ def stage_task(args, observing_config):
         logger.info("Downloading files from KOA")
         Koa.download(str(raw_files_koa_metadata), "csv", str(local_config_path), calibfile=0)
 
-        logger.info(f"Uploading files to {dest_loc}")
-        # Note KOA puts files into a "lev0" directory
-        dest_raw_data_path.upload(local_config_path / "lev0")
-
 
 
     finally:
@@ -91,8 +87,9 @@ def stage_task(args, observing_config):
         if not args.test and dest_loc is not None:
             # Upload the results
             if local_config_path.exists():
-                logger.info(f"Uploading output to {dest_loc}")
-                dest_raw_data_path.upload(local_config_path)
+                # Note KOA puts files into a "lev0" directory
+                logger.info(f"Uploading files to {dest_loc}")
+                dest_raw_data_path.upload(local_config_path / "lev0")
 
             # Upload our logs
             logfile = root_path / args.logfile

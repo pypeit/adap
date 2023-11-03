@@ -194,10 +194,12 @@ def read_grouping_metadata(args, spectrograph, local_file):
         group_metadata = []
         for key, dtype in group:
             # TODO is this the best way to handle dispangle and similar things
+            value = spectrograph.get_meta_value(headarr, key, required=True)
             if key == "dispangle" and dtype == "float64":
-                value = round(spectrograph.get_meta_value(headarr, key, required=True))
-            else:
-                value = spectrograph.get_meta_value(headarr, key, required=True)
+                value = round(value)
+            elif key "binning" and isinstance(value,str):
+                # The comma causes some issues in the directory name, so replace with an x
+                value = value.replace(",", "x")
             group_metadata.append(str(value))
         metadata.append(group_metadata)
     
@@ -300,7 +302,7 @@ class ReorgSetup(scriptbase.ScriptBase):
         # The string is formatted as a relative directory path
         groups = group_files(args, spectrograph, local_files)
         for config_dir in groups.keys():
-            config_path = dest_root / config_dir
+            config_path = instrument / dest_root / config_dir
             for date_group in groups[config_dir]:
                 # Determine if the date group is "complete" to decide on the destination path name
                 metadata = PypeItMetaData(spectrograph, par, files=date_group.local_files)

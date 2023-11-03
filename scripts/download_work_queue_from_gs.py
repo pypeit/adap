@@ -53,7 +53,7 @@ def main():
                 else:
                     update_values.append([None])
         
-        worksheet.batch_update([{'range': f'{status_col_name}{start_row}:{status_col_name}{end_row}',
+        worksheet.batch_update([{'range': f'{col_name}{start_row}:{col_name}{end_row}',
                                  'values': update_values}])
 
 

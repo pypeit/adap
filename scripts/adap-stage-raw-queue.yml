@@ -14,7 +14,7 @@ spec:
           cd /tmp; mkdir adap_root; cd adap_root;
           pip install gspread; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2020;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
-          python scripts/stage_raw_data_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard2020/WorkQueue@B" /work_queue/work_queue.csv s3
+          python scripts/stage_raw_data_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue@B" /work_queue/work_queue.csv s3
         command:
         - /bin/bash
         - -c
