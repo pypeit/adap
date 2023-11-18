@@ -197,7 +197,7 @@ def read_grouping_metadata(args, spectrograph, local_file):
             value = spectrograph.get_meta_value(headarr, key, required=True)
             if key == "dispangle" and dtype == "float64":
                 value = round(value)
-            elif key "binning" and isinstance(value,str):
+            elif key == "binning" and isinstance(value,str):
                 # The comma causes some issues in the directory name, so replace with an x
                 value = value.replace(",", "x")
             group_metadata.append(str(value))
@@ -255,13 +255,13 @@ class ReorgSetup(scriptbase.ScriptBase):
     def get_parser(cls, width=None):
 
         parser = super().get_parser(description='Organize raw data files into directories '
-                                                'based on configuration keys and date and run '
-                                                'pypeit_setup on them.',
+                                                'based on configuration keys.',
                                     width=width, formatter=scriptbase.SmartFormatter)
 
         parser.add_argument('spectrograph_name', type=str, help="The name of the spectrograph that created the raw data.")
         parser.add_argument('out_dir', type=str, help="Output directory where the organized directry tree of files will be created.")
         parser.add_argument('source_dirs', type=str, nargs='+', help="One or more source directories containing raw data files.")
+        parser.add_argument('--matching_file_list', type=Path, default=None, help='A list of science files matching desired targets. Only datasets containing these files will be transferred.')
         parser.add_argument('--source', type=str, default="local", choices=["local","s3", "gdrive"], help='The source cloud where the are stored, or "local" for a files on the local system.')
         parser.add_argument('--dest', type=str, default="local", choices=["local","s3", "gdrive"], help='The cloud the files will be are copied to, or "local" for the local system.')
         parser.add_argument('--date_window', type=float, default=3.0, help="How long a time range to use when grouping files. Measured in days. Defaults to 3 days.")
@@ -275,6 +275,15 @@ class ReorgSetup(scriptbase.ScriptBase):
     @staticmethod
     def main(args):
         start_time = datetime.datetime.now()
+
+        if args.matching_file_list is not None:
+            matching_files = Table(dtype=[('filename', 'U')])
+            with open(args.matching_file_list, "r") as f:
+                for line in f:
+                    matching_files.add_row([line.strip()])
+        else:
+            matching_files = None
+
         spectrograph = load_spectrograph(args.spectrograph_name)
         instrument = spectrograph.header_name
         cfg_lines = ['[rdx]', 'ignore_bad_headers = True', f'spectrograph = {args.spectrograph_name}']
@@ -307,6 +316,20 @@ class ReorgSetup(scriptbase.ScriptBase):
                 # Determine if the date group is "complete" to decide on the destination path name
                 metadata = PypeItMetaData(spectrograph, par, files=date_group.local_files)
                 metadata.get_frame_types(flag_unknown=True)
+                unknown_types = [True if filename.startswith("#") else False for filename in metadata['filename']]                
+                if matching_files is not None:
+                    intersection =  np.intersect1d(metadata['filename'], matching_files['filename'])
+                    if len(intersection) == 0:
+                        # Skip this group
+                        write_to_report(args, f"Skipping dataset {config_path / date_group.get_dir_name()} as it does not contain one of the desired science files.")
+                        continue
+                    else:
+                        # Keep track of out any science frame not in the intersection
+                        sci_indx = metadata.find_frames("science")
+                        non_matcing_sci_indx = np.logical_and(np.isin(metadata['filename'], intersection, invert=True), sci_indx)
+                else:
+                    non_matcing_sci_indx = np.zeros_like(metadata['filename'], dtype=bool)
+
                 is_complete, file_counts = is_metadata_complete(metadata,instrument)
                 complete_str = "complete" if  is_complete else "incomplete"
                 if not is_complete:
@@ -319,15 +342,18 @@ class ReorgSetup(scriptbase.ScriptBase):
                 else:
                     excluded_types = np.zeros_like(metadata['framebit'],dtype=bool)
                 # Also exclude unknown types
-                unknown_types = [True if filename.startswith("#") else False for filename in metadata['filename']]
+                
                 excluded_rows = np.logical_or(excluded_types, unknown_types)
+                excluded_rows = np.logical_or(excluded_rows, non_matcing_sci_indx)
                 rows_to_transfer = np.logical_not(excluded_rows)
                 for row in metadata[excluded_types]:
                     write_to_report(args,f"Excluding {row['frametype']} file {row['directory']}/{row['filename']} for instrument {instrument}")
                 for row in metadata[unknown_types]:
                     write_to_report(args,f"Excluding unknown type file {row['directory']}/{row['filename'].replace('# ','')} for instrument {instrument}")
-                for row in metadata[rows_to_transfer]:
-                    transfer_file(args, f"{row['directory']}/{row['filename']}", dest_path)
+                for row in metadata[non_matcing_sci_indx]:
+                    write_to_report(args,f"Excluding not-matching {row['frametype']} file {row['directory']}/{row['filename']} for instrument {instrument}.")
+                for row in metadata[rows_to_transfer]:                    
+                    transfer_file(args, f"{row['directory']}/{row['filename']}", dest_root / dest_path)
 
         end_time = datetime.datetime.now()
         total_time = end_time - start_time

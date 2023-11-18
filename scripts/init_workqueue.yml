@@ -8,12 +8,13 @@ spec:
     spec:
       containers:
       - args:
-        - apt-get update;  pip install gspread==5.6.2; apt-get install -y git; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
-          python scripts/download_work_queue_from_gs.py Scorecard/WorkQueue /work_queue/work_queue.csv
+        - apt-get update;  pip install gspread; apt-get install -y git; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2020;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
+          python scripts/download_work_queue_from_gs.py "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue" /work_queue/work_queue.csv
         command:
         - /bin/bash
         - -c
-        image: localhost:30081/library/python:3.9
+        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
         imagePullPolicy: Always
         name: container
         resources:
@@ -29,6 +30,12 @@ spec:
           subPath: credentials
         - mountPath: /work_queue
           name: work-queue
+        - mountPath: /root/.aws/credentials
+          name: prp-s3-credentials
+          subPath: credentials
+        env:
+          - name: ENDPOINT_URL
+            value: http://rook-ceph-rgw-nautiluss3.rook
       nodeSelector:
         nautilus.io/disktype: nvme
       restartPolicy: Never
@@ -39,3 +46,6 @@ spec:
       - name: work-queue
         persistentVolumeClaim:
             claimName: pypeit-adap-work-queue
+      - name: prp-s3-credentials
+        secret:
+          secretName: prp-s3-credentials            

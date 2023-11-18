@@ -10,11 +10,12 @@ from contextlib import contextmanager
 import subprocess as sp
 import time
 from datetime import datetime, timezone
-import gspread
 import traceback
 import random
 import shutil
 import psutil
+import gspread_utils
+import gspread
 
 import cloudstorage
 
@@ -105,13 +106,10 @@ def update_gsheet_status(args, dataset, status):
     source_spreadsheet, source_worksheet = args.gsheet.split('/')
 
     # This relies on a service account json
-    account = retry_gspread_call(lambda: gspread.service_account(filename=args.google_creds))
+    #account = retry_gspread_call(lambda: gspread.service_account(filename=args.google_creds))
 
     # Get the spreadsheet from Google sheets
-    spreadsheet = retry_gspread_call(lambda: account.open(source_spreadsheet))
-
-    # Get the worksheet
-    worksheet = retry_gspread_call(lambda: spreadsheet.worksheet(source_worksheet))
+    spreadsheet, worksheet, status_col = gspread_utils.open_spreadsheet(args.gsheet)
 
     work_queue = retry_gspread_call(lambda: worksheet.col_values(1))
 
@@ -253,10 +251,10 @@ def update_dataset_status(args, dataset, status):
         except Exception as e:
             log_message(args, f"Failed to update scorecard work queue status for {dataset}. Exception {e}")
 
-        try:
-            run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), str(args.scorecard_max_age)])
-        except Exception as e:
-            log_message(args, f"Failed to update scorecard results for {dataset}. Exception {e}")
+        #try:
+        #    run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), str(args.scorecard_max_age)])
+        #except Exception as e:
+        #    log_message(args, f"Failed to update scorecard results for {dataset}. Exception {e}")
 
 
 def cleanup_old_results(args, s3_storage, dataset, reduce_dir):
@@ -280,7 +278,7 @@ def cleanup_old_results(args, s3_storage, dataset, reduce_dir):
 def download_dataset(args, s3_storage, dataset):
     dataset_raw_path = f"{dataset}/complete/raw/"
     local_path = Path(args.adap_root_dir) / dataset_raw_path 
-    remote_source = f"pypeit/adap/raw_data_reorg/{dataset_raw_path}"
+    remote_source = f"pypeit/adap_2020/raw_data_reorg/{dataset_raw_path}"
     os.makedirs(local_path, exist_ok=True)
 
     for (url, size) in s3_storage.list_objects(remote_source):
@@ -295,7 +293,7 @@ def download_dataset(args, s3_storage, dataset):
 
 def upload_results(args, s3_storage, dataset):
     dataset_local_path = Path(args.adap_root_dir) / dataset / "complete"
-    dataset_remote_path = f"pypeit/adap/raw_data_reorg/{dataset}/complete"
+    dataset_remote_path = f"pypeit/adap_2020/raw_data_reorg/{dataset}/complete"
     dataset_reduce_paths = list(dataset_local_path.glob("reduce*"))
     failed = False
     if len(dataset_reduce_paths) == 0:
@@ -326,7 +324,7 @@ def upload_results(args, s3_storage, dataset):
 
 def backup_log(args, s3_storage, dataset):
     # Upload the log for this run
-    log_destfile = f"pypeit/adap/raw_data_reorg/{dataset}/complete/reduce/{Path(args.logfile).name}"
+    log_destfile = f"pypeit/adap_2020/raw_data_reorg/{dataset}/complete/reduce/{Path(args.logfile).name}"
     log_message(args, f"Uploading log to s3 {log_destfile}.")
     try:
         retry_cloud(lambda: s3_storage.upload(args.logfile, log_destfile))
@@ -335,10 +333,12 @@ def backup_log(args, s3_storage, dataset):
 
 def backup_logs_to_gdrive(args, gdrive_storage, dataset, reduce_dir):
     # Upload the logs for this run to Google Drive
-    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete" / reduce_dir / "keck_deimos_A"
+    base_name = f"{args.spec}_A"
+    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete" / reduce_dir / base_name
     dataset_gdrive_path = PosixPath("logs") / dataset.replace('/', '_')
-
-    logs_to_backup = [ 'keck_deimos_A.log', 'keck_deimos_A_useful_warns.log', 'run_pypeit_stdout.txt']
+    logs_to_backup = [ f'{base_name}.log', 
+                      #'keck_deimos_A_useful_warns.log',
+                       'run_pypeit_stdout.txt']
 
     source_files = [ dataset_local_path / log for log in logs_to_backup ]    
     dest_files = [ dataset_gdrive_path  / (reduce_dir + "_" + log) for log in logs_to_backup]
@@ -387,6 +387,7 @@ def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
     parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
+    parser.add_argument('--spec', type=str, default="keck_esi", help="Spectrograph name")
     parser.add_argument("--logfile", type=str, default="reduce_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--scorecard_max_age", type=int, default=7, help="Max age of items in the scorecard's latest spreadsheet")
@@ -406,7 +407,7 @@ def main():
             status = 'COMPLETE'
             try:
                 download_dataset(args, s3_storage, dataset)
-                run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, mask])
+                run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, args.spec, dataset])
             except Exception as e:
                 log_message(args, f"Failed during prepwork for {dataset}. Exception {e}")
                 status = 'FAILED'
@@ -419,23 +420,23 @@ def main():
                         status, max_mem = run_pypeit_onfile(args, pypeit_file)
 
                         # Find warnings in log file
-                        logfile = pypeit_file.parent / "keck_deimos_A.log"
-                        run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
+                        #logfile = pypeit_file.parent / "keck_deimos_A.log"
+                        #run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
 
                         # Cleanup results from an old run
                         cleanup_old_results(args, s3_storage, dataset, pypeit_file.parent.parent.name)
 
                         backup_log(args, s3_storage, dataset)
 
-                        backup_logs_to_gdrive(args, gdrive_storage, dataset, pypeit_file.parent.parent.name)
+                        #backup_logs_to_gdrive(args, gdrive_storage, dataset, pypeit_file.parent.parent.name)
 
                         run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
 
-                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem), "--masks", mask]
-                    if 'PYPEIT_COMMIT' in os.environ:
-                        scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
+                    #scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem), "--masks", mask]
+                    #if 'PYPEIT_COMMIT' in os.environ:
+                    #    scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 
-                    run_script(scorecard_cmd)
+                    #run_script(scorecard_cmd)
 
 
                 except Exception as e:
