@@ -362,13 +362,15 @@ def backup_results_to_gdrive(args, dataset):
     # Upload the results for this run to Google Drive
     dataset_local_path = Path(args.adap_root_dir) / dataset / "complete"
     dataset_gdrive_path = PosixPath("backups") / dataset / "complete"
-    dataset_reduce_paths = list(dataset_local_path.glob("reduce*"))
-                                          
-    if len(dataset_reduce_paths) == 0:
+    dataset_backup_paths = list(dataset_local_path.glob("reduce*"))
+    if args.backup_raw:
+        dataset_backup_paths.append(dataset_gdrive_path / "raw")
+
+    if len(dataset_backup_paths) == 0:
         log_message(args, f"No results backup to Google Drive.")
     else:
         log_message(args, f"Backing up results to Google Drive.")
-        for reduce_path in dataset_reduce_paths:
+        for reduce_path in dataset_backup_paths:
             reduce_folder = reduce_path.name
             gdrive_dest = "gdrive:" + str(dataset_gdrive_path / reduce_folder)
             log_message(args, f"Backing up {reduce_path} to {gdrive_dest} .")
@@ -390,6 +392,7 @@ def main():
     parser.add_argument('--spec', type=str, default="keck_esi", help="Spectrograph name")
     parser.add_argument("--logfile", type=str, default="reduce_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
+    parser.add_argument("--backup_raw", default=False, action="store_true", help="Whether to also backup the raw data to google drive.")
     parser.add_argument("--scorecard_max_age", type=int, default=7, help="Max age of items in the scorecard's latest spreadsheet")
     parser.add_argument("--endpoint_url", type=str, default = os.getenv("ENDPOINT_URL", default="https://s3-west.nrp-nautilus.io"), help="The URL used to access S3. Defaults $ENDPOINT_URL, or the PRP Nautilus external URL.")
     parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")

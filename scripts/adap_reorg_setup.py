@@ -311,7 +311,7 @@ class ReorgSetup(scriptbase.ScriptBase):
         # The string is formatted as a relative directory path
         groups = group_files(args, spectrograph, local_files)
         for config_dir in groups.keys():
-            config_path = instrument / dest_root / config_dir
+            config_path = dest_root / instrument / config_dir
             for date_group in groups[config_dir]:
                 # Determine if the date group is "complete" to decide on the destination path name
                 metadata = PypeItMetaData(spectrograph, par, files=date_group.local_files)
