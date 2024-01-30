@@ -31,18 +31,17 @@ import shutil
 import datetime 
 from pathlib import Path
 
-from astropy.table import Table
+from astropy.table import Table, Column, vstack
 from astropy.time import Time, TimeDelta
 import numpy as np
 
 from pypeit.scripts import scriptbase
-from pypeit.spectrographs.util import load_spectrograph
 from pypeit.metadata import PypeItMetaData
 from pypeit.par.pypeitpar import PypeItPar
 from pypeit.pypeitsetup import PypeItSetup
 from pypeit.core.framematch import FrameTypeBitMask
 
-from metadata_info import config_path_grouping, is_metadata_complete,exclude_pypeit_types, exclude_metadata_funcs
+from metadata_info import ADAPSpectrographMixin
 from rclone import RClonePath
     
 
@@ -57,18 +56,29 @@ def write_to_report(args, msg, exc_info=False):
     with open(args.report, "a") as erf:
         print(msg,file=erf)
 
-class DateGroup:
-    def __init__(self, start_date, end_date, metadata, setup_name):
-        self.start_date = start_date
-        self.end_date = end_date
+class DateGroup():
+    def __init__(self, args, mjd, metadata):
         self.metadata = metadata
-        self.setup_name = setup_name
+        self.window_delta = TimeDelta(args.date_window, format='jd')
+        self.start_date = mjd
+        self.end_date = mjd
 
-    def add_date(self, date):
-        if date < self.start_date:
-            self.start_date = date
-        elif date > self.end_date:
-            self.end_date = date
+    def add_metadata_row(self, row, mjd):
+        self._add_date(mjd)
+        self.metadata.table.add_row(row)
+    
+    def _add_date(self, mjd):
+        if mjd < self.start_date:
+            self.start_date = mjd
+        elif mjd > self.end_date:
+            self.end_date = mjd
+
+    def is_date_in_window(self, mjd):
+        # Find the date window for this group and see if the given date
+        # fits into it
+        start = self.start_date - self.window_delta
+        end = self.end_date + self.window_delta
+        return mjd >= start and mjd <= end
 
     def merge(self, other_dg):
         if other_dg.start_date < self.start_date:
@@ -77,7 +87,7 @@ class DateGroup:
         if other_dg.end_date > self.end_date:
             self.end_date = other_dg.end_date
 
-        self.local_files += other_dg.local_files
+        self.metadata.table = vstack([self.metadata.table, other_dg.metadata.table])
 
     def get_dir_name(self):
         start_date_text = self.start_date.to_value('iso', subfmt='date')
@@ -85,82 +95,88 @@ class DateGroup:
         if start_date_text != end_date_text:
             return  start_date_text + "_" + end_date_text
         else:
-            return start_date_text
+            return start_date_text       
 
 
+def create_groups(args, metadata):
 
-def create_date_groups(args, metadata):
+    extra_keys =  metadata.spectrograph.extra_group_keys()
+    sci_files = metadata.find_frames('science')
+    grouped_table = metadata.table[sci_files].group_by(['setup'] + extra_keys)
+    groups = [PypeItMetaData(metadata.spectrograph, par=metadata.par, data=group.copy(True)) for group in grouped_table.groups]
+
+    print(f"Grouped Science files into {len(groups)} groups. Now adding calibs...")
+    calib_files = np.logical_not(sci_files)
+    for group in groups:
+        group_path = get_config_dir_path(group)        
+        calib_files_for_group = np.logical_and(calib_files, metadata.find_configuration(group[0]['setup']))
+        group.table = vstack([group.table, metadata[calib_files_for_group]])
+        group.table.add_column([str(group_path)] * len(group.table), name="group_path")
+            
+
+    return groups
+
+
+def create_date_groups(args, metadata_groups):
     """Return an array that can groups the entries in a configuration group by a date range."""
 
-    date_groups = {}
+    all_date_groups = []
 
-    # Start the groups based on science files, and then find calibrations that match those
-    sci_index = metadata.find_frames('science')
-    unique_science_setups = np.unique(metadata[sci_index]['setup'])
+    for metadata in metadata_groups:
+        print(f"Creating date groups for setup {metadata[0]['group_path']} science files")
+        # Start the groups based on science files, and then find calibrations that match those
+        sci_index = metadata.find_frames('science')
 
+        date_groups = []
+        date_groups = create_setup_date_groups(args, metadata, sci_index, date_groups)
+        print(f"Created {len(date_groups)} date groups for setup {metadata[0]['group_path']}")
 
-    for setup_name in unique_science_setups:
-        setup_index = metadata.find_configuration(setup_name)
-        sci_files_in_setup = np.logical_and(sci_index, setup_index)
-        date_groups[setup_name] = create_setup_date_groups(args, metadata, sci_files_in_setup,setup_name)
+        print(f"Adding calib files to date groups for setup {metadata[0]['group_path']} science files")
+        # Now Add in the calibration files
+        calib_index = np.logical_not(sci_index)
+        all_date_groups += create_setup_date_groups(args, metadata, calib_index, date_groups)
 
-    # Now Add in the calibration files
-    calib_index = np.logical_not(sci_index)
-    for setup_name in unique_science_setups:
-        setup_index = metadata.find_configuration(setup_name)
-        calib_files_in_setup = np.logical_and(calib_index, setup_index)
-        date_groups[setup_name] = create_setup_date_groups(args, metadata, calib_files_in_setup, setup_name, date_groups[setup_name])
+    return all_date_groups
 
+def create_setup_date_groups(args, metadata, files_to_consider, date_groups=[]):
 
-    return date_groups
-
-def create_setup_date_groups(args, metadata, setup_files, setup_name, date_groups=None):
-    window_delta = TimeDelta(args.date_window, format='jd')
-
-    for metadata_row in metadata[setup_files]:
-        mjd = metadata_row['mjd']
+    for row in metadata[files_to_consider]:
+        mjd = row['mjd']
         try:
-            date = Time(mjd, format='mjd')
+            row_date = Time(mjd, format='mjd')
         except:
-            write_to_report(args, f"Excluding {metadata_row['filename']} because of invalid MJD '{metadata_row['mjd']}'")
+            write_to_report(args, f"Excluding {row['filename']} because of invalid MJD '{row['mjd']}'")
             continue
 
-        if date_groups is None or len(date_groups) == 0:
-            # Make a new date group for this file
-            group_metadata = PypeItMetaData(metadata.spectrograph, metadata.par, data=metadata_row)
-            date_groups = [DateGroup(date, date, group_metadata, setup_name)]
-        else:
-            # Find an existing date group for this file
-            group = None
-            for dg_indx in range(len(date_groups)):
-                if date_groups[dg_indx] is None:
-                    # Skip groups that were set to None by merging
-                    continue
+        # Find an existing date group for this file
+        group = None
+        for dg_indx in range(len(date_groups)):
+            if date_groups[dg_indx] is None:
+                # Skip groups that were set to None by merging
+                continue
 
-                # Find the date window for this group and see if the current date
-                # fits into it
-                start = date_groups[dg_indx].start_date - window_delta
-                end = date_groups[dg_indx].end_date + window_delta
-                if date >= start and date <= end:
-                    if group is None:
-                        # The first group that matched this file
-                        date_groups[dg_indx].add_date(date)
-                        date_groups[dg_indx].metadata.table.add_row(metadata_row)
-                        group = dg_indx
-                    else:
-                        # The new date belongs to two groups, so those groups should be merged
-                        
-                        # Merge new group into prior group
-                        date_groups[group].merge(date_groups[dg_indx])
-                                                                       
-                        # Remove the old group, but because we're iterating through the list
-                        # just set it to None
-                        date_groups[dg_indx] = None                      
+            # Find the date window for this group and see if the current date
+            # fits into it
+            if date_groups[dg_indx].is_date_in_window(row_date):
+                if group is None:
+                    # The first group that matched this file
+                    date_groups[dg_indx].add_metadata_row(row, row_date)
+                    group = dg_indx
+                else:
+                    # The new date belongs to two groups, so those groups should be merged
+                    
+                    # Merge new group into prior group
+                    date_groups[group].merge(date_groups[dg_indx])
+                                                                    
+                    # Remove the old group, but because we're iterating through the list
+                    # just set it to None
+                    date_groups[dg_indx] = None                      
 
-            if group is None:
-                # No match was found, start a new group
-                group_metadata = PypeItMetaData(metadata.spectrograph, metadata.par, data=metadata_row)
-                date_groups.append(DateGroup(date, date, group_metadata, setup_name))
+        if group is None:
+            # No match was found, start a new group
+            new_dg_metadata = PypeItMetaData(metadata.spectrograph, metadata.par, data=metadata.table[:0].copy(True))
+            new_dg_metadata.table.add_row(row)
+            date_groups.append(DateGroup(args, row_date, new_dg_metadata))
 
 
     # Filter out Nones from merging before returning
@@ -178,33 +194,11 @@ def download_files(args, files):
             write_to_report(args,f"Failed to download {file}", exc_info=True)
     return local_files
 
-def group_files(args, spectrograph, local_files):
-    all_groups = dict()
-    for config_group in group_by_config(args, spectrograph, local_files):
-        cfg_group_key = config_group['config_group_key'][0]
-        create_date_groups(args, all_groups, cfg_group_key, config_group)
-
-    return all_groups
-
-def group_by_config(args, spectrograph, local_files):
-    grouping_table = Table(names=["config_group_key","local_file", "mjd"],
-                           dtype=["<U",              "<U",        "float64"])
-
-    for local_file in local_files:
-        try:
-            config_metadata, mjd = read_grouping_metadata(args,spectrograph,local_file)
-        except Exception as e:
-            write_to_report(args, f"Failed to get metadata from {local_file}.",exc_info=True)
-            raise
-        config_group_key = "/".join(["_".join(group) for group in config_metadata])
-        grouping_table.add_row([config_group_key, str(local_file), mjd])
-
-    return grouping_table.group_by("config_group_key").groups
 
 
-def get_all_metadata(args, spectrograph, matching_files, local_files):
-    metadata = PypeItMetaData(spectrograph, spectrograph.default_pypeit_par(), files=local_files, strict=False)
-    instrument = spectrograph.header_name
+def get_all_metadata(args, extended_spec, matching_files, local_files):
+    metadata = PypeItMetaData(extended_spec, extended_spec.default_pypeit_par(), files=local_files, strict=False)
+    instrument = extended_spec.header_name
 
     # Get the frame types for each file
     metadata.get_frame_types(flag_unknown=True)
@@ -213,14 +207,14 @@ def get_all_metadata(args, spectrograph, matching_files, local_files):
     unknown_files = np.where([filename.lstrip().startswith("#") for filename in metadata['filename']])
 
     for unknown_file in metadata[unknown_files]['filename']:
-        write_to_report(args, "Excluding {unknown_file} because it has an unknown frame type")
+        write_to_report(args, f"Excluding {unknown_file} because it has an unknown frame type")
     
     metadata.remove_rows(unknown_files)
 
     # Exclude unwanted frametypes
     
-    if len(exclude_pypeit_types[instrument]) > 0:
-        excluded_types = FrameTypeBitMask().flagged(metadata['framebit'],exclude_pypeit_types[instrument])
+    if len(extended_spec.exclude_pypeit_types()) > 0:
+        excluded_types = FrameTypeBitMask().flagged(metadata['framebit'],extended_spec.exclude_pypeit_types())
         excluded_by_type_rows = np.where(excluded_types)
         for i in excluded_by_type_rows:
             write_to_report(args, f"Excluding {metadata[i]['filename']} because it frame type {metadata[i]['frametype']}")
@@ -230,117 +224,95 @@ def get_all_metadata(args, spectrograph, matching_files, local_files):
     # If matching files was given, exclude science files that aren't matching
     if matching_files is not None:
         science_files = metadata.find_frames('science')
-        non_matching_science_files = np.where([filename in matching_files['filename'] for filename in metadata[science_files]['filename']])[0]
+        non_matching_files = [filename not in matching_files['koaid'] for filename in metadata['filename']]
+        non_matching_science_files = np.where(np.logical_and(science_files, non_matching_files))[0]
         if len(non_matching_science_files) > 0:
-            for filename in metadata[science_files][non_matching_science_files]['filename']:
+            for filename in metadata[non_matching_science_files]['filename']:
                 write_to_report(args, f"Excluding {filename} because it is not a matching science file.")
             metadata.remove_rows(non_matching_science_files)
 
     # Run instrument specific exclude logic
-    if instrument in exclude_metadata_funcs:
-        excluded, reasons = exclude_metadata_funcs[instrument](metadata)
-        if len(excluded > 0):
-            for i, metadata_indx in enumerate(excluded):
-                write_to_report(args, f"Excluding {metadata[metadata_indx]['filename']} of type {metadata[metadata_indx]['frametype']} because {reasons[i]}")
-            metadata.remove_rows(excluded)
+    excluded, reasons = extended_spec.exclude_metadata(metadata)
+    if len(excluded) > 0:
+        for i, metadata_indx in enumerate(excluded):
+            write_to_report(args, f"Excluding {metadata[metadata_indx]['filename']} of type {metadata[metadata_indx]['frametype']} because {reasons[i]}")
+        metadata.remove_rows(excluded)
 
     # Now group into configurations
     metadata.set_configurations()
 
-    # Report on calibration files that don't match any science files
+    # Remove calibration files that don't match any science files
     science_files = metadata.find_frames('science')
     unique_science_setup_names = np.unique(metadata[science_files]['setup'])
     calib_files = np.logical_not(science_files)
-    non_matching_calib_files = np.ones_like(calib_files, dtype=bool)
+    matching_calib_files = np.zeros_like(calib_files, dtype=bool)
     for setup_name in unique_science_setup_names:
         setup_files = metadata.find_configuration(setup_name)
         setup_calib_files = np.logical_and(setup_files,calib_files)
-        non_matching_calib_files = np.logical_and(non_matching_calib_files, np.logical_not(setup_calib_files))
+        matching_calib_files = np.logical_or(matching_calib_files, setup_calib_files)
 
-    for filename in metadata[non_matching_calib_files]['filename']:
-        write_to_report(args, f"Excluding {filename} because it does not match the configuration of any desired science files.")
+    # The non matching files are ones that aren't matching calib files and aren't science_files
+    non_matching_calib_files = np.where(np.logical_not(np.logical_or(matching_calib_files, science_files)))[0]
+    if len(non_matching_calib_files) > 0:
+        # Report on what's being removed
+        for filename in metadata[non_matching_calib_files]['filename']:
+            write_to_report(args, f"Excluding {filename} because it does not match the configuration of any desired science files.")
+        metadata.remove_rows(non_matching_calib_files)
+
+    # Force generation of configurations now that rows have been removed
+    metadata.table.remove_column('setup')
+    metadata.unique_configurations(force=True)
+    metadata.set_configurations()
+
+    extended_spec.add_extra_metadata(metadata)
     return metadata
 
-def get_config_dir_paths(args, metadata):
+def get_config_dir_path(metadata):
 
-    spectrograph = metadata.spectrograph
-    instrument = spectrograph.header_name
+    extended_spec = metadata.spectrograph
+    instrument = extended_spec.header_name
 
-    unique_configs = metadata.unique_configurations()
-    all_paths = set()
-    config_dir_names = {}
-    for config, config_dict in unique_configs.items():
+    # Get the configuration values from a sample row, preferably a science row
+    science_files = metadata.find_frames('science')
+    if np.any(science_files):
+        metadata_row=metadata[science_files][0]
+    else:
+        metadata_row = metadata[0]
 
-        # The config dir name always starts with the instrument
-        config_path = Path(instrument)
-        for grouping in config_path_grouping[instrument]:
-            grouping_strings = []
-            for part in grouping:
-                key=part[0]
-                type = part[1]
-                if key not in config_dict:
-                    value = "None"
-                else:
-                    value = config_dict[key]
-                    if key=='binning':
-                        # The comma causes some issues in the directory name, so replace with an x
-                        value = value.replace(",", "x")
-                    elif type == 'float64':
-                        # Use the spectrograph rtol value to figure out how to round to get a nice string value for the
-                        # directory name
-                        rtol = spectrograph.meta[key].get('rtol', None)
-                        if rtol is not None:
-                            value = round(value,int(np.abs(np.log10(rtol))))
-                        else:
-                            # Otherwise just round to a whole number
-                            value=round(value)
-                        # Convert to a string for use in the directory name
-                        value = f"{value:g}"
+    # The config dir name always starts with the instrument
+    config_path = Path(instrument)
+    for grouping in extended_spec.config_path_grouping():
+        grouping_strings = []
+        for part in grouping:
+            key=part[0]
+            type = part[1]
+            if key not in metadata_row.colnames:
+                value = "Unknown"
+            else:
+                value = metadata_row[key]
+                if key=='binning':
+                    # The comma causes some issues in the directory name, so replace with an x
+                    value = value.replace(",", "x")
+                elif type == 'float64':
+                    # Use the spectrograph rtol value to figure out how to round to get a nice string value for the
+                    # directory name
+                    rtol = extended_spec.meta[key].get('rtol', None)
+                    if rtol is not None:
+                        value = round(value,int(np.abs(np.log10(rtol))))
                     else:
-                        value = str(value)
-                grouping_strings.append(value)
-            config_path = config_path / "_".join(grouping_strings)
-        
-        if config_path in all_paths:
-            # The names should be unique, but there are edge cases where they aren't. (like the rounding of floating point #s 
-            # not matching how PypeItMetadata groups stuff). So now we make sure it's unique
-            i = 1
-            new_name = config_path
-            while new_name in all_paths:
-                new_name = config_path.with_name(config_path.name + f"_{i}")
-                i+=1
-            config_path = new_name
-
-        all_paths.add(config_path)                
-        config_dir_names[config] = config_path
-    return config_dir_names
-                
+                        # Otherwise just round to a whole number
+                        value=round(value)
+                    # Convert to a string for use in the directory name
+                    value = f"{value:g}"
+                elif value is None or len(str(value)) == 0:
+                    value = "Unknown"
+                else:
+                    value = str(value)
                     
-
-
-
-def read_grouping_metadata(args, spectrograph, local_file):
-    """Read metadata from a file needed to group it."""
-    instrument = spectrograph.header_name
-    print(f"Getting grouping metadata for {local_file}")
-    headarr = spectrograph.get_headarr(str(local_file))
-    mjd = spectrograph.get_meta_value(headarr, "mjd", required=True)
-    metadata = []
-    for group in config_path_grouping[instrument]:
-        group_metadata = []
-        for key, dtype in group:
-            value = spectrograph.get_meta_value(headarr, key, required=True)
-            if key in ["dispangle"] and dtype == "float64":
-                # This is how I handled DEIMOS, I'm not sure if it's the best way
-                value = round(value)               
-
-            elif key == "binning" and isinstance(value,str):
-                # The comma causes some issues in the directory name, so replace with an x
-                value = value.replace(",", "x")
-            group_metadata.append(str(value))
-        metadata.append(group_metadata)
-    
-    return metadata, mjd
+            grouping_strings.append(value)
+        config_path = config_path / "_".join(grouping_strings)
+        
+    return config_path
 
 
 def get_files(args):
@@ -398,7 +370,7 @@ class ReorgSetup(scriptbase.ScriptBase):
         parser.add_argument('spectrograph_name', type=str, help="The name of the spectrograph that created the raw data.")
         parser.add_argument('out_dir', type=str, help="Output directory where the organized directry tree of files will be created.")
         parser.add_argument('source_dirs', type=str, nargs='+', help="One or more source directories containing raw data files.")
-        parser.add_argument('--matching_file_list', type=Path, default=None, help='A list of science files matching desired targets. Only datasets containing these files will be transferred.')
+        parser.add_argument('--matching_file_list', type=Path, default=None, help='A CSV file with the science files matching the desired objects.')
         parser.add_argument('--source', type=str, default="local", choices=["local","s3", "gdrive"], help='The source cloud where the are stored, or "local" for a files on the local system.')
         parser.add_argument('--dest', type=str, default="local", choices=["local","s3", "gdrive"], help='The cloud the files will be are copied to, or "local" for the local system.')
         parser.add_argument('--date_window', type=float, default=3.0, help="How long a time range to use when grouping files. Measured in days. Defaults to 3 days.")
@@ -406,7 +378,7 @@ class ReorgSetup(scriptbase.ScriptBase):
         parser.add_argument('--symlink', default=False, action="store_true", help="Use symlinks instead of copying files. Both the source and destination must be on the local machine.")
         parser.add_argument('--local_out', type=Path, default=Path("adap_setup_tmp"), help="A temporary directory used when working with files onthe cloud. Defaults to 'adap_setup_tmp'.")
         parser.add_argument('--report', type=str, default="reorg_report_file.txt", help="Name of the report file to create detailing any issues that occurred when running this script. Defaults to 'reorg_report_file.txt'.")
-
+        parser.add_argument('--obslog', default=False, action="store_true", help="Whether to write an obslog out alongside each group of files.")
         return parser
 
     @staticmethod
@@ -418,22 +390,16 @@ class ReorgSetup(scriptbase.ScriptBase):
         write_to_report(args,  "--------------------------------------------------------")
 
         if args.matching_file_list is not None:
-            matching_files = Table(dtype=[('filename', 'U')])
-            with open(args.matching_file_list, "r") as f:
-                for line in f:
-                    matching_files.add_row([line.strip()])
+            # Load as a csv file
+            matching_files = Table.read(args.matching_file_list, format="csv")
         else:
             matching_files = None
 
-        spectrograph = load_spectrograph(args.spectrograph_name)
-        instrument = spectrograph.header_name
-        cfg_lines = ['[rdx]', 'ignore_bad_headers = True', f'spectrograph = {args.spectrograph_name}']
-        default_cfg = spectrograph.default_pypeit_par().to_config()
-        par = PypeItPar.from_cfg_lines(cfg_lines=default_cfg, merge_with=cfg_lines)
+        extended_spec = ADAPSpectrographMixin.load_extended_spectrograph(spec_name=args.spectrograph_name, matching_files = matching_files)
 
         # Get the Path/RClonePath objects for the source files
         files = list(get_files(args))
-
+        print(f"Found {len(files)} files.")
         if args.source != "local":
             # Download remote files to a temporary directory
             local_files = download_files(args, files)
@@ -451,26 +417,37 @@ class ReorgSetup(scriptbase.ScriptBase):
         # 
         # First read the metadata for the files.
         # This process will remove unwanted files
-        all_metadata = get_all_metadata(args, spectrograph, matching_files, local_files)
+        print(f"Getting metadata")
+        all_metadata = get_all_metadata(args, extended_spec, matching_files, local_files)
+        print(f"Have metadata for {len(all_metadata)} files.")
+        # Group them into configurations, which may involve adap specific keys not in the spectrographs
+        # configuration_keys
+        print(f"Creating groups...")
+        groups = create_groups(args, all_metadata)
+        print(f"Created {len(groups)} groups. Now dividing into date groups...")
 
-        # This will have grouped them into configs, convert these into the directory names we'll use
-        config_dir_names = get_config_dir_paths(args, all_metadata)
+        all_groups = create_date_groups(args, groups)
+        print(f"Created {len(all_groups)} date groups.")
 
-        all_groups = create_date_groups(args, all_metadata)
+        for date_group in all_groups:
+            dataset_path = Path(date_group.metadata['group_path'][0], date_group.get_dir_name())
 
-        for setup_name in all_groups.keys():
-            for date_group in all_groups[setup_name]:
+            
+            print(f"Checking completeness of {dataset_path} date group {date_group.get_dir_name()}...")
+            is_complete, file_counts = extended_spec.is_metadata_complete(date_group.metadata)
+            complete_str = "complete" if  is_complete else "incomplete"
+            print(f"{dataset_path} is {complete_str}")
+            if not is_complete:
+                write_to_report(args, f"Incomplete dataset {dataset_path} files: {file_counts}")
 
-                is_complete, file_counts = is_metadata_complete(date_group.metadata,instrument)
-                complete_str = "complete" if  is_complete else "incomplete"
-                dataset_path = config_dir_names[date_group.setup_name] / date_group.get_dir_name()
-                if not is_complete:
-                    write_to_report(args, f"Incomplete dataset {dataset_path} files: {file_counts}")
-
-                dest_path = dest_root / dataset_path / complete_str / "raw"
-
-                for row in date_group.metadata:
-                    transfer_file(args, f"{row['directory']}/{row['filename']}", dest_path)
+            dest_path = dest_root / dataset_path / complete_str / "raw"
+            if args.obslog: # Doesn't work with remote path yet
+                print("Writing obslog")
+                dest_path.mkdir(parents=True,exist_ok=True)
+                date_group.metadata.write(dest_path.parent / "obslog.txt", sort_col='frametype', overwrite=True)
+            print(f"Transferring {dest_path}")
+            for row in date_group.metadata:
+                transfer_file(args, f"{row['directory']}/{row['filename']}", dest_path)
 
         end_time = datetime.datetime.now()
         total_time = end_time - start_time
