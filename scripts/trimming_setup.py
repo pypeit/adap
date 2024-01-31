@@ -9,7 +9,6 @@ import numpy as np
 from pypeit import pypeitsetup, msgs
 from pypeit.inputfiles import PypeItFile
 from IPython import embed
-
 '''
 Arcs:
 
@@ -143,9 +142,64 @@ def trim_keck_deimos(metadata):
     """
     pass
 
-trimming_functions = {"keck_deimos": trim_keck_deimos,
-                      "keck_esi": lambda x: np.ones_like(x['filename'],dtype=bool)}
+def trim_criteria(metadata, sort_fields, max, initial_files, all_criteria):
 
+    
+    orig_num = np.sum(initial_files) 
+    trimmed_files = np.zeros_like(initial_files, dtype=bool)
+    while len(all_criteria) > 0:
+        # The remaining criteria from the initial_files, by using AND
+        trimmed_files = np.logical_and.reduce([initial_files] + all_criteria)
+        if orig_num - np.sum(trimmed_files) >= max:
+            # There are still enough acceptable files, so we're done trimming
+            # by criteria
+            break
+        else:
+            # Too many files were trimmed, remove a criteria and try again
+            all_criteria.pop()
+    
+    remaining_num = orig_num - np.sum(trimmed_files)
+    
+    if remaining_num < max:
+        # We can't do any trimming, 
+        trimmed_files = np.zeros_like(initial_files, dtype=bool)
+        remaining_num = orig_num
+
+    if remaining_num > max:
+        # If there are still too many, sort the remaining files by the
+        # requested sort fields and remove the extra from the start of those
+        # files
+        remaining_files = np.logical_xor(initial_files, trimmed_files)
+        remaining_indices = np.where(remaining_files)[0]
+        sort_indices = metadata.table[remaining_files].argsort(sort_fields)
+        additional_indices_to_trim = remaining_indices[sort_indices][0:remaining_num-max]
+        trimmed_files = trimmed_files | np.isin(np.arange(len(metadata)),additional_indices_to_trim)
+
+    return trimmed_files        
+
+def trim_keck_hires(metadata, good_frames):
+    # Find the flats and arcs that have not already been excluded for some reason.
+    all_flats = metadata.find_frames('pixelflat') & good_frames
+    all_arcs = metadata.find_frames('arc') & good_frames
+    all_darks = metadata.find_frames('dark') & good_frames
+
+    # Trim things not close enough to 45
+    dec_criteria = np.abs(metadata['dec']-45.) >= 1
+    flats_to_trim = trim_criteria(metadata, ['mjd'], 5, all_flats, [dec_criteria])
+    arcs_to_trim = trim_criteria(metadata, ['mjd'], 1, all_arcs, [dec_criteria])
+    darks_to_trim = trim_criteria(metadata, ['mjd'], 1, all_darks, [dec_criteria])
+
+    return flats_to_trim | arcs_to_trim | darks_to_trim
+
+    #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
+    #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 
+
+trimming_functions = {"keck_deimos": trim_keck_deimos,
+                      "keck_esi": lambda x: np.zeros_like(x['filename'],dtype=bool),
+                      "keck_hires": trim_keck_hires}
+
+def comment_out_filenames(metadata, files_idx):    
+    metadata['filename'] = ['# ' + str(name) if files_idx[i] else name for i, name in enumerate(metadata['filename'])]
 
 def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir, config_lines):
 
@@ -172,21 +226,19 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
     # Remove rows with unknown 'None' frame types
     ps.fitstbl.table.remove_rows(ps.fitstbl.table["frametype"] == 'None')
 
-    # Comment out excluded files
-    ps.fitstbl['filename'] = [ "# " + name if name in raw_files_to_exclude else name for name in ps.fitstbl['filename']]
+    # Find excluded files, these will be commented out
+    excluded_files = np.isin(ps.fitstbl['filename'], raw_files_to_exclude)
+    comment_out_filenames(ps.fitstbl, excluded_files)
 
-
-    # Do instrument specific trimming
-    files_to_keep = trimming_functions[spectrograph](ps.fitstbl)
+    # Do instrument specific trimming of calibration files
+    files_to_trim = trimming_functions[spectrograph](ps.fitstbl, np.logical_not(excluded_files))
 
     # Comment out trimmed files
-    ps.fitstbl['filename'] = [ name if name in ps.fitstbl['filename'][files_to_keep] else "# " + name for name in ps.fitstbl['filename']]
+    comment_out_filenames(ps.fitstbl, files_to_trim)
 
     # The reorg script should make sure everything is in the same setup group. But
-    # it uses rounding to be permissive about including files with a dispangle that
-    # are slightly different. For example 7499.6 is included with 7500.2.
-    # Setup is not as permissive and assigns those to other groups. 
-    # So we update those to group A.
+    # it may use different criteria than pypeit_setup, so force everything to be in group a,
+    # calib group 0
     not_group_a = ps.fitstbl.table['setup'] != 'A'
     ps.fitstbl.table['setup'][not_group_a] = 'A'
     ps.fitstbl.table['calib'][not_group_a] = 0
@@ -200,18 +252,19 @@ def read_lines(file):
         lines = [line.rstrip() for line in f]
     return lines
     
-def update_custom_pypeit(complete_path, reduce_dir, pypeit_file):
+def update_custom_pypeit(complete_path, spectrograph_name, reduce_dir, pypeit_file):
     # Create the destination directory
-    (complete_path / reduce_dir / "keck_deimos_A").mkdir(parents=True, exist_ok=True)
+    dir_name = f"{spectrograph_name}_A"
+    (complete_path / reduce_dir / dir_name).mkdir(parents=True, exist_ok=True)
 
     # Update the raw data directory in the pypeit file
     pypeit_file.file_paths = [str(complete_path / "raw")]
-    pypeit_file.write(complete_path / reduce_dir / "keck_deimos_A" / "keck_deimos_A.pypeit")
+    pypeit_file.write(complete_path / reduce_dir / dir_name / f"{dir_name}.pypeit")
 
 def main():
     parser = argparse.ArgumentParser(description='Build a trimmed down setup file for ADAP raw data. It assumes the ADAP directory structure.')
     parser.add_argument("spectrograph", type=str, )
-    parser.add_argument("dataset", type=str, help="dataset to run on" )
+    parser.add_argument("datasets", type=str, nargs='+', help="dataset(s) to run on" )
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
 
     args = parser.parse_args()
@@ -224,46 +277,53 @@ def main():
         i+=1
 
     msgs.reset_log_file(logname)
-    msgs.info(f"Creating trimmed setup for {args.dataset}.")
-    config_path = Path(args.adap_root_dir) / "adap" /"config"
-    raw_files_to_exclude = [line for line in read_lines(config_path / "exclude_files.txt") if not line.startswith('#')]
 
-    default_config_file = config_path / f"{args.spectrograph}_default_pypeit_config"
-    default_config_lines = read_lines(default_config_file)
+    for dataset in args.datasets:
 
-    complete_path = Path(args.adap_root_dir) / args.dataset / "complete"
+        msgs.info(f"Creating trimmed setup for {dataset}.")
+        config_path = Path(__file__).parent.parent /"config"
+        raw_files_to_exclude = [line for line in read_lines(config_path / "exclude_files.txt") if not line.startswith('#')]
 
-    # Sanity check things
-    if not complete_path.is_dir() or len(complete_path.parents) < 4:
-        msgs.warn(f"Either non existant or invalid complete path {complete_path}")
-        return 1
+        default_config_file = config_path / f"{args.spectrograph}_default_pypeit_config"
 
-    msgs.info(f"Processing path {complete_path}.")
-
-    tailored_config_files = config_path.glob(f"{args.dataset}_*")
-    reduce_configs= []
-    for tailored_config_file in tailored_config_files:
-        reduce_subdir = tailored_config_file.stem.split("_")[-1]
-        msgs.info(f"Reading tailored config file: {tailored_config_file}")
-        if tailored_config_file.suffix == ".ini":
-            config_lines = read_lines(tailored_config_file)
-            reduce_configs.append((reduce_subdir, config_lines))
+        if not default_config_file.exists():
+            default_config_lines = None
         else:
-            # A complete custom .pypeit file
-            pf = PypeItFile.from_file(tailored_config_file)
-            reduce_configs.append((reduce_subdir, pf))
+            default_config_lines = read_lines(default_config_file)
 
-    if len(reduce_configs) == 0:
-        msgs.info(f"Using default config file.")
-        reduce_configs.append(("reduce", default_config_lines))
+        complete_path = Path(args.adap_root_dir) / dataset / "complete"
 
-    for reduce_config in reduce_configs:
-        if isinstance(reduce_config[1], PypeItFile):
-            msgs.info(f"Updating custom pypeit file for {complete_path/reduce_config[0]}")
-            update_custom_pypeit(complete_path, reduce_config[0], reduce_config[1])
-        else:
-            msgs.info(f"Creating setup for {complete_path/reduce_config[0]}")
-            make_trimmed_setup(args.spectrograph, complete_path, raw_files_to_exclude, reduce_config[0], reduce_config[1])
+        # Sanity check things
+        if not complete_path.is_dir() or len(complete_path.parents) < 4:
+            msgs.warn(f"Either non existant or invalid complete path {complete_path}")
+            return 1
+
+        msgs.info(f"Processing path {complete_path}.")
+
+        tailored_config_files = config_path.glob(f"{dataset.replace('/', '_')}_*")
+        reduce_configs= []
+        for tailored_config_file in tailored_config_files:
+            reduce_subdir = tailored_config_file.stem.split("_")[-1]
+            msgs.info(f"Reading tailored config file: {tailored_config_file}")
+            if tailored_config_file.suffix == ".ini":
+                config_lines = read_lines(tailored_config_file)
+                reduce_configs.append((reduce_subdir, config_lines))
+            else:
+                # A complete custom .pypeit file
+                pf = PypeItFile.from_file(tailored_config_file)
+                reduce_configs.append((reduce_subdir, pf))
+
+        if len(reduce_configs) == 0:
+            msgs.info(f"Using default config file.")
+            reduce_configs.append(("reduce", default_config_lines))
+
+        for reduce_config in reduce_configs:
+            if isinstance(reduce_config[1], PypeItFile):
+                msgs.info(f"Updating custom pypeit file for {complete_path/reduce_config[0]}")
+                update_custom_pypeit(complete_path, args.spectrograph, reduce_config[0], reduce_config[1])
+            else:
+                msgs.info(f"Creating setup for {complete_path/reduce_config[0]}")
+                make_trimmed_setup(args.spectrograph, complete_path, raw_files_to_exclude, reduce_config[0], reduce_config[1])
 
 
 if __name__ == '__main__':
