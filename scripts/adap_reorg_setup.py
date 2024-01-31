@@ -289,11 +289,11 @@ def get_config_dir_path(metadata):
             if key not in metadata_row.colnames:
                 value = "Unknown"
             else:
-                value = metadata_row[key]
+                value = metadata_row[key]                
                 if key=='binning':
                     # The comma causes some issues in the directory name, so replace with an x
                     value = value.replace(",", "x")
-                elif type == 'float64':
+                elif type == 'float64' and value is not None:
                     # Use the spectrograph rtol value to figure out how to round to get a nice string value for the
                     # directory name
                     rtol = extended_spec.meta[key].get('rtol', None)
@@ -308,6 +308,8 @@ def get_config_dir_path(metadata):
                     value = "Unknown"
                 else:
                     value = str(value)
+                    if "/" in value:
+                        value = value.replace("/", "_")
                     
             grouping_strings.append(value)
         config_path = config_path / "_".join(grouping_strings)
