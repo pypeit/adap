@@ -9,6 +9,9 @@ import numpy as np
 from pypeit import pypeitsetup, msgs
 from pypeit.inputfiles import PypeItFile
 from IPython import embed
+
+from metadata_info import exclude_pypeit_types, spec_to_instrument
+
 '''
 Arcs:
 
@@ -194,9 +197,25 @@ def trim_keck_hires(metadata, good_frames):
     #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
     #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 
 
+def trim_keck_lris(metadata, good_frames):
+    # Find the flats and arcs that have not already been excluded for some reason.
+    all_flats = metadata.find_frames('pixelflat') & good_frames
+    all_arcs = metadata.find_frames('arc') & good_frames
+
+    # Trim things not close enough to 45
+    dec_criteria = np.abs(metadata['dec']-45.) >= 1
+    flats_to_trim = trim_criteria(metadata, ['mjd'], 5, all_flats, [dec_criteria])
+    arcs_to_trim = trim_criteria(metadata, ['mjd'], 2, all_arcs, [dec_criteria])
+
+    return flats_to_trim | arcs_to_trim 
+    #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
+    #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 
+
+
 trimming_functions = {"keck_deimos": trim_keck_deimos,
                       "keck_esi": lambda x: np.zeros_like(x['filename'],dtype=bool),
-                      "keck_hires": trim_keck_hires}
+                      "keck_hires": trim_keck_hires,
+                      "keck_lris_red_orig": trim_keck_lris}
 
 def comment_out_filenames(metadata, files_idx):    
     metadata['filename'] = ['# ' + str(name) if files_idx[i] else name for i, name in enumerate(metadata['filename'])]
@@ -209,7 +228,6 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
     file_list = [str(raw_file) for raw_file in raw_path.glob('*.fits')]
     ps = pypeitsetup.PypeItSetup(file_list=file_list, 
                                  spectrograph_name = spectrograph)
-
 
 
     # Reduce dir
@@ -227,7 +245,8 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
     ps.fitstbl.table.remove_rows(ps.fitstbl.table["frametype"] == 'None')
 
     # Find excluded files, these will be commented out
-    excluded_files = np.isin(ps.fitstbl['filename'], raw_files_to_exclude)
+    instrument = spec_to_instrument[spectrograph]
+    excluded_files = np.isin(ps.fitstbl['filename'], raw_files_to_exclude) | np.isin(ps.fitstbl['frametype'], exclude_pypeit_types[instrument])
     comment_out_filenames(ps.fitstbl, excluded_files)
 
     # Do instrument specific trimming of calibration files

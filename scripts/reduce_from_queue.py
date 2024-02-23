@@ -14,9 +14,7 @@ import traceback
 import random
 import shutil
 import psutil
-import gspread_utils
-import gspread
-
+from utils import claim_dataset, update_dataset_status
 import cloudstorage
 
 def log_message(args, msg):
@@ -41,22 +39,6 @@ def signal_proof_sleep(seconds):
         time.sleep(1)
         current_time = time.time()
 
-
-def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
-
-    for i in range(len(retry_delays)+1):
-        try:
-            return func()
-        except gspread.exceptions.APIError as e:
-            if i == len(retry_delays):
-                # We've passed the max # of retries, re-reaise the exception
-                raise
-        except:
-            # an exception type we don't want to retry
-            raise
-        
-        # A failure happened, sleep before retrying
-        signal_proof_sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
 
 def retry_cloud(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
 
@@ -101,61 +83,7 @@ def lock_workqueue(work_queue_file):
         os.close(fd)
 
 
-def update_gsheet_status(args, dataset, status):
-    # Note need to retry Google API calls due to rate limits
-    source_spreadsheet, source_worksheet = args.gsheet.split('/')
 
-    # This relies on a service account json
-    #account = retry_gspread_call(lambda: gspread.service_account(filename=args.google_creds))
-
-    # Get the spreadsheet from Google sheets
-    spreadsheet, worksheet, status_col = gspread_utils.open_spreadsheet(args.gsheet)
-
-    work_queue = retry_gspread_call(lambda: worksheet.col_values(1))
-
-    if len(work_queue) > 1:
-        found = False
-        for i in range(0, len(work_queue)):
-            if work_queue[i].strip() == dataset:
-                log_message(args, f"Updating {dataset} status with {status}")
-                retry_gspread_call(lambda: worksheet.update(f"B{i+1}", status))
-                found = True
-                break
-        if not found:
-            log_message(args, f"Did not find {dataset} to update status!")
-    else:
-        log_message(args, f"Could not update {dataset}, spreadsheet is empty!")
-
-def claim_dataset(args, my_pod):
-
-    dataset = None
-
-    with lock_workqueue(args.work_queue) as wq_file:
-        csv_reader = csv.reader(wq_file)
-        rows = []
-        found=False        
-        for row in csv_reader:
-            rows.append(row)
-            if not found and row[1] == 'IN QUEUE':
-                row[1] = my_pod
-                dataset = row[0]
-                found = True
-
-        if found:
-            # Rewrite the work queue file with the new info
-            wq_file.truncate(0)
-            wq_file.seek(0,io.SEEK_SET)
-            csv_writer = csv.writer(wq_file)
-            csv_writer.writerows(rows)
-
-            # Update the scorecard. This is done within the lock on the work queue
-            # To prevent against race conditions accessing it
-            update_gsheet_status(args, dataset, "In Progress: " + my_pod)
-            log_message(args, f"Pod: {my_pod} has claimed dataset {dataset}")
-        else:
-            log_message(args, "Work Queue is empty")
-
-    return dataset
 
 def run_script(command):
     cp = sp.run(command)
@@ -228,33 +156,6 @@ def run_pypeit_onfile(args, file):
     return "COMPLETE", max_mem
 
 
-def update_dataset_status(args, dataset, status):
-
-    with lock_workqueue(args.work_queue) as wq_file:
-        csv_reader = csv.reader(wq_file)
-        rows = []
-        found=False        
-        for row in csv_reader:
-            rows.append(row)
-            if not found and row[0] == dataset:
-                row[1] = status
-                found = True
-
-        if found:
-            wq_file.truncate(0)
-            wq_file.seek(0,io.SEEK_SET)
-            csv_writer = csv.writer(wq_file)
-            csv_writer.writerows(rows)
-
-        try:
-            update_gsheet_status(args, dataset, status)
-        except Exception as e:
-            log_message(args, f"Failed to update scorecard work queue status for {dataset}. Exception {e}")
-
-        #try:
-        #    run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), str(args.scorecard_max_age)])
-        #except Exception as e:
-        #    log_message(args, f"Failed to update scorecard results for {dataset}. Exception {e}")
 
 
 def cleanup_old_results(args, s3_storage, dataset, reduce_dir):
@@ -280,16 +181,18 @@ def download_dataset(args, s3_storage, dataset):
     local_path = Path(args.adap_root_dir) / dataset_raw_path 
     remote_source = f"pypeit/adap_2020/raw_data_reorg/{dataset_raw_path}"
     os.makedirs(local_path, exist_ok=True)
-
+    count = 0
     for (url, size) in s3_storage.list_objects(remote_source):
         try:
             start_time = time.time()
             retry_cloud(lambda: s3_storage.download(url, local_path))
             end_time = time.time()
             log_message(args, f"Downloaded {url} in {end_time-start_time:.2f} s ({float(size*8)/(10**6*(end_time-start_time)):.2f} Mb/s)")
+            count+=1
         except Exception as e:
             log_message(args, f"Failed to download {url}, error: {e}")
             raise
+    return count
 
 def upload_results(args, s3_storage, dataset):
     dataset_local_path = Path(args.adap_root_dir) / dataset / "complete"
@@ -331,32 +234,6 @@ def backup_log(args, s3_storage, dataset):
     except Exception as e:
         log_message(args, f"Failed to upload log to s3://{log_destfile}, error: {e}")
 
-def backup_logs_to_gdrive(args, gdrive_storage, dataset, reduce_dir):
-    # Upload the logs for this run to Google Drive
-    base_name = f"{args.spec}_A"
-    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete" / reduce_dir / base_name
-    dataset_gdrive_path = PosixPath("logs") / dataset.replace('/', '_')
-    logs_to_backup = [ f'{base_name}.log', 
-                      #'keck_deimos_A_useful_warns.log',
-                       'run_pypeit_stdout.txt']
-
-    source_files = [ dataset_local_path / log for log in logs_to_backup ]    
-    dest_files = [ dataset_gdrive_path  / (reduce_dir + "_" + log) for log in logs_to_backup]
-
-    if reduce_dir == "reduce":
-        # There's only one reduce_from_queue log, so we only back it up for the default "reduce" dir
-        log_path = Path(args.logfile)
-        source_files.append(log_path)
-        dest_files.append(dataset_gdrive_path /  log_path.name)
-
-    log_message(args, f"Uploading logs to Google Drive.")
-
-    for (source, dest) in zip(source_files, dest_files):
-
-        try:
-            retry_cloud(lambda: gdrive_storage.upload(source, dest), retry_delays = [30, 120, 300, 90])
-        except Exception as e:
-            log_message(args, f"Failed to upload log to Google Drive {dest}, error: {e}")
 
 def backup_results_to_gdrive(args, dataset):
     # Upload the results for this run to Google Drive
@@ -403,14 +280,16 @@ def main():
         my_pod = os.environ["POD_NAME"]
         log_message(args, f"Started on pod {my_pod} and python {sys.implementation}")
         s3_storage = cloudstorage.initialize_cloud_storage("s3", args.endpoint_url)
-        gdrive_storage = cloudstorage.initialize_cloud_storage("googledrive", args.google_creds)
         dataset = claim_dataset(args, my_pod)
         while dataset is not None:
-            mask = dataset.split("/")[0]
             status = 'COMPLETE'
             try:
-                download_dataset(args, s3_storage, dataset)
-                run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, args.spec, dataset])
+                count = download_dataset(args, s3_storage, dataset)
+                if count == 0:
+                    log_message(args, f"No files found to download for {dataset}.")    
+                    status = 'FAILED'
+                else:
+                    run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, args.spec, dataset])
             except Exception as e:
                 log_message(args, f"Failed during prepwork for {dataset}. Exception {e}")
                 status = 'FAILED'

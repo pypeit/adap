@@ -41,7 +41,7 @@ from pypeit.par.pypeitpar import PypeItPar
 from pypeit.pypeitsetup import PypeItSetup
 from pypeit.core.framematch import FrameTypeBitMask
 
-from metadata_info import ADAPSpectrographMixin
+from extended_spec_mixins import ADAPSpectrographMixin
 from rclone import RClonePath
     
 
@@ -198,7 +198,6 @@ def download_files(args, files):
 
 def get_all_metadata(args, extended_spec, matching_files, local_files):
     metadata = PypeItMetaData(extended_spec, extended_spec.default_pypeit_par(), files=local_files, strict=False)
-    instrument = extended_spec.header_name
 
     # Get the frame types for each file
     metadata.get_frame_types(flag_unknown=True)
@@ -270,7 +269,7 @@ def get_all_metadata(args, extended_spec, matching_files, local_files):
 def get_config_dir_path(metadata):
 
     extended_spec = metadata.spectrograph
-    instrument = extended_spec.header_name
+    instrument = extended_spec.instrument_name
 
     # Get the configuration values from a sample row, preferably a science row
     science_files = metadata.find_frames('science')
@@ -360,6 +359,25 @@ def transfer_file(args, file, dest):
         write_to_report(args,f"Failed to transfer file {args.source} {file} to {args.dest} {dest}.", exc_info=True)
 
 
+def group_files(args, extended_spec, matching_files, local_files):
+    # Group the files in datasets for reduction.
+
+    # First read the metadata for the files.
+    # This process will remove unwanted files
+    print(f"Getting metadata for spectrograph {extended_spec.name}")
+    all_metadata = get_all_metadata(args, extended_spec, matching_files, local_files)
+    print(f"Have metadata for {len(all_metadata)} files.")
+    # Group them into configurations, which may involve adap specific keys not in the spectrographs
+    # configuration_keys
+    print(f"Creating groups...")
+    groups = create_groups(args, all_metadata)
+    print(f"Created {len(groups)} groups. Now dividing into date groups...")
+
+    all_groups = create_date_groups(args, groups)
+    print(f"Created {len(all_groups)} date groups.")
+    return all_groups
+
+
 class ReorgSetup(scriptbase.ScriptBase):
 
     @classmethod
@@ -407,7 +425,7 @@ class ReorgSetup(scriptbase.ScriptBase):
             local_files = download_files(args, files)
         else:
             local_files = files
-
+       
         # Get the destination root, either local or remote
         if args.dest != "local":
             dest_root = RClonePath(args.dest, args.out_dir)
@@ -415,21 +433,18 @@ class ReorgSetup(scriptbase.ScriptBase):
             dest_root = Path(args.out_dir)
             dest_root.mkdir(exist_ok=True, parents=True)
 
-        # Group the files in datasets for reduction.
-        # 
-        # First read the metadata for the files.
-        # This process will remove unwanted files
-        print(f"Getting metadata")
-        all_metadata = get_all_metadata(args, extended_spec, matching_files, local_files)
-        print(f"Have metadata for {len(all_metadata)} files.")
-        # Group them into configurations, which may involve adap specific keys not in the spectrographs
-        # configuration_keys
-        print(f"Creating groups...")
-        groups = create_groups(args, all_metadata)
-        print(f"Created {len(groups)} groups. Now dividing into date groups...")
+        all_groups = []
+        if extended_spec.is_multi_class_instrument():
+            print(f"Multi spectrograph class instrument, identifying PypeIt spectrograph subclass...")
+            spec_class_groups = extended_spec.group_multi_class_files(local_files)
+            print(f"Identified {len(spec_class_groups.keys())} specific spectograph classes.")
+            for spec_name in spec_class_groups.keys():
+                sub_extended_spec = ADAPSpectrographMixin.load_extended_spectrograph(spec_name=spec_name, matching_files=matching_files)
+                all_groups += group_files(args, sub_extended_spec, matching_files, spec_class_groups[spec_name])
+            print(f"Found total of {len(all_groups)} date groups.")
+        else:
+            all_groups = group_files(args, extended_spec, matching_files, local_files)
 
-        all_groups = create_date_groups(args, groups)
-        print(f"Created {len(all_groups)} date groups.")
 
         for date_group in all_groups:
             dataset_path = Path(date_group.metadata['group_path'][0], date_group.get_dir_name())

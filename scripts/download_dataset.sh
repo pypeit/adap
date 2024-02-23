@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 
-adap_remote_root="s3://pypeit/adap/raw_data_reorg"
+adap_remote_root="s3://pypeit/adap_2020/raw_data_reorg"
 nautilus_endpoint="https://s3-west.nrp-nautilus.io"
-logs=("keck_deimos_A/keck_deimos_A.log" "keck_deimos_A/keck_deimos_A_useful_warns.log" "keck_deimos_A/run_pypeit_stdout.txt" "reduce_from_queue.log")
+logs=("keck_hires_A/keck_hires_A.log" "keck_hires_A/keck_hires_A_useful_warns.log" "keck_hires_A/run_pypeit_stdout.txt" "reduce_from_queue.log")
 
 
 usage() {
