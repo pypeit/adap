@@ -8,13 +8,15 @@ from pypeit import msgs
 from pypeit.spec2dobj import AllSpec2DObj;
 from pypeit.io import fits_open
 from pypeit.spectrographs.util import load_spectrograph
+from pypeit.inputfiles import Coadd2DFile
+from pypeit.utils import recursive_update
 
 logger = logging.getLogger(__name__)
 
 from astropy.table import Table
 import numpy as np
 
-from utils import run_task_on_queue, RClonePath, run_script, init_logging
+from utils import run_task_on_queue, RClonePath, run_script, init_logging, get_reduce_params
 
 def filter_output(source_log, dest_log):
     with open(source_log, "r") as source:
@@ -36,7 +38,7 @@ def get_detectors(spec2d_file, bad_slits):
         header = hdul[0].header
     spectrograph = load_spectrograph(header['PYP_SPEC'])
     allowed_mosaics = spectrograph.allowed_mosaics
-    all2dspec = AllSpec2DObj.from_fits(str(spec2d_file))
+    all2dspec = AllSpec2DObj.from_fits(str(spec2d_file),chk_version=False)
     logger.info(f"Found detectors {all2dspec.detectors} in {spec2d_file.name}")
 
     for detector in all2dspec.detectors:
@@ -66,6 +68,23 @@ def get_detectors(spec2d_file, bad_slits):
             return []
     
     return detectors, bad_slits
+
+def update_coadd2d_params(coadd2d_filepath, reduce_params):
+
+    # Read in the coadd2d file and update it's params
+    coadd2d_file = Coadd2DFile.from_file(coadd2d_filepath, preserve_comments=True)
+    if 'reduce' in reduce_params:
+        if 'reduce' not in coadd2d_file.config:
+            coadd2d_file.config['reduce'] = reduce_params['reduce']
+        else:
+            recursive_update(coadd2d_file.config['reduce'], reduce_params['reduce'])
+
+        # Save a backup of the original file
+        orig_file = coadd2d_filepath.with_name(coadd2d_filepath.name + ".orig")
+        coadd2d_filepath.rename(orig_file)
+
+        # Rewrite the file with the new params
+        coadd2d_file.write(coadd2d_filepath)
 
 def coadd2d_task(args, observing_config):
 
@@ -148,7 +167,6 @@ def coadd2d_task(args, observing_config):
 
         # Run setup
         logger.info(f"Running coadd2d setup on {observing_config}")
-        
         try:
             run_script(setup_2d_command, save_output="pypeit_setup_coadd2d.log")
         finally:
@@ -157,8 +175,14 @@ def coadd2d_task(args, observing_config):
                 # Remove ansi escape code and unwanted log messages from log
                 filter_output("pypeit_setup_coadd2d.log", "pypeit_setup_coadd2d.log.txt")
 
+        # The resulting output files need to have the reduce parameters from reduction
+        # added to it
+        reduce_params = get_reduce_params(observing_config)
+
         # Run the generated coadd2d files
         for coadd2d_file in coadd2d_output.glob("keck_deimos*.coadd2d"):
+            logger.info(f"Updating coadd2d file {coadd2d_file.name}")
+            update_coadd2d_params(coadd2d_file, reduce_params)
             logger.info(f"Running coadd2d file {coadd2d_file.name}")
             try:
                 run_script(["pypeit_coadd_2dspec", coadd2d_file.name], save_output=f"{coadd2d_file.stem}.log")
