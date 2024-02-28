@@ -10,29 +10,30 @@ spec:
       containers:
       - name: reduce-worker
         args:
-        - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil;  cd /tmp ; git clone https://github.com/pypeit/PypeIt.git; cd PypeIt; 
-          git checkout 1.12.1; git pull --ff-only; 
+        - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil;  cd PypeIt; git fetch;
+          git checkout 1.13.0;
           pip install -e '.[dev,bottleneck]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           cd /tmp; 
           echo "${DATASET},IN QUEUE" > work_queue.csv;
           mkdir adap_root; cd adap_root;
           pip install gspread==5.6.2; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
-          aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
-          python scripts/reduce_from_queue.py Scorecard/WorkQueue /tmp/work_queue.csv --adap_root_dir /tmp/adap_root --scorecard_max_age 7;
-          aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp --no-progress reduce_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
+          python scripts/reduce_from_queue.py WorkQueueTest/WorkQueue /tmp/work_queue.csv --adap_root_dir /tmp/adap_root --scorecard_max_age 100;
+          du -sh /tmp >> reduce_from_queue.log; tail -1 reduce_from_queue.log;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress reduce_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log
         command:
         - /bin/bash
         - -c
-        image: localhost:30081/profxj/pypeit_v1:latest
+        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
         imagePullPolicy: Always
         resources:
           limits:
             cpu: '1.5'
-            ephemeral-storage: 40Gi
+            ephemeral-storage: 100Gi
             memory: 48Gi
           requests:
             cpu: '1'
-            ephemeral-storage: 40Gi
+            ephemeral-storage: 100Gi
             memory: 32Gi
         volumeMounts:
         - mountPath: /root/.config/gspread/service_account.json
@@ -57,7 +58,7 @@ spec:
            - name: QT_QPA_PLATFORM
              value: offscreen
            - name: DATASET
-             value: GNZD1B/830G_9000_OG550/2010-04-13_2010-04-14
+             value: gn+40_oct_reduce/600ZD_7350_GG495/2012-12-16_2012-12-18
       nodeSelector:
         nautilus.io/disktype: nvme
       restartPolicy: Never

@@ -13,6 +13,10 @@ import random
 import logging
 import logging.handlers
 
+import configobj
+
+from pypeit.inputfiles import PypeItFile, InputFile
+
 logger = logging.getLogger(__name__)
 
 def init_logging(logfile):
@@ -233,106 +237,27 @@ def run_task_on_queue(args, task):
             logger.error("Failed to claim dataset.", exc_info=True)
             dataset = None
 
-"""
-def run_task_on_queue(args, task, source_loc, dest_loc, backup_loc, cleanup, log_backup_loc=None):
+def get_reduce_params(dataset_prefix):
+    config_path = Path(__file__).parent.parent / "config"
 
-    try:
-        log_manager = LogManager(args.logfile)
+    # Look for custom files of the dataset
+    dataset_prefix_pattern = dataset_prefix.replace("/", "_") + "*"
+    custom_files = list(config_path.glob(dataset_prefix_pattern))
 
-        if log_backup_loc is None:
-            log_backup_loc = backup_loc
+    if len(custom_files) > 1:
+        raise ValueError(f"Can't find reduce parameters for {dataset_prefix} because there was more than one custom parameter match")
+    elif len(custom_files) == 0:
+        # Just use the default
+        param_file = config_path / "default_pypeit_config"
+    else:
+        param_file = custom_files[0]
 
-        my_pod = os.environ["POD_NAME"]
-        logger.info(f"Started on pod {my_pod} and python {sys.implementation}")
+    if param_file.suffix == ".pypeit":
+        # A custom PypeIt File
+        custom_pypeit_file = PypeItFile.from_file(param_file, preserve_comments=True)
+        return custom_pypeit_file.config
+    else:
+        # A ini file. Read it and build a ConfigObj from it
+        lines=list(InputFile.readlines(param_file))
+        return configobj.ConfigObj(lines)
 
-        dataset = claim_dataset(args, my_pod)
-
-        if args.adap_root_dir is not None:
-            root_dir = Path(args.adap_root_dir)
-        else:
-            root_dir = Path(".")
-    except Exception as e:
-        logger.error(f"Failed initializing.", exc_info=True)
-        return
-
-    # Go through the queue and run the task on each dataset
-    while dataset is not None:
-        status = 'COMPLETE'
-
-        downloaded_paths = []
-        # Download data the task may need
-        try:
-            if source_loc is not None:
-                downloaded_paths = source_loc.download(dataset)
-                
-        except Exception as e:
-            logger.error(f"Failed downloading source data for {dataset}.", exc_info=True)
-            status = 'FAILED'
-
-        # Run the task
-        if status != 'FAILED':
-            try:
-                status = task(args, dataset)
-            except Exception as e:
-                logger.error(f"Failed processing {dataset}.", exc_info=True)
-                status = 'FAILED'
-
-        # Cleanup old results, if needed
-        if cleanup and dest_loc is not None:
-            try:
-                # Cleanup results from an old run
-                dest_loc.cleanup(dataset)
-            except Exception as e:
-                logger.error(f"Failed to cleanup old results for dataset{dataset}.", exc_info=True)
-
-        # Upload any results. We do this regardless of status because partial results can help debug
-        # failures
-        try:            
-            if dest_loc is not None:
-                dest_loc.upload(dataset)
-        except Exception as e:
-            logger.error(f"Failed uploading results for {dataset}.", exc_info=True)
-            status = 'FAILED'
-
-        # Backup results
-        try:            
-            if backup_loc is not None:
-                backup_loc.upload(dataset)
-        except Exception as e:
-            logger.error(f"Failed backup up results for {dataset}.", exc_info=True)
-            if status != 'FAILED':
-                status = "WARNING"
-
-        try:
-            update_dataset_status(args, dataset, status)
-        except Exception as e:
-            logger.error(f"Failed to update dataset status for {dataset} to {status}.", exc_info=True)
-        
-        # Cleanup locally before moving to the next dataset
-        try:
-            for local_path in downloaded_paths:
-                shutil.rmtree(Path(root_dir) / local_path)
-        except Exception as e:
-            logger.error(f"Failed to clean up local storage for {dataset}.")
-
-        # Cleanup the local task log
-        try:
-            log_manager.close()
-            try:
-                log_backup_loc.upload_file(log_manager.logfile, Path(dataset, "complete"))
-            except Exception as e:
-                logger.error("Failed to backup task logs", exc_info=True)
-            log_manager.clear()
-            log_manager.open()
-        except Exception as e:
-            logger.error("Failed to clean up and re-initialize task logs.", exc_info=True)
-            # Treat an inability to access/clean up logs as fatal
-            return
-
-        # Done with this dataset, move to the next
-        try:
-            dataset = claim_dataset(args, my_pod)
-        except Exception as e:
-            logger.error("Failed to claim dataset.", exc_info=True)
-            dataset = None
-"""
