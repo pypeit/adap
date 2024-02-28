@@ -5,14 +5,9 @@ import os
 from pathlib import Path
 import shutil
 from pypeit import msgs
-from pypeit.spec2dobj import AllSpec2DObj;
-from pypeit.io import fits_open
-from pypeit.spectrographs.util import load_spectrograph
 
 logger = logging.getLogger(__name__)
 
-from astropy.table import Table
-import numpy as np
 
 from utils import run_task_on_queue, RClonePath, run_script, init_logging
 
@@ -34,6 +29,7 @@ def collate1d_task(args, observing_config):
     output_path = local_config_path / "1D_Coadd"
     dest_loc = None
     original_path = Path.cwd()
+    spec1d_files = []
 
     try:
         # Download data 
@@ -55,7 +51,8 @@ def collate1d_task(args, observing_config):
         dest_loc = source_loc / "1D_Coadd"
         # Remove prior results
         try:
-            dest_loc.unlink()
+            if not args.test:
+                dest_loc.unlink()
         except Exception as e:
             # This could be failing due to the directory not existing so we ignore this.
             logger.warning(f"Failed to remove prior results in {dest_loc}")
@@ -68,9 +65,9 @@ def collate1d_task(args, observing_config):
         os.chdir(output_path)
 
         # Find the spec1d files, but ignore anything from the 2D Coadd
-        spec1d_files = [str(file) for file in local_config_path.rglob("spec1d_*.fits") if file.parent.name=="Science"]
+        spec1d_files = [file for file in local_config_path.rglob("spec1d_*.fits") if file.parent.name=="Science"]
 
-        collate1d_command = ["pypeit_collate_1d", str(root_path / "adap/config/default.collate1d"), "--spec1d_files" ] + spec1d_files
+        collate1d_command = ["pypeit_collate_1d", str(root_path / "adap/config/default.collate1d"), "--spec1d_files" ] + [str(file) for file in spec1d_files]
 
         # Run setup
         logger.info(f"Running collate 1d on {len(spec1d_files)} in {observing_config}")
@@ -94,6 +91,13 @@ def collate1d_task(args, observing_config):
             if output_path.exists():
                 logger.info(f"Uploading output to {dest_loc}")
                 dest_loc.upload(output_path)
+
+            # Upload the spec1d files now that they've been fluxed
+            logger.info(f"Uploading fluxed spec1ds.")
+            for spec1d in spec1d_files:
+                relative_path = spec1d.relative_to(local_config_path).parent
+                spec1d_dest = source_loc / relative_path     
+                spec1d_dest.upload(spec1d)
 
             # Upload our logs
             logfile = root_path / args.logfile
@@ -119,7 +123,7 @@ def main():
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
     parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
     parser.add_argument('source', type=str, help="Where to pull data, either 's3' or 'gdrive'.")
-    parser.add_argument("--logfile", type=str, default="coadd2d_from_queue.log", help= "Log file.")
+    parser.add_argument("--logfile", type=str, default="collate1d_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")
     parser.add_argument("--rclone_conf", type=str, default = f"{os.environ['HOME']}/.config/rclone/rclone.conf", help="rclone configuration.")

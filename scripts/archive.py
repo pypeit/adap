@@ -472,8 +472,14 @@ def keep_in_archive(relative_path):
         if parent.name == "2D_Coadd":
             return True
     elif ext == '.txt':
-        if parent.name == '1D_Coadd' and relative_path.name == "collate_warnings.txt":
-            return True
+        if parent.name == '1D_Coadd':
+            if relative_path.name == "collate_warnings.txt":
+                return True
+            elif relative_path.name.endswith(".log.txt"):
+                return True
+        elif parent.name == '2D_Coadd':
+            if relative_path.name.endswith(".log.txt") and relative_path.name != "pypeit_setup_coadd2d.log.txt":
+                return True
         elif relative_path.name.startswith("spec1d"):
             return True
     elif ext == '.dat' and relative_path.name =="collate_report.dat" and parent.name == '1D_Coadd':
@@ -533,7 +539,7 @@ class ArchiveScript(scriptbase.ScriptBase):
                         continue
 
                     if 'DMODCLS' in hdr:
-                        if hdr['DMODCLS'] == 'SpecObj':
+                        if dir.name == "Science" and hdr['DMODCLS'] == 'SpecObj':
                             # Spec1d add to the archive. This will also find any
                             # associated spec2d, .txt and .pypeit files
                             (txt_file, spec2d_file, pypeit_file, messages) = find_archvie_files_from_spec1d(args, file)
@@ -581,7 +587,7 @@ class ArchiveScript(scriptbase.ScriptBase):
                 for spec1d_group in spec1d_grouped_table.groups:
                     spec1d_filename = spec1d_group[0]['spec1d_filename']
                     full_spec1d_file = spec1d_map[spec1d_filename]
-                    sobjs = SpecObjs.from_fitsfile(full_spec1d_file)
+                    sobjs = SpecObjs.from_fitsfile(full_spec1d_file, chk_version=False)
                     for obj_name in spec1d_group['pypeit_name']:
                         sobj = sobjs[sobjs.name_indices(obj_name)][0]
                         if source_object is None:
