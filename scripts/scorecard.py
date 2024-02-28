@@ -4,6 +4,7 @@ import re
 import argparse
 from pathlib import Path
 import datetime
+from traceback import print_exc
 from pypeit.pypmsgs import PypeItError
 import numpy as np
 from astropy.stats import mad_std
@@ -13,6 +14,7 @@ from pypeit.spec2dobj import AllSpec2DObj
 from pypeit.slittrace import SlitTraceBitMask
 from pypeit.inputfiles import PypeItFile
 from pypeit.par import PypeItPar
+from pypeit.spectrographs.util import load_spectrograph
 
 def get_1d_std_chis_out_of_range(sobjs, lower_thresh, upper_thresh):
     num_out_of_range = 0
@@ -61,65 +63,88 @@ def get_exec_time(log_file):
     """
     regex = re.compile("Execution time: (\S.*)$")
 
-    with open(log_file, "r") as f:
-        for line in f:
-            m = regex.search(line)
-            if m is not None:
-                exec_time = m.group(1)
-                days = 0
-                hours = 0
-                minutes = 0
-                seconds = 0
-                for s in exec_time.split():
-                    if s[-1] == "d":
-                        days = int(s[0:-1])
-                    elif s[-1] == "h":
-                        hours = int(s[0:-1])
-                    elif s[-1] == "m":
-                        minutes = int(s[0:-1])
-                    elif s[-1] == "s":
-                        seconds = float(s[0:-1])
+    try:
+        with open(log_file, "r") as f:
+            for line in f:
+                m = regex.search(line)
+                if m is not None:
+                    exec_time = m.group(1)
+                    days = 0
+                    hours = 0
+                    minutes = 0
+                    seconds = 0
+                    for s in exec_time.split():
+                        if s[-1] == "d":
+                            days = int(s[0:-1])
+                        elif s[-1] == "h":
+                            hours = int(s[0:-1])
+                        elif s[-1] == "m":
+                            minutes = int(s[0:-1])
+                        elif s[-1] == "s":
+                            seconds = float(s[0:-1])
 
-                td = datetime.timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-                return round(td.total_seconds())
-                    
+                    td = datetime.timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+                    return round(td.total_seconds())
+    except Exception:        
+        print(f"Failed to read from {log_file}")
+        print_exc()
     return 0
+
+def get_expected_det(par, args):
+
+    # Get the default # of detectors from the spectrograph
+    spec = load_spectrograph(args.spec_name)
+    default_par = spec.default_pypeit_par()
+
+    if default_par['rdx']['detnum'] is None or not isinstance(default_par['rdx']['detnum'], list):
+        expected_det = 1
+    else:
+        expected_det = len(default_par['rdx']['detnum'])
+
+    # If the PypeIt file specifies something other than the default, use that
+    if par['rdx']['detnum'] is not None:
+        if isinstance(par['rdx']['detnum'], list):
+            expected_det = len(par['rdx']['detnum'])
+
+    return expected_det
 
 def main():
     parser = argparse.ArgumentParser(description='Build score card for completed pypeit reductions.\nAssumes the directory structure created by adap_reorg_setup.py')
+    parser.add_argument("spec_name", type=str, help = "Name of the spectrograph for the reduction.")
     parser.add_argument("reorg_dir", type=str, help = "Root of directory structure created by adap_reorg_setup.py")
     parser.add_argument("outfile", type=str, help='Output csv file.')
     parser.add_argument("--commit", type=str, default = "", help='Optional, git commit id for the PypeIt version used')
     parser.add_argument("--mem", type=int, default=0, help="Optional, The maximum memory usage during the PypeIt reduction.")
     parser.add_argument("--status", type=str, default = None, help='Status of running the reduction')
-    parser.add_argument("--masks", type=str, nargs='+', help="Specific masks to run on" )
+    parser.add_argument("--subdirs", type=str, nargs='+', help="Specific subdirectories of the reorg_dir to work on." )
     parser.add_argument("--date_reduced", type=datetime.date.fromisoformat, default = datetime.date.today(), help="When the data was reduced. Defaults to today.")
     parser.add_argument("--rms_thresh", type=float, default=0.4)
     parser.add_argument("--wave_cov_thresh", type=float, default=60.0)
     parser.add_argument("--lower_std_chi", type=float, default=0.6)
     parser.add_argument("--upper_std_chi", type=float, default=1.6)
-    parser.add_argument("--expected_det", type=int, default=4, help="Exected number of detectors to reduce. If fewer are reduced the dataset is considered to be failed.")
 
     args = parser.parse_args()
 
     reorg_path = Path(args.reorg_dir)
-    masks_to_scan = []
-    for path in reorg_path.iterdir():
+    dirs_to_scan = []
+    if args.subdirs is not None:
+        dirs_to_scan = [reorg_path / subdir for subdir in args.subdirs]
+    else:
+        dirs_to_scan = reorg_path
+        
+    reduce_paths = []
+    while len(dirs_to_scan) > 0:
+        path = dirs_to_scan.pop()
         if not path.is_dir():
             continue
-        if args.masks is not None:
-            if path.name in args.masks:
-                masks_to_scan.append(path)
+        if path.name.startswith("reduce"):
+            reduce_paths.append(path)
         else:
-            masks_to_scan.append(path)
+            for child in path.iterdir():
+                if child.is_dir():
+                    dirs_to_scan.append(child)
+    
 
-    reduce_paths = []
-    for mask_path in masks_to_scan:
-        for config_path in mask_path.iterdir():
-            for date_path in config_path.iterdir():
-                for reduce_path in date_path.joinpath('complete').iterdir():
-                    if reduce_path.name.startswith('reduce'):
-                        reduce_paths.append(reduce_path)
 
     # Filename and table for writing the bad slit ids
     outpath = Path(args.outfile)
@@ -131,29 +156,25 @@ def main():
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
                'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
                'maskdef_extract_count', 'exec_time', 'mem_usage', 'git_commit', 'reduce_dir']
-
+  
+    pypeit_name = f"{args.spec_name}_A"
 
     data = Table(names = columns, dtype=['U64', 'U22', 'datetime64[D]', 'U8'] + [int for x in columns[4:-2]] + ['U40', 'U20'])
     stbm = SlitTraceBitMask()
 
     for reduce_path in reduce_paths:
         dataset = reduce_path.parent.relative_to(args.reorg_dir)
-        pypeit_file = str(reduce_path / "keck_deimos_A" / "keck_deimos_A.pypeit")
-        log_path = str(reduce_path / "keck_deimos_A" / "keck_deimos_A.log")
-        science_path = reduce_path / "keck_deimos_A" / "Science"
+        pypeit_file = reduce_path / pypeit_name / f"{pypeit_name}.pypeit"
+        log_path = str(reduce_path / pypeit_name / f"{pypeit_name}.log")
+        science_path = reduce_path / pypeit_name / "Science"
 
         print(f"Searching {log_path} for execution time...")
         reduce_exec_time = get_exec_time(log_path)
 
         pf = PypeItFile.from_file(pypeit_file)
-
-        # Read the expected # of detectors from the pypeit file, overriding the command line
         par = PypeItPar.from_cfg_lines(pf.cfg_lines)
-        if par['rdx']['detnum'] is not None:
-            if isinstance(par['rdx']['detnum'], list):
-                args.expected_det = len(par['rdx']['detnum'])
-            else:
-                args.expected_det = 1
+
+        expected_det = get_expected_det(par, args)
 
         science_idx = pf.data['frametype'] == 'science'
         for science_file in pf.data['filename'][science_idx]:
@@ -214,7 +235,7 @@ def main():
                         # Combine the results for this detector/mosaic with the 
                         # totals. A set of det:slitord_id (spat_id)s is used to prevent
                         # us from counting slits twice per science file
-                        wave_sol_combined_ids = np.array([f"{det}:{spatid}" for spatid in spec2dobj.wavesol['SpatID'][nonzero_rms_slits]])
+                        wave_sol_combined_ids = np.array([f"{det}:{spatid}" for spatid in spec2dobj.wavesol['SpatOrderID'][nonzero_rms_slits]])
                         total_bad_coverage.update(wave_sol_combined_ids[bad_coverage])
                         total_bad_slit_rms.update(wave_sol_combined_ids[bad_slit_rms])
 
@@ -232,8 +253,8 @@ def main():
                     data[-1]['status'] = 'FAILED'
 
                 # Consider the dataset failed if the expected # of detectors were not reduced
-                if data[-1]['det_count'] != args.expected_det:
-                    print(f"Marking '{data[-1]['science_file']}' as failed. det_count {data[-1]['det_count']} does not match expected {args.expected_det}.")
+                if data[-1]['det_count'] != expected_det:
+                    print(f"Marking '{data[-1]['science_file']}' as failed. det_count {data[-1]['det_count']} does not match expected {expected_det}.")
                     data[-1]['status'] = 'FAILED'
 
                 total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
@@ -264,7 +285,7 @@ def main():
                 try:
                     sobjs = SpecObjs.from_fitsfile(str(spec1d_file),chk_version=False)
                     data[-1]['object_count'] += len(sobjs)
-                    data[-1]['maskdef_extract_count'] += np.sum(sobjs['MASKDEF_EXTRACT'])            
+                    data[-1]['maskdef_extract_count'] += np.count_nonzero(sobjs['MASKDEF_EXTRACT'])            
 
                     # Object RMS will eventually be replaced with slit rms once that's added to the
                     # spec2d
