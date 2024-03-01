@@ -11,8 +11,8 @@ instr_columns = {"DEIMOS":  ["instrume","airmass", "waveblue", "wavered", "slmsk
                  "NIRES":   ["instrume","airmass", "waveblue","wavered", "instr","filehand", ],
                  "NIRSPEC": ["instrume","airmass", "waveblue","wavered", "camera","dispers","filter","slitname","scifilt1","scifilt2","echlpos","disppos","filehand"]
                 }
-match_columns = ["instrument","koaid","obj_id","obj_name", "separation"]
-match_dtypes = [ "<U10",      "<U25", int,     "<U41",     float]
+match_columns = ["instrument","koaid","obj_id","obj_name", "rs_best", "separation"]
+match_dtypes = [ "<U10",      "<U25", int,     "<U41",     float,     float]
 
 instrument_names = list(instr_columns.keys())
 config_key_columns = {"DEIMOS":  ["slmsknam", "gratenam", "filter", "waveblue", "wavered"],
