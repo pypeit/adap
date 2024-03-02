@@ -1,0 +1,72 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: adap-run-coadd1d-on-queue
+spec:
+  backoffLimit: 0
+  parallelism: 5
+  template:
+    spec:
+      containers:
+      - name: collate1d-worker
+        args:
+        - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil;  cd PypeIt; git fetch; 
+          git checkout adap2019_collate_test; git pull --ff-only; export OMP_NUM_THREADS=2;
+          pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
+          cd /tmp; mkdir adap_root; cd adap_root;
+          pip install gspread==5.6.2; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
+          python scripts/collate1d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status@C" /work_queue/work_queue.csv gdrive
+        command:
+        - /bin/bash
+        - -c
+        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: '2'
+            ephemeral-storage: 150Gi
+            memory: 48Gi
+          requests:
+            cpu: '2'
+            ephemeral-storage: 150Gi
+            memory: 24Gi
+        volumeMounts:
+        - mountPath: /root/.config/gspread/service_account.json
+          name: gcloud-service-account
+          subPath: credentials
+        - mountPath: /work_queue
+          name: work-queue
+        - mountPath: /tmp
+          name: ephemeral
+        - mountPath: /root/.aws/credentials
+          name: prp-s3-credentials
+          subPath: credentials
+        env:
+           - name: POD_NAME
+             valueFrom:
+                fieldRef:
+                   fieldPath: metadata.name
+           - name: ENDPOINT_URL
+             value: http://rook-ceph-rgw-nautiluss3.rook
+           - name: S3_ENDPOINT
+             value: rook-ceph-rgw-nautiluss3.rook
+           - name: DEBIAN_FRONTEND
+             value: noninteractive
+           - name: QT_QPA_PLATFORM
+             value: offscreen
+      nodeSelector:
+        nautilus.io/disktype: nvme
+      restartPolicy: Never
+      volumes:
+      - name: gcloud-service-account
+        secret:
+          secretName: adap-scorecard-gcloud
+      - name: work-queue
+        persistentVolumeClaim:
+            claimName: pypeit-adap-work-queue
+      - name: prp-s3-credentials
+        secret:
+          secretName: prp-s3-credentials            
+      - emptyDir: {}
+        name: ephemeral
