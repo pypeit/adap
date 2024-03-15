@@ -1,0 +1,54 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-03T00:16:10.414
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: se22q
+dispangle: 7099.95458984
+dispname: 600ZD
+filter1: GG400
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/se22q/600ZD_7100_GG400/2008-10-04/complete/raw
+               filename |                 frametype |                ra |                 dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+ DE.20081004.12170.fits |                  arc,tilt | 57.99999999999999 |                45.0 |        |    600ZD |  se22q |     1,1 | 54743.140753 | 1.41291034 |     1.0 | 7099.95458984 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2008-10-04 | 03:22:50.99 |      22 |     0 |      -1 |     -1
+ DE.20081004.12243.fits | pixelflat,illumflat,trace | 57.99999999999999 |                45.0 |        |    600ZD |  se22q |     1,1 | 54743.141629 | 1.41291034 |     6.0 | 7099.95458984 | SINGLE:B |   GG400 |          Qz | 2008-10-04 | 03:24:03.59 |      23 |     0 |      -1 |     -1
+ DE.20081004.12318.fits | pixelflat,illumflat,trace | 57.99999999999999 |                45.0 |        |    600ZD |  se22q |     1,1 | 54743.142474 | 1.41291034 |     6.0 | 7099.95458984 | SINGLE:B |   GG400 |          Qz | 2008-10-04 | 03:25:18.04 |      24 |     0 |      -1 |     -1
+ DE.20081004.12391.fits | pixelflat,illumflat,trace | 57.99999999999999 |                45.0 |        |    600ZD |  se22q |     1,1 | 54743.143374 | 1.41291034 |     6.0 | 7099.95458984 | SINGLE:B |   GG400 |          Qz | 2008-10-04 | 03:26:31.59 |      25 |     0 |      -1 |     -1
+#DE.20081004.17328.fits |                   science | 334.2133333333333 | 0.32866666666666666 |  se22q |    600ZD |  se22q |     1,1 | 54743.200531 | 1.47690182 |   300.0 | 7099.95458984 | SINGLE:B |   GG400 |         Off | 2008-10-04 | 04:48:48.71 |      57 |     0 |       1 |     -1
+#DE.20081004.17765.fits |                   science | 334.2133333333333 | 0.32866666666666666 |  se22q |    600ZD |  se22q |     1,1 | 54743.205573 |  1.4337951 |   300.0 | 7099.95458984 | SINGLE:B |   GG400 |         Off | 2008-10-04 | 04:56:05.32 |      58 |     0 |       2 |     -1
+ DE.20081004.18451.fits |                   science | 334.2133333333333 | 0.32866666666666666 |  se22q |    600ZD |  se22q |     1,1 | 54743.213495 | 1.37444529 |  1200.0 | 7099.95458984 | SINGLE:B |   GG400 |         Off | 2008-10-04 | 05:07:31.23 |      59 |     0 |       3 |      4
+ DE.20081004.19703.fits |                   science | 334.2133333333333 | 0.32908333333333334 |  se22q |    600ZD |  se22q |     1,1 | 54743.227971 | 1.28247115 |  1200.0 | 7099.95458984 | SINGLE:B |   GG400 |         Off | 2008-10-04 | 05:28:23.25 |      60 |     0 |       4 |      5
+ DE.20081004.20972.fits |                   science | 334.2133333333333 |             0.32825 |  se22q |    600ZD |  se22q |     1,1 | 54743.242622 | 1.21183082 |  1200.0 | 7099.95458984 | SINGLE:B |   GG400 |         Off | 2008-10-04 | 05:49:32.37 |      61 |     0 |       5 |      4
+data end
+

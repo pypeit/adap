@@ -1,0 +1,52 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:44:50.683
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: lh_35
+dispangle: 7199.98974609
+dispname: 600ZD
+filter1: GG400
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/lh_35/600ZD_7200_GG400/2004-01-18/complete/raw
+              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+DE.20040118.57641.fits |                  arc,tilt |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_35 |     1,1 | 53022.667097 | 13.37481353 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2004-01-18 | 16:00:41.27 |      69 |     0 |      -1 |     -1
+DE.20040118.57719.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_35 |     1,1 | 53022.667971 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:01:59.02 |      70 |     0 |      -1 |     -1
+DE.20040118.57799.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_35 |     1,1 | 53022.668882 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:03:19.22 |      71 |     0 |      -1 |     -1
+DE.20040118.57879.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_35 |     1,1 | 53022.669857 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:04:39.72 |      72 |     0 |      -1 |     -1
+DE.20040118.31336.fits |                   science |  158.6978333333333 |  57.67419444444444 |        lh_35 |    600ZD |  lh_35 |     1,1 | 53022.362627 |  2.04198731 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-18 | 08:42:16.70 |      38 |     0 |       1 |      2
+DE.20040118.32610.fits |                   science | 158.69837499999997 |  57.67388888888889 |        lh_35 |    600ZD |  lh_35 |     1,1 | 53022.377383 |  1.88132285 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-18 | 09:03:30.87 |      39 |     0 |       2 |      3
+DE.20040118.33886.fits |                   science | 158.69729166666664 | 57.674499999999995 |        lh_35 |    600ZD |  lh_35 |     1,1 | 53022.392135 |   1.7504106 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-18 | 09:24:46.69 |      40 |     0 |       3 |      2
+data end
+

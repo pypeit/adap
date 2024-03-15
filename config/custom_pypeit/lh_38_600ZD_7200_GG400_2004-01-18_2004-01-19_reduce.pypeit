@@ -1,0 +1,56 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:46:04.488
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: lh_38
+dispangle: 7199.98974609
+dispname: 600ZD
+filter1: GG400
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/lh_38/600ZD_7200_GG400/2004-01-18_2004-01-19/complete/raw
+               filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20040118.58859.fits |                  arc,tilt |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_38 |     1,1 | 53022.681178 | 13.37481353 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2004-01-18 | 16:20:59.84 |      81 |     0 |      -1 |     -1
+ DE.20040119.59538.fits |                  arc,tilt |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_38 |     1,1 | 53023.689021 | 13.37481353 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2004-01-19 | 16:32:18.90 |     111 |     0 |      -1 |     -1
+#DE.20040118.58939.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_38 |     1,1 | 53022.682082 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:22:19.69 |      82 |     0 |      -1 |     -1
+#DE.20040118.59022.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_38 |     1,1 | 53022.683082 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:23:42.34 |      83 |     0 |      -1 |     -1
+#DE.20040118.59102.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_38 |     1,1 | 53022.683996 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:25:02.64 |      84 |     0 |      -1 |     -1
+ DE.20040119.59617.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_38 |     1,1 | 53023.689936 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-19 | 16:33:37.50 |     112 |     0 |      -1 |     -1
+ DE.20040119.59697.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_38 |     1,1 | 53023.690872 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-19 | 16:34:57.75 |     113 |     0 |      -1 |     -1
+ DE.20040119.59778.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |    600ZD |  lh_38 |     1,1 |  53023.69178 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-19 | 16:36:18.25 |     114 |     0 |      -1 |     -1
+ DE.20040119.39625.fits |                   science | 158.27854166666665 | 57.988194444444446 |        lh_38 |    600ZD |  lh_38 |     1,1 | 53023.458548 |  1.39052956 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-19 | 11:00:25.68 |      76 |     0 |       1 |      2
+ DE.20040119.40901.fits |                   science | 158.27933333333334 | 57.988194444444446 |        lh_38 |    600ZD |  lh_38 |     1,1 | 53023.473304 |  1.34988939 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-19 | 11:21:41.50 |      77 |     0 |       2 |      3
+ DE.20040119.42178.fits |                   science | 158.27774999999997 | 57.988194444444446 |        lh_38 |    600ZD |  lh_38 |     1,1 | 53023.488088 |  1.31822858 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-19 | 11:42:58.12 |      78 |     0 |       3 |      2
+data end
+

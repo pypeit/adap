@@ -1,0 +1,52 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-03T00:25:50.607
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: uv_c
+dispangle: 7199.98925781
+dispname: 600ZD
+filter1: GG400
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/uv_c/600ZD_7200_GG400/2018-06-10/complete/raw
+               filename |                 frametype |                 ra |                dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+ DE.20180610.10166.fits |                  arc,tilt |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_c |     1,1 | 58279.117589 | 1.41297914 |     1.0 | 7199.98925781 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2018-06-10 | 02:49:26.85 |      26 |     0 |      -1 |     -1
+ DE.20180610.10244.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_c |     1,1 | 58279.118501 | 1.41297914 |     4.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2018-06-10 | 02:50:44.37 |      27 |     0 |      -1 |     -1
+ DE.20180610.10318.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_c |     1,1 | 58279.119342 | 1.41297914 |     4.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2018-06-10 | 02:51:58.32 |      28 |     0 |      -1 |     -1
+ DE.20180610.10390.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_c |     1,1 | 58279.120169 | 1.41297914 |     4.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2018-06-10 | 02:53:10.23 |      29 |     0 |      -1 |     -1
+ DE.20180610.31507.fits |                   science | 189.18329166666663 |  62.24294444444445 |       uv_c |    600ZD |   uv_c |     1,1 | 58279.364591 | 1.63485106 |   600.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2018-06-10 | 08:45:07.80 |      73 |     0 |       1 |      2
+ DE.20180610.32187.fits |                   science | 189.18337499999998 |  62.24252777777778 |       uv_c |    600ZD |   uv_c |     1,1 | 58279.372483 | 1.67824197 |   600.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2018-06-10 | 08:56:27.63 |      74 |     0 |       2 |      1
+#DE.20180610.32862.fits |                   science |  189.1835833333333 |  62.24169444444445 |       uv_c |    600ZD |   uv_c |     1,1 | 58279.380269 | 1.72537829 |   600.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2018-06-10 | 09:07:42.36 |      75 |     0 |       3 |     -1
+data end
+

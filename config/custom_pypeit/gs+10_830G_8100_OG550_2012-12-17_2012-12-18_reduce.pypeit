@@ -1,0 +1,61 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:25:25.531
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: gs+10
+dispangle: 8099.98339844
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/gs+10/830G_8100_OG550/2012-12-17_2012-12-18/complete/raw
+               filename |                 frametype |                 ra |                 dec |          target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20121217.06805.fits |                  arc,tilt |  58.00029166666666 |  44.999972222222226 |         unknown |     830G |  gs+10 |     1,1 | 56278.078673 | 1.41291075 |     1.0 | 8099.98339844 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2012-12-17 | 01:53:25.08 |      34 |     0 |      -1 |     -1
+ DE.20121218.10582.fits |                  arc,tilt |  57.99999999999999 |                45.0 |         unknown |     830G |  gs+10 |     1,1 | 56279.122385 | 1.41291034 |     1.0 | 8099.98339844 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2012-12-18 | 02:56:22.32 |      32 |     0 |      -1 |     -1
+#DE.20121217.06882.fits | pixelflat,illumflat,trace |  58.00029166666666 |  44.999972222222226 |         unknown |     830G |  gs+10 |     1,1 | 56278.079578 | 1.41291075 |     8.0 | 8099.98339844 | SINGLE:B |   OG550 |          Qz | 2012-12-17 | 01:54:42.28 |      35 |     0 |      -1 |     -1
+#DE.20121217.06959.fits | pixelflat,illumflat,trace |  58.00029166666666 |  44.999972222222226 |         unknown |     830G |  gs+10 |     1,1 |  56278.08047 | 1.41291075 |     8.0 | 8099.98339844 | SINGLE:B |   OG550 |          Qz | 2012-12-17 | 01:55:59.78 |      36 |     0 |      -1 |     -1
+#DE.20121217.07040.fits | pixelflat,illumflat,trace |  58.00029166666666 |  44.999972222222226 |         unknown |     830G |  gs+10 |     1,1 | 56278.081402 | 1.41291075 |     8.0 | 8099.98339844 | SINGLE:B |   OG550 |          Qz | 2012-12-17 | 01:57:20.88 |      37 |     0 |      -1 |     -1
+ DE.20121218.10659.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |         unknown |     830G |  gs+10 |     1,1 | 56279.123294 | 1.41291034 |     8.0 | 8099.98339844 | SINGLE:B |   OG550 |          Qz | 2012-12-18 | 02:57:39.82 |      33 |     0 |      -1 |     -1
+ DE.20121218.10736.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |         unknown |     830G |  gs+10 |     1,1 | 56279.124181 | 1.41291034 |     8.0 | 8099.98339844 | SINGLE:B |   OG550 |          Qz | 2012-12-18 | 02:58:56.87 |      34 |     0 |      -1 |     -1
+ DE.20121218.10816.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |         unknown |     830G |  gs+10 |     1,1 | 56279.125186 | 1.41291034 |     8.0 | 8099.98339844 | SINGLE:B |   OG550 |          Qz | 2012-12-18 | 03:00:16.47 |      35 |     0 |      -1 |     -1
+ DE.20121217.31172.fits |                   science | 53.158958333333324 | -27.821666666666665 | gs+10__________ |     830G |  gs+10 |     1,1 | 56278.360687 | 1.49547256 |  1200.0 | 8099.98339844 | SINGLE:B |   OG550 |         Off | 2012-12-17 | 08:39:32.29 |      75 |     0 |       1 |      2
+ DE.20121217.32469.fits |                   science |  53.15912499999999 |             -27.821 | gs+10__________ |     830G |  gs+10 |     1,1 | 56278.375682 | 1.52661366 |  1200.0 | 8099.98339844 | SINGLE:B |   OG550 |         Off | 2012-12-17 | 09:01:09.55 |      76 |     0 |       2 |      3
+ DE.20121217.33745.fits |                   science |  53.15879166666666 |  -27.82236111111111 | gs+10__________ |     830G |  gs+10 |     1,1 |  56278.39046 | 1.57580496 |  1200.0 | 8099.98339844 | SINGLE:B |   OG550 |         Off | 2012-12-17 | 09:22:25.65 |      77 |     0 |       3 |      2
+ DE.20121218.30004.fits |                   science |  53.16049999999999 |  -27.81986111111111 | gs+10__________ |     830G |  gs+10 |     1,1 | 56279.347208 | 1.48380491 |   900.0 | 8099.98339844 | SINGLE:B |   OG550 |         Off | 2012-12-18 | 08:20:04.46 |      82 |     0 |       4 |      5
+ DE.20121218.31007.fits |                   science |  53.16066666666666 | -27.819166666666668 | gs+10__________ |     830G |  gs+10 |     1,1 | 56279.358704 | 1.49664289 |   900.0 | 8099.98339844 | SINGLE:B |   OG550 |         Off | 2012-12-18 | 08:36:47.06 |      83 |     0 |       5 |      4
+ DE.20121218.31964.fits |                   science |  53.16033333333332 | -27.820527777777777 | gs+10__________ |     830G |  gs+10 |     1,1 | 56279.369861 | 1.51897026 |   900.0 | 8099.98339844 | SINGLE:B |   OG550 |         Off | 2012-12-18 | 08:52:44.17 |      84 |     0 |       6 |      7
+ DE.20121218.33020.fits |                   science |  53.16049999999999 |  -27.81986111111111 | gs+10__________ |     830G |  gs+10 |     1,1 | 56279.382015 | 1.55445653 |   900.0 | 8099.98339844 | SINGLE:B |   OG550 |         Off | 2012-12-18 | 09:10:20.62 |      85 |     0 |       7 |      6
+ DE.20121218.34009.fits |                   science |  53.16066666666666 | -27.819166666666668 | gs+10__________ |     830G |  gs+10 |     1,1 | 56279.393482 |  1.6004771 |   750.0 | 8099.98339844 | SINGLE:B |   OG550 |         Off | 2012-12-18 | 09:26:49.42 |      86 |     0 |       8 |     -1
+data end
+

@@ -1,0 +1,66 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T22:56:53.586
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: COS-30
+dispangle: 7800.06445312
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/COS-30/830G_7800_OG550/2009-11-14_2009-11-15/complete/raw
+               filename |                 frametype |                 ra |               dec |    target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20091114.11323.fits |                  arc,tilt | 341.99999999999994 |               0.1 |   unknown |     830G | COS-30 |     1,1 | 55149.130978 | 13.37481353 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2009-11-14 | 03:08:43.37 |      23 |     0 |      -1 |     -1
+#DE.20091114.12136.fits |                  arc,tilt | 341.99999999999994 |               0.1 |   unknown |     830G | COS-30 |     1,1 | 55149.140406 | 13.37481353 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2009-11-14 | 03:22:16.58 |      31 |     0 |      -1 |     -1
+#DE.20091115.13796.fits |                  arc,tilt | 341.69999999999993 |             0.062 |   horizon |     830G | COS-30 |     1,1 | 55150.159589 | 13.37481353 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2009-11-15 | 03:49:56.66 |      25 |     0 |      -1 |     -1
+ DE.20091115.14580.fits |                  arc,tilt | 341.69999999999993 |             0.062 |   horizon |     830G | COS-30 |     1,1 | 55150.168647 | 13.37481353 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2009-11-15 | 04:03:00.56 |      33 |     0 |      -1 |     -1
+#DE.20091114.11401.fits | pixelflat,illumflat,trace | 341.99999999999994 |               0.1 |   unknown |     830G | COS-30 |     1,1 | 55149.131879 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-14 | 03:10:01.32 |      24 |     0 |      -1 |     -1
+#DE.20091114.11476.fits | pixelflat,illumflat,trace | 341.99999999999994 |               0.1 |   unknown |     830G | COS-30 |     1,1 | 55149.132739 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-14 | 03:11:16.98 |      25 |     0 |      -1 |     -1
+#DE.20091114.11552.fits | pixelflat,illumflat,trace | 341.99999999999994 |               0.1 |   unknown |     830G | COS-30 |     1,1 | 55149.133618 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-14 | 03:12:32.88 |      26 |     0 |      -1 |     -1
+#DE.20091114.12210.fits | pixelflat,illumflat,trace | 341.99999999999994 |               0.1 |   unknown |     830G | COS-30 |     1,1 | 55149.141243 | 13.37481353 |    12.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-14 | 03:23:30.38 |      32 |     0 |      -1 |     -1
+#DE.20091114.12292.fits | pixelflat,illumflat,trace | 341.99999999999994 |               0.1 |   unknown |     830G | COS-30 |     1,1 | 55149.142175 | 13.37481353 |    12.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-14 | 03:24:52.28 |      33 |     0 |      -1 |     -1
+#DE.20091114.12373.fits | pixelflat,illumflat,trace | 341.99999999999994 |               0.1 |   unknown |     830G | COS-30 |     1,1 | 55149.143136 | 13.37481353 |    12.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-14 | 03:26:13.98 |      34 |     0 |      -1 |     -1
+#DE.20091115.13874.fits | pixelflat,illumflat,trace | 341.69999999999993 |             0.062 |   horizon |     830G | COS-30 |     1,1 | 55150.160496 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-15 | 03:51:14.91 |      26 |     0 |      -1 |     -1
+#DE.20091115.13957.fits | pixelflat,illumflat,trace | 341.69999999999993 |             0.062 |   horizon |     830G | COS-30 |     1,1 | 55150.161377 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-15 | 03:52:37.46 |      27 |     0 |      -1 |     -1
+#DE.20091115.14027.fits | pixelflat,illumflat,trace | 341.69999999999993 |             0.062 |   horizon |     830G | COS-30 |     1,1 | 55150.162299 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-15 | 03:53:47.66 |      28 |     0 |      -1 |     -1
+ DE.20091115.14655.fits | pixelflat,illumflat,trace | 341.69999999999993 |             0.062 |   horizon |     830G | COS-30 |     1,1 | 55150.169505 | 13.37481353 |    12.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-15 | 04:04:15.11 |      34 |     0 |      -1 |     -1
+ DE.20091115.14732.fits | pixelflat,illumflat,trace | 341.69999999999993 |             0.062 |   horizon |     830G | COS-30 |     1,1 | 55150.170406 | 13.37481353 |    12.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-15 | 04:05:32.81 |      35 |     0 |      -1 |     -1
+ DE.20091115.14832.fits | pixelflat,illumflat,trace | 341.69999999999993 |             0.062 |   horizon |     830G | COS-30 |     1,1 | 55150.171464 | 13.37481353 |    12.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2009-11-15 | 04:07:12.46 |      36 |     0 |      -1 |     -1
+ DE.20091115.45031.fits |                   science | 149.99724999999998 | 2.206027777777778 | COSMOS-30 |     830G | COS-30 |     1,1 | 55150.521077 |  2.28339487 |  1800.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2009-11-15 | 12:30:31.42 |      80 |     0 |       1 |      2
+ DE.20091115.46929.fits |                   science | 149.99641666666665 | 2.206027777777778 | COSMOS-30 |     830G | COS-30 |     1,1 |  55150.54306 |  1.82115587 |  1800.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2009-11-15 | 13:02:09.88 |      81 |     0 |       2 |      1
+ DE.20091115.48835.fits |                   science | 149.99724999999998 | 2.206027777777778 | COSMOS-30 |     830G | COS-30 |     1,1 | 55150.565082 |  1.53806404 |  1800.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2009-11-15 | 13:33:55.98 |      82 |     0 |       3 |      4
+ DE.20091115.51250.fits |                   science |  149.9963333333333 | 2.206055555555556 | COSMOS-30 |     830G | COS-30 |     1,1 | 55150.593004 |  1.31378414 |  1800.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2009-11-15 | 14:14:10.14 |      86 |     0 |       4 |      3
+ DE.20091115.53154.fits |                   science | 149.99716666666666 | 2.206055555555556 | COSMOS-30 |     830G | COS-30 |     1,1 | 55150.615099 |  1.20093298 |  1497.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2009-11-15 | 14:45:54.54 |      87 |     0 |       5 |     -1
+data end
+

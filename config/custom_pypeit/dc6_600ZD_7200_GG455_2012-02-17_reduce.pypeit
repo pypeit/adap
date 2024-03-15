@@ -1,0 +1,60 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:05:01.322
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A:
+  amp: '"SINGLE:B"'
+  binning: 1,1
+  decker: dc6
+  dispangle: 7199.98925781
+  dispname: 600ZD
+  filter1: GG455
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/dc6/600ZD_7200_GG455/2012-02-17/complete/raw
+               filename |                 frametype |                ra |                dec |  target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib
+#DE.20120217.12650.fits |                  arc,tilt | 57.99999999999999 |               45.0 | unknown |    600ZD |    dc6 |     1,1 | 55974.146316 | 1.41291034 |     1.0 | 7199.98925781 | SINGLE:B |   GG455 | Kr Xe Ar Ne | 2012-02-17 | 03:30:50.04 |      55 |     0
+ DE.20120217.12721.fits |                  arc,tilt | 57.99999999999999 |               45.0 | unknown |    600ZD |    dc6 |     1,1 | 55974.147138 | 1.41291034 |     1.0 | 7199.98925781 | SINGLE:B |   GG455 | Kr Xe Ar Ne | 2012-02-17 | 03:32:01.19 |      56 |     0
+ DE.20120217.12799.fits | pixelflat,illumflat,trace | 57.99999999999999 |               45.0 | unknown |    600ZD |    dc6 |     1,1 |  55974.14805 | 1.41291034 |     6.0 | 7199.98925781 | SINGLE:B |   GG455 |          Qz | 2012-02-17 | 03:33:19.84 |      57 |     0
+ DE.20120217.12875.fits | pixelflat,illumflat,trace | 57.99999999999999 |               45.0 | unknown |    600ZD |    dc6 |     1,1 | 55974.148921 | 1.41291034 |     6.0 | 7199.98925781 | SINGLE:B |   GG455 |          Qz | 2012-02-17 | 03:34:35.14 |      58 |     0
+ DE.20120217.12950.fits | pixelflat,illumflat,trace | 57.99999999999999 |               45.0 | unknown |    600ZD |    dc6 |     1,1 | 55974.149859 | 1.41291034 |     6.0 | 7199.98925781 | SINGLE:B |   GG455 |          Qz | 2012-02-17 | 03:35:50.24 |      59 |     0
+ DE.20120217.31889.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 | 55974.368973 | 1.17834454 |  1000.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 08:51:29.30 |      85 |     0
+ DE.20120217.32956.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 | 55974.381354 |  1.1375586 |  1000.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 09:09:16.90 |      86 |     0
+ DE.20120217.34030.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 | 55974.393772 | 1.10581396 |  1000.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 09:27:10.30 |      87 |     0
+ DE.20120217.35099.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 | 55974.406181 | 1.08223977 |  1000.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 09:44:59.70 |      88 |     0
+ DE.20120217.36189.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 |  55974.41877 | 1.06559097 |  1000.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 10:03:09.55 |      89 |     0
+ DE.20120217.37261.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 | 55974.431156 |  1.0560629 |  1000.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 10:21:01.60 |      90 |     0
+ DE.20120217.38329.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 | 55974.443542 | 1.05296243 |  1000.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 10:38:49.11 |      91 |     0
+ DE.20120217.39487.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 | 55974.456971 | 1.05673472 |  1000.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 10:58:07.76 |      92 |     0
+ DE.20120217.40572.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 | 55974.469493 | 1.06711517 |  1000.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 11:16:12.06 |      93 |     0
+# DE.20120217.41686.fits |                   science |        150.752375 | 1.6144166666666668 |     dc6 |    600ZD |    dc6 |     1,1 | 55974.482429 | 1.08499695 |    14.0 | 7199.98925781 | SINGLE:B |   GG455 |         Off | 2012-02-17 | 11:34:46.96 |      94 |     0
+data end
+

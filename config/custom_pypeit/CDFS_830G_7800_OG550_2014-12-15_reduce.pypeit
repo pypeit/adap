@@ -1,0 +1,61 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T22:47:57.447
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: CDFS
+dispangle: 7800.06494141
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/CDFS/830G_7800_OG550/2014-12-15/complete/raw
+               filename |                 frametype |                 ra |                  dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |           lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20141215.11414.fits |                  arc,tilt |  57.99999999999999 |                 45.0 |   DOME PHLAT |     830G |   CDFS |     1,1 | 57006.132016 |  1.41291034 |     1.0 | 7800.06494141 | SINGLE:B |   OG550 |          Kr Xe Ar Ne | 2014-12-15 | 03:10:14.55 |      26 |     0 |      -1 |     -1
+ DE.20141215.59667.fits |                  arc,tilt |              67.35 | 0.059000000000000004 | HORIZON STOW |     830G |   CDFS |     1,1 |  57006.69051 | 13.37481353 |     1.0 | 7800.06494141 | SINGLE:B |   OG550 | Kr Xe Hg Ar Ne Cd Zn | 2014-12-15 | 16:34:27.53 |      90 |     0 |      -1 |     -1
+#DE.20141215.11491.fits | pixelflat,illumflat,trace |  57.99999999999999 |                 45.0 |   DOME PHLAT |     830G |   CDFS |     1,1 | 57006.132917 |  1.41291034 |     8.0 | 7800.06494141 | SINGLE:B |   OG550 |                   Qz | 2014-12-15 | 03:11:31.45 |      27 |     0 |      -1 |     -1
+#DE.20141215.11569.fits | pixelflat,illumflat,trace |  57.99999999999999 |                 45.0 |   DOME PHLAT |     830G |   CDFS |     1,1 | 57006.133821 |  1.41291034 |     8.0 | 7800.06494141 | SINGLE:B |   OG550 |                   Qz | 2014-12-15 | 03:12:49.10 |      28 |     0 |      -1 |     -1
+#DE.20141215.11647.fits | pixelflat,illumflat,trace |  57.99999999999999 |                 45.0 |   DOME PHLAT |     830G |   CDFS |     1,1 | 57006.134708 |  1.41291034 |     8.0 | 7800.06494141 | SINGLE:B |   OG550 |                   Qz | 2014-12-15 | 03:14:07.00 |      29 |     0 |      -1 |     -1
+ DE.20141215.60673.fits | pixelflat,illumflat,trace |              67.35 | 0.059000000000000004 | HORIZON STOW |     830G |   CDFS |     1,1 | 57006.702153 | 13.37481353 |    12.0 | 7800.06494141 | SINGLE:B |   OG550 |                   Qz | 2014-12-15 | 16:51:13.83 |     100 |     0 |      -1 |     -1
+ DE.20141215.60765.fits | pixelflat,illumflat,trace |              67.35 | 0.059000000000000004 | HORIZON STOW |     830G |   CDFS |     1,1 | 57006.703222 | 13.37481353 |    12.0 | 7800.06494141 | SINGLE:B |   OG550 |                   Qz | 2014-12-15 | 16:52:45.53 |     101 |     0 |      -1 |     -1
+ DE.20141215.60845.fits | pixelflat,illumflat,trace |              67.35 | 0.059000000000000004 | HORIZON STOW |     830G |   CDFS |     1,1 | 57006.704142 | 13.37481353 |    12.0 | 7800.06494141 | SINGLE:B |   OG550 |                   Qz | 2014-12-15 | 16:54:05.53 |     102 |     0 |      -1 |     -1
+ DE.20141215.19880.fits |                   science | 53.075708333333324 |  -27.826444444444444 |     cdfs_bbg |     830G |   CDFS |     1,1 |     57006.23 |  2.16518573 |  1800.0 | 7800.06494141 | SINGLE:B |   OG550 |                  Off | 2014-12-15 | 05:31:20.07 |      48 |     0 |       1 |      2
+ DE.20141215.21766.fits |                   science |  53.07616666666666 |  -27.826999999999998 |     cdfs_bbg |     830G |   CDFS |     1,1 | 57006.251856 |  1.87871145 |  1800.0 | 7800.06494141 | SINGLE:B |   OG550 |                  Off | 2014-12-15 | 06:02:46.92 |      49 |     0 |       2 |      1
+ DE.20141215.23650.fits |                   science |  53.07524999999999 |   -27.82586111111111 |     cdfs_bbg |     830G |   CDFS |     1,1 | 57006.273636 |  1.69583008 |  1800.0 | 7800.06494141 | SINGLE:B |   OG550 |                  Off | 2014-12-15 | 06:34:10.32 |      50 |     0 |       3 |      4
+ DE.20141215.25523.fits |                   science | 53.075708333333324 |  -27.826444444444444 |     cdfs_bbg |     830G |   CDFS |     1,1 | 57006.295331 |  1.57981508 |  1800.0 | 7800.06494141 | SINGLE:B |   OG550 |                  Off | 2014-12-15 | 07:05:23.58 |      51 |     0 |       4 |      3
+ DE.20141215.27433.fits |                   science |  53.07616666666666 |  -27.826999999999998 |     cdfs_bbg |     830G |   CDFS |     1,1 | 57006.317429 |  1.51046674 |  1800.0 | 7800.06494141 | SINGLE:B |   OG550 |                  Off | 2014-12-15 | 07:37:13.03 |      52 |     0 |       5 |      6
+ DE.20141215.29313.fits |                   science |  53.07524999999999 |   -27.82586111111111 |     cdfs_bbg |     830G |   CDFS |     1,1 | 57006.339199 |  1.48085808 |  1800.0 | 7800.06494141 | SINGLE:B |   OG550 |                  Off | 2014-12-15 | 08:08:33.68 |      53 |     0 |       6 |      5
+ DE.20141215.31199.fits |                   science | 53.075708333333324 |  -27.826444444444444 |     cdfs_bbg |     830G |   CDFS |     1,1 | 57006.361017 |  1.48602706 |  1800.0 | 7800.06494141 | SINGLE:B |   OG550 |                  Off | 2014-12-15 | 08:39:59.59 |      54 |     0 |       7 |      8
+ DE.20141215.33082.fits |                   science |  53.07616666666666 |  -27.826999999999998 |     cdfs_bbg |     830G |   CDFS |     1,1 | 57006.382832 |  1.52665102 |  1800.0 | 7800.06494141 | SINGLE:B |   OG550 |                  Off | 2014-12-15 | 09:11:22.84 |      55 |     0 |       8 |      7
+data end
+

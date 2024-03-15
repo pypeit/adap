@@ -1,0 +1,52 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T22:23:14.892
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: a370_4
+dispangle: 6800.00634766
+dispname: 600ZD
+filter1: GG400
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/a370_4/600ZD_6800_GG400/2016-11-03/complete/raw
+              filename |                 frametype |                ra |                 dec |  target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+DE.20161103.11210.fits |                  arc,tilt | 57.99999999999999 |                45.0 | unknown |    600ZD | a370_4 |     1,1 | 57695.129696 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2016-11-03 | 03:06:50.62 |      43 |     0 |      -1 |     -1
+DE.20161103.11288.fits | pixelflat,illumflat,trace | 57.99999999999999 |                45.0 | unknown |    600ZD | a370_4 |     1,1 | 57695.130573 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-03 | 03:08:08.87 |      44 |     0 |      -1 |     -1
+DE.20161103.11360.fits | pixelflat,illumflat,trace | 57.99999999999999 |                45.0 | unknown |    600ZD | a370_4 |     1,1 | 57695.131408 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-03 | 03:09:20.82 |      45 |     0 |      -1 |     -1
+DE.20161103.11433.fits | pixelflat,illumflat,trace | 57.99999999999999 |                45.0 | unknown |    600ZD | a370_4 |     1,1 | 57695.132252 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-03 | 03:10:33.67 |      46 |     0 |      -1 |     -1
+DE.20161103.25976.fits |                   science | 39.94516666666666 | -1.4836666666666667 |  a370_4 |    600ZD | a370_4 |     1,1 | 57695.300595 | 1.50658222 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-03 | 07:12:56.40 |      74 |     0 |       1 |      2
+DE.20161103.27265.fits |                   science | 39.94499999999999 | -1.4840555555555557 |  a370_4 |    600ZD | a370_4 |     1,1 |   57695.3155 | 1.38447135 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-03 | 07:34:25.86 |      75 |     0 |       2 |      3
+DE.20161103.28559.fits |                   science | 39.94533333333333 |  -1.483277777777778 |  a370_4 |    600ZD | a370_4 |     1,1 | 57695.330487 | 1.29069726 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-03 | 07:55:59.01 |      76 |     0 |       3 |      2
+data end
+

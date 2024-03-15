@@ -1,0 +1,59 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T22:25:40.669
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: a37032B
+dispangle: 7800.06445312
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/a37032B/830G_7800_OG550/2004-01-18_2004-01-19/complete/raw
+               filename |                 frametype |                ra |                 dec |       target | dispname |  decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20040118.60261.fits |                  arc,tilt |             67.35 |               0.062 | HORIZON STOW |     830G | a37032B |     1,1 | 53022.697387 | 13.37481353 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2004-01-18 | 16:44:21.31 |      93 |     0 |      -1 |     -1
+ DE.20040119.10625.fits |                  arc,tilt |              67.0 |                45.0 | HORIZON STOW |     830G | a37032B |     1,1 | 53023.122897 |  1.41291034 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2004-01-19 | 02:57:05.28 |      22 |     0 |      -1 |     -1
+#DE.20040118.60341.fits | pixelflat,illumflat,trace |             67.35 |               0.062 | HORIZON STOW |     830G | a37032B |     1,1 | 53022.698319 | 13.37481353 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-18 | 16:45:41.71 |      94 |     0 |      -1 |     -1
+#DE.20040118.60422.fits | pixelflat,illumflat,trace |             67.35 |               0.062 | HORIZON STOW |     830G | a37032B |     1,1 | 53022.699281 | 13.37481353 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-18 | 16:47:02.26 |      95 |     0 |      -1 |     -1
+#DE.20040118.60501.fits | pixelflat,illumflat,trace |             67.35 |               0.062 | HORIZON STOW |     830G | a37032B |     1,1 | 53022.700191 | 13.37481353 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-18 | 16:48:21.31 |      96 |     0 |      -1 |     -1
+ DE.20040119.10703.fits | pixelflat,illumflat,trace |              67.0 |                45.0 | HORIZON STOW |     830G | a37032B |     1,1 | 53023.123812 |  1.41291034 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-19 | 02:58:23.83 |      23 |     0 |      -1 |     -1
+ DE.20040119.10782.fits | pixelflat,illumflat,trace |              67.0 |                45.0 | HORIZON STOW |     830G | a37032B |     1,1 | 53023.124731 |  1.41291034 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-19 | 02:59:42.78 |      24 |     0 |      -1 |     -1
+ DE.20040119.10861.fits | pixelflat,illumflat,trace |              67.0 |                45.0 | HORIZON STOW |     830G | a37032B |     1,1 | 53023.125636 |  1.41291034 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-19 | 03:01:01.58 |      25 |     0 |      -1 |     -1
+ DE.20040118.26823.fits |                   science | 39.94895833333333 | -1.5229722222222222 |       a37032 |     830G | a37032B |     1,1 |  53022.31039 |  1.28442847 |  1140.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-18 | 07:27:03.98 |      33 |     0 |       1 |      2
+ DE.20040118.28047.fits |                   science | 39.94862499999999 |  -1.522722222222222 |       a37032 |     830G | a37032B |     1,1 | 53022.324554 |   1.3705082 |  1140.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-18 | 07:47:27.09 |      34 |     0 |       2 |      3
+ DE.20040118.29262.fits |                   science | 39.94929166666667 | -1.5232222222222223 |       a37032 |     830G | a37032B |     1,1 | 53022.338605 |  1.48079915 |  1140.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-18 | 08:07:42.02 |      35 |     0 |       3 |      2
+ DE.20040119.24382.fits |                   science | 39.94962499999999 | -1.5214999999999999 |       a37032 |     830G | a37032B |     1,1 | 53023.282171 |  1.17546057 |  1800.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 06:46:22.89 |      58 |     0 |       4 |      5
+ DE.20040119.26260.fits |                   science | 39.94929166666667 |            -1.52125 |       a37032 |     830G | a37032B |     1,1 | 53023.303876 |  1.26481802 |  1800.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 07:17:40.12 |      59 |     0 |       5 |      6
+ DE.20040119.28132.fits |                   science | 39.94995833333333 |            -1.52175 |       a37032 |     830G | a37032B |     1,1 | 53023.325538 |  1.39707716 |  1800.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 07:48:52.34 |      60 |     0 |       6 |      5
+data end
+

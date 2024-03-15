@@ -1,0 +1,52 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-03T00:05:29.132
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: r370x
+dispangle: 7099.95458984
+dispname: 600ZD
+filter1: GG400
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/r370x/600ZD_7100_GG400/2008-10-04/complete/raw
+              filename |                 frametype |                 ra |                 dec | target | dispname | decker | binning |               mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+DE.20081004.14266.fits |                  arc,tilt |  57.99999999999999 |                45.0 |        |    600ZD |  r370x |     1,1 |      54743.165007 | 1.41291034 |     1.0 | 7099.95458984 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2008-10-04 | 03:57:46.47 |      46 |     0 |      -1 |     -1
+DE.20081004.14339.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |        |    600ZD |  r370x |     1,1 |      54743.165933 | 1.41291034 |     6.0 | 7099.95458984 | SINGLE:B |   GG400 |          Qz | 2008-10-04 | 03:58:59.07 |      47 |     0 |      -1 |     -1
+DE.20081004.14412.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |        |    600ZD |  r370x |     1,1 |      54743.166724 | 1.41291034 |     6.0 | 7099.95458984 | SINGLE:B |   GG400 |          Qz | 2008-10-04 | 04:00:12.67 |      48 |     0 |      -1 |     -1
+DE.20081004.14486.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |        |    600ZD |  r370x |     1,1 |      54743.167593 | 1.41291034 |     6.0 | 7099.95458984 | SINGLE:B |   GG400 |          Qz | 2008-10-04 | 04:01:26.17 |      49 |     0 |      -1 |     -1
+DE.20081004.52590.fits |                   science |  39.92320833333333 | -1.6023333333333334 |  r370x |    600ZD |  r370x |     1,1 |      54743.608609 | 1.34937904 |   720.0 | 7099.95458984 | SINGLE:B |   GG400 |         Off | 2008-10-04 | 14:36:30.57 |     112 |     0 |       1 |      2
+DE.20081004.53387.fits |                   science | 39.923624999999994 | -1.6023611111111111 |  r370x |    600ZD |  r370x |     1,1 |      54743.617788 | 1.41397617 |   720.0 | 7099.95458984 | SINGLE:B |   GG400 |         Off | 2008-10-04 | 14:49:47.14 |     113 |     0 |       2 |      3
+DE.20081004.54173.fits |                   science |  39.92279166666666 | -1.6023333333333334 |  r370x |    600ZD |  r370x |     1,1 | 54743.62700694444 | 1.48998015 |   720.0 | 7099.95458984 | SINGLE:B |   GG400 |         Off | 2008-10-04 | 15:02:53.40 |     114 |     0 |       3 |      2
+data end
+

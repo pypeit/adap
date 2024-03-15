@@ -1,0 +1,64 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T22:59:33.648
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: cos321
+dispangle: 8000.00195312
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/cos321/830G_8000_OG550/2012-03-22_2012-03-23/complete/raw
+               filename |                 frametype |                 ra |                dec |      target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20120322.12282.fits |                  arc,tilt | 112.69999999999999 |               45.0 |     unknown |     830G | cos321 |     1,1 | 56008.142094 | 1.41291034 |     1.0 | 8000.00195312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2012-03-22 | 03:24:42.18 |      27 |     0 |      -1 |     -1
+ DE.20120323.14890.fits |                  arc,tilt |  57.99999999999999 |               45.0 |  DOME PHLAT |     830G | cos321 |     1,1 | 56009.172308 | 1.41291034 |     1.0 | 8000.00195312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2012-03-23 | 04:08:10.88 |      37 |     0 |      -1 |     -1
+#DE.20120322.12358.fits | pixelflat,illumflat,trace | 112.69999999999999 |               45.0 |     unknown |     830G | cos321 |     1,1 | 56008.143003 | 1.41291034 |     8.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2012-03-22 | 03:25:58.08 |      28 |     0 |      -1 |     -1
+#DE.20120322.12437.fits | pixelflat,illumflat,trace | 112.69999999999999 |               45.0 |     unknown |     830G | cos321 |     1,1 | 56008.143873 | 1.41291034 |     8.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2012-03-22 | 03:27:17.63 |      29 |     0 |      -1 |     -1
+#DE.20120322.12520.fits | pixelflat,illumflat,trace | 112.69999999999999 |               45.0 |     unknown |     830G | cos321 |     1,1 | 56008.144912 | 1.41291034 |     8.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2012-03-22 | 03:28:40.73 |      30 |     0 |      -1 |     -1
+#DE.20120322.13805.fits | pixelflat,illumflat,trace | 112.69999999999999 |               45.0 |     unknown |     830G | cos321 |     1,1 | 56008.159712 | 1.41291034 |     3.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2012-03-22 | 03:50:05.53 |      43 |     0 |      -1 |     -1
+#DE.20120322.13878.fits | pixelflat,illumflat,trace | 112.69999999999999 |               45.0 |     unknown |     830G | cos321 |     1,1 | 56008.160552 | 1.41291034 |     3.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2012-03-22 | 03:51:18.63 |      44 |     0 |      -1 |     -1
+#DE.20120322.13950.fits | pixelflat,illumflat,trace | 112.69999999999999 |               45.0 |     unknown |     830G | cos321 |     1,1 | 56008.161379 | 1.41291034 |     3.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2012-03-22 | 03:52:30.93 |      45 |     0 |      -1 |     -1
+ DE.20120323.14968.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |  DOME PHLAT |     830G | cos321 |     1,1 | 56009.173211 | 1.41291034 |     3.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2012-03-23 | 04:09:28.98 |      38 |     0 |      -1 |     -1
+ DE.20120323.15041.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |  DOME PHLAT |     830G | cos321 |     1,1 | 56009.174009 | 1.41291034 |     3.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2012-03-23 | 04:10:41.13 |      39 |     0 |      -1 |     -1
+ DE.20120323.15114.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |  DOME PHLAT |     830G | cos321 |     1,1 | 56009.174846 | 1.41291034 |     3.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2012-03-23 | 04:11:54.43 |      40 |     0 |      -1 |     -1
+ DE.20120322.34725.fits |                   science |  150.1342083333333 |  2.285833333333333 | cosmosmarch |     830G | cos321 |     1,1 |  56008.40181 | 1.10845416 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2012-03-22 | 09:38:45.00 |      85 |     0 |       1 |      2
+ DE.20120322.36011.fits |                   science | 150.13379166666664 | 2.2861944444444444 | cosmosmarch |     830G | cos321 |     1,1 |  56008.41677 | 1.15007376 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2012-03-22 | 10:00:11.85 |      86 |     0 |       2 |      3
+ DE.20120322.37301.fits |                   science | 150.13462499999997 | 2.2854444444444444 | cosmosmarch |     830G | cos321 |     1,1 | 56008.431636 | 1.20581683 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2012-03-22 | 10:21:41.05 |      87 |     0 |       3 |      2
+ DE.20120323.19691.fits |                   science | 150.13454166666665 | 2.2853055555555555 | cosmosmarch |     830G | cos321 |     1,1 | 56009.227847 |  1.4169196 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2012-03-23 | 05:28:11.03 |      66 |     0 |       4 |      5
+ DE.20120323.20978.fits |                   science | 150.13412499999998 | 2.2856666666666667 | cosmosmarch |     830G | cos321 |     1,1 | 56009.242746 | 1.31197159 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2012-03-23 | 05:49:38.38 |      67 |     0 |       5 |      4
+ DE.20120323.22252.fits |                   science | 150.13495833333332 | 2.2849444444444442 | cosmosmarch |     830G | cos321 |     1,1 | 56009.257482 | 1.23187926 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2012-03-23 | 06:10:52.78 |      68 |     0 |       6 |      7
+ DE.20120323.23710.fits |                   science | 150.13458333333332 | 2.2853055555555555 | cosmosmarch |     830G | cos321 |     1,1 | 56009.274344 | 1.16299046 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2012-03-23 | 06:35:10.98 |      70 |     0 |       7 |      8
+ DE.20120323.24993.fits |                   science | 150.13416666666666 | 2.2856666666666667 | cosmosmarch |     830G | cos321 |     1,1 | 56009.289182 | 1.11816403 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2012-03-23 | 06:56:33.63 |      71 |     0 |       8 |      7
+data end
+

@@ -1,0 +1,52 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-03T00:07:18.796
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: s22_10
+dispangle: 7800.06445312
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/s22_10/830G_7800_OG550/2006-09-15/complete/raw
+              filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+DE.20060915.12000.fits |                  arc,tilt |  57.99999999999999 |               45.0 |        |     830G | s22_10 |     1,1 | 53993.138799 | 1.41291034 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2006-09-15 | 03:20:00.06 |      31 |     0 |      -1 |     -1
+DE.20060915.12076.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |     830G | s22_10 |     1,1 | 53993.139687 | 1.41291034 |     8.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2006-09-15 | 03:21:16.81 |      32 |     0 |      -1 |     -1
+DE.20060915.12154.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |     830G | s22_10 |     1,1 | 53993.140593 | 1.41291034 |     8.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2006-09-15 | 03:22:34.61 |      33 |     0 |      -1 |     -1
+DE.20060915.12231.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |     830G | s22_10 |     1,1 | 53993.141488 | 1.41291034 |     8.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2006-09-15 | 03:23:51.71 |      34 |     0 |      -1 |     -1
+DE.20060915.36490.fits |                   science |  334.3620416666667 | 0.2724722222222222 | s22_10 |     830G | s22_10 |     1,1 | 53993.422313 | 1.10549878 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2006-09-15 | 10:08:10.24 |      80 |     0 |       1 |      2
+DE.20060915.37758.fits |                   science | 334.36241666666666 | 0.2723333333333333 | s22_10 |     830G | s22_10 |     1,1 | 53993.436928 | 1.14106511 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2006-09-15 | 10:29:18.65 |      81 |     0 |       2 |      3
+DE.20060915.39028.fits |                   science | 334.36162499999995 | 0.2726111111111111 | s22_10 |     830G | s22_10 |     1,1 | 53993.451705 | 1.18947179 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2006-09-15 | 10:50:28.17 |      82 |     0 |       3 |      2
+data end
+

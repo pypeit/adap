@@ -1,0 +1,63 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T22:54:12.037
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: CLAE-8
+dispangle: 7899.97949219
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/CLAE-8/830G_7900_OG550/2007-01-17_2007-01-18/complete/raw
+               filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20070117.12036.fits |                  arc,tilt |  57.99999999999999 |               45.0 |              |     830G | CLAE-8 |     1,1 | 54117.139271 | 1.41291034 |     1.0 | 7899.97949219 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2007-01-17 | 03:20:36.44 |      40 |     0 |      -1 |     -1
+ DE.20070118.14438.fits |                  arc,tilt |  57.99999999999999 |               45.0 | Laser L4 Svc |     830G | CLAE-8 |     1,1 |  54118.16704 | 1.41291034 |     1.0 | 7899.97949219 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2007-01-18 | 04:00:38.97 |      53 |     0 |      -1 |     -1
+#DE.20070117.12114.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |              |     830G | CLAE-8 |     1,1 | 54117.140174 | 1.41291034 |    12.0 | 7899.97949219 | SINGLE:B |   OG550 |          Qz | 2007-01-17 | 03:21:54.24 |      41 |     0 |      -1 |     -1
+#DE.20070117.12197.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |              |     830G | CLAE-8 |     1,1 | 54117.141113 | 1.41291034 |    12.0 | 7899.97949219 | SINGLE:B |   OG550 |          Qz | 2007-01-17 | 03:23:17.19 |      42 |     0 |      -1 |     -1
+#DE.20070117.12277.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |              |     830G | CLAE-8 |     1,1 | 54117.142017 | 1.41291034 |    12.0 | 7899.97949219 | SINGLE:B |   OG550 |          Qz | 2007-01-17 | 03:24:37.74 |      43 |     0 |      -1 |     -1
+#DE.20070117.12359.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |              |     830G | CLAE-8 |     1,1 | 54117.142955 | 1.41291034 |    12.0 | 7899.97949219 | SINGLE:B |   OG550 |          Qz | 2007-01-17 | 03:25:59.39 |      44 |     0 |      -1 |     -1
+#DE.20070117.12441.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |              |     830G | CLAE-8 |     1,1 | 54117.143903 | 1.41291034 |    12.0 | 7899.97949219 | SINGLE:B |   OG550 |          Qz | 2007-01-17 | 03:27:21.14 |      45 |     0 |      -1 |     -1
+ DE.20070118.14516.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |     830G | CLAE-8 |     1,1 |  54118.16794 | 1.41291034 |    12.0 | 7899.97949219 | SINGLE:B |   OG550 |          Qz | 2007-01-18 | 04:01:56.88 |      54 |     0 |      -1 |     -1
+ DE.20070118.14596.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |     830G | CLAE-8 |     1,1 | 54118.168861 | 1.41291034 |    12.0 | 7899.97949219 | SINGLE:B |   OG550 |          Qz | 2007-01-18 | 04:03:16.83 |      55 |     0 |      -1 |     -1
+ DE.20070118.14678.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |     830G | CLAE-8 |     1,1 |   54118.1698 | 1.41291034 |    12.0 | 7899.97949219 | SINGLE:B |   OG550 |          Qz | 2007-01-18 | 04:04:38.78 |      56 |     0 |      -1 |     -1
+ DE.20070117.42950.fits |                   science |         150.243125 | 1.8752777777777778 |    COS_LAE_8 |     830G | CLAE-8 |     1,1 | 54117.497023 | 1.06869759 |  1800.0 | 7899.97949219 | SINGLE:B |   OG550 |         Off | 2007-01-17 | 11:55:50.00 |      69 |     0 |       1 |      2
+ DE.20070117.44821.fits |                   science | 150.24362499999998 | 1.8755833333333334 |    COS_LAE_8 |     830G | CLAE-8 |     1,1 | 54117.518669 | 1.05249172 |  1800.0 | 7899.97949219 | SINGLE:B |   OG550 |         Off | 2007-01-17 | 12:27:01.34 |      70 |     0 |       2 |      1
+ DE.20070117.46692.fits |                   science | 150.24262499999998 |              1.875 |    COS_LAE_8 |     830G | CLAE-8 |     1,1 | 54117.540335 | 1.05580896 |  1800.0 | 7899.97949219 | SINGLE:B |   OG550 |         Off | 2007-01-17 | 12:58:12.98 |      71 |     0 |       3 |      4
+ DE.20070117.48591.fits |                   science |         150.243125 | 1.8752777777777778 |    COS_LAE_8 |     830G | CLAE-8 |     1,1 |  54117.56235 | 1.07942058 |  1800.0 | 7899.97949219 | SINGLE:B |   OG550 |         Off | 2007-01-17 | 13:29:51.76 |      72 |     0 |       4 |      3
+ DE.20070117.50589.fits |                   science |         150.243125 | 1.8752777777777778 |    COS_LAE_8 |     830G | CLAE-8 |     1,1 | 54117.585396 | 1.12890508 |  1800.0 | 7899.97949219 | SINGLE:B |   OG550 |         Off | 2007-01-17 | 14:03:09.09 |      74 |     0 |       5 |      6
+ DE.20070117.52544.fits |                   science | 150.24362499999998 | 1.8755555555555556 |    COS_LAE_8 |     830G | CLAE-8 |     1,1 | 54117.608081 | 1.20771957 |  1800.0 | 7899.97949219 | SINGLE:B |   OG550 |         Off | 2007-01-17 | 14:35:44.87 |      75 |     0 |       6 |      5
+ DE.20070117.54416.fits |                   science | 150.24237499999998 | 1.8748333333333334 |    COS_LAE_8 |     830G | CLAE-8 |     1,1 | 54117.629732 | 1.32048141 |  1800.0 | 7899.97949219 | SINGLE:B |   OG550 |         Off | 2007-01-17 | 15:06:56.02 |      76 |     0 |       7 |      6
+ DE.20070117.56289.fits |                   science | 150.24387499999997 | 1.8756944444444446 |    COS_LAE_8 |     830G | CLAE-8 |     1,1 | 54117.651444 | 1.48638929 |  1436.0 | 7899.97949219 | SINGLE:B |   OG550 |         Off | 2007-01-17 | 15:38:09.78 |      77 |     0 |       8 |     -1
+data end
+

@@ -1,0 +1,52 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:23:42.322
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: gris_z
+dispangle: 7800.06494141
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/gris_z/830G_7800_OG550/2011-03-26/complete/raw
+              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+DE.20110326.57466.fits |                  arc,tilt |              67.35 |              0.039 | HORIZON STOW |     830G | gris_z |     1,1 | 55646.665026 | 13.37481353 |     1.0 | 7800.06494141 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2011-03-26 | 15:57:46.04 |     116 |     0 |      -1 |     -1
+DE.20110326.57543.fits | pixelflat,illumflat,trace |              67.35 |              0.039 | HORIZON STOW |     830G | gris_z |     1,1 | 55646.665924 | 13.37481353 |     5.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2011-03-26 | 15:59:03.84 |     117 |     0 |      -1 |     -1
+DE.20110326.57618.fits | pixelflat,illumflat,trace |              67.35 |              0.039 | HORIZON STOW |     830G | gris_z |     1,1 | 55646.666806 | 13.37481353 |     5.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2011-03-26 | 16:00:18.59 |     118 |     0 |      -1 |     -1
+DE.20110326.57693.fits | pixelflat,illumflat,trace |              67.35 |              0.039 | HORIZON STOW |     830G | gris_z |     1,1 | 55646.667665 | 13.37481353 |     5.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2011-03-26 | 16:01:33.49 |     119 |     0 |      -1 |     -1
+DE.20110326.32782.fits |                   science | 189.16716666666662 |  62.28113888888889 |       gris_z |     830G | gris_z |     1,1 | 55646.379358 |  1.42900144 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2011-03-26 | 09:06:22.91 |      72 |     0 |       1 |      2
+DE.20110326.34051.fits |                   science |  189.1678333333333 | 62.281416666666665 |       gris_z |     830G | gris_z |     1,1 | 55646.394034 |  1.39889748 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2011-03-26 | 09:27:31.26 |      73 |     0 |       2 |      3
+DE.20110326.35326.fits |                   science | 189.16654166666663 | 62.280833333333334 |       gris_z |     830G | gris_z |     1,1 | 55646.408698 |  1.37659767 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2011-03-26 | 09:48:46.42 |      74 |     0 |       3 |      2
+data end
+

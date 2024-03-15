@@ -1,0 +1,56 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:05:48.308
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: dgnm1
+dispangle: 7199.98925781
+dispname: 600ZD
+filter1: GG455
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/dgnm1/600ZD_7200_GG455/2011-05-30/complete/raw
+               filename |                 frametype |                 ra |               dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |           lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20110530.10925.fits |                  arc,tilt |  57.99999999999999 |              45.0 |      unknown |    600ZD |  dgnm1 |     1,1 | 55711.126243 |  1.41291034 |     1.0 | 7199.98925781 | SINGLE:B |   GG455 |          Kr Xe Ar Ne | 2011-05-30 | 03:02:05.74 |      24 |     0 |      -1 |     -1
+ DE.20110530.55908.fits |                  arc,tilt |              67.35 |             0.039 | HORIZON STOW |    600ZD |  dgnm1 |     1,1 | 55711.647081 | 13.37481353 |     1.0 | 7199.98925781 | SINGLE:B |   GG455 | Kr Xe Hg Ar Ne Cd Zn | 2011-05-30 | 15:31:48.23 |     133 |     0 |      -1 |     -1
+#DE.20110530.10999.fits | pixelflat,illumflat,trace |  57.99999999999999 |              45.0 |      unknown |    600ZD |  dgnm1 |     1,1 | 55711.127303 |  1.41291034 |     6.0 | 7199.98925781 | SINGLE:B |   GG455 |                   Qz | 2011-05-30 | 03:03:19.49 |      25 |     0 |      -1 |     -1
+#DE.20110530.11134.fits | pixelflat,illumflat,trace |  57.99999999999999 |              45.0 |      unknown |    600ZD |  dgnm1 |     1,1 | 55711.128768 |  1.41291034 |     6.0 | 7199.98925781 | SINGLE:B |   GG455 |                   Qz | 2011-05-30 | 03:05:34.34 |      26 |     0 |      -1 |     -1
+#DE.20110530.11206.fits | pixelflat,illumflat,trace |  57.99999999999999 |              45.0 |      unknown |    600ZD |  dgnm1 |     1,1 |  55711.12959 |  1.41291034 |     6.0 | 7199.98925781 | SINGLE:B |   GG455 |                   Qz | 2011-05-30 | 03:06:46.44 |      27 |     0 |      -1 |     -1
+ DE.20110530.55983.fits | pixelflat,illumflat,trace |              67.35 |             0.039 | HORIZON STOW |    600ZD |  dgnm1 |     1,1 | 55711.647879 | 13.37481353 |     6.0 | 7199.98925781 | SINGLE:B |   GG455 |                   Qz | 2011-05-30 | 15:33:03.88 |     134 |     0 |      -1 |     -1
+ DE.20110530.56060.fits | pixelflat,illumflat,trace |              67.35 |             0.039 | HORIZON STOW |    600ZD |  dgnm1 |     1,1 | 55711.648764 | 13.37481353 |     6.0 | 7199.98925781 | SINGLE:B |   GG455 |                   Qz | 2011-05-30 | 15:34:20.08 |     135 |     0 |      -1 |     -1
+ DE.20110530.56135.fits | pixelflat,illumflat,trace |              67.35 |             0.039 | HORIZON STOW |    600ZD |  dgnm1 |     1,1 | 55711.649637 | 13.37481353 |     6.0 | 7199.98925781 | SINGLE:B |   GG455 |                   Qz | 2011-05-30 | 15:35:35.43 |     136 |     0 |      -1 |     -1
+ DE.20110530.25844.fits |                   science |         188.925875 | 62.37386111111111 |        dgnm1 |    600ZD |  dgnm1 |     1,1 | 55711.299061 |  1.36684543 |   960.0 | 7199.98925781 | SINGLE:B |   GG455 |                  Off | 2011-05-30 | 07:10:44.18 |      73 |     0 |       1 |      2
+ DE.20110530.26882.fits |                   science | 188.92583333333332 | 62.37430555555556 |        dgnm1 |    600ZD |  dgnm1 |     1,1 | 55711.311032 |  1.38022162 |   960.0 | 7199.98925781 | SINGLE:B |   GG455 |                  Off | 2011-05-30 | 07:28:02.83 |      74 |     0 |       2 |      1
+ DE.20110530.27901.fits |                   science | 188.92583333333332 | 62.37430555555556 |        dgnm1 |    600ZD |  dgnm1 |     1,1 | 55711.322896 |  1.39846456 |   960.0 | 7199.98925781 | SINGLE:B |   GG455 |                  Off | 2011-05-30 | 07:45:01.68 |      75 |     0 |       3 |      1
+data end
+

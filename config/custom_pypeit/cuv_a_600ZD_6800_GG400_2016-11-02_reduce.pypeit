@@ -1,0 +1,52 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:01:22.905
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: cuv_a
+dispangle: 6800.00634766
+dispname: 600ZD
+filter1: GG400
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/cuv_a/600ZD_6800_GG400/2016-11-02/complete/raw
+              filename |                 frametype |                ra |                 dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+DE.20161102.10976.fits |                  arc,tilt | 57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_a |     1,1 | 57694.126965 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2016-11-02 | 03:02:56.63 |      28 |     0 |      -1 |     -1
+DE.20161102.11052.fits | pixelflat,illumflat,trace | 57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_a |     1,1 | 57694.127862 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-02 | 03:04:12.98 |      29 |     0 |      -1 |     -1
+DE.20161102.11127.fits | pixelflat,illumflat,trace | 57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_a |     1,1 | 57694.128707 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-02 | 03:05:27.73 |      30 |     0 |      -1 |     -1
+DE.20161102.11213.fits | pixelflat,illumflat,trace | 57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_a |     1,1 | 57694.129701 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-02 | 03:06:53.68 |      31 |     0 |      -1 |     -1
+DE.20161102.30008.fits |                   science | 53.05995833333333 |  -27.82811111111111 |      cuv_a |    600ZD |  cuv_a |     1,1 | 57694.347238 | 2.14161152 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-02 | 08:20:08.24 |      82 |     0 |       1 |      2
+DE.20161102.31296.fits |                   science | 53.05974999999999 | -27.827583333333333 |      cuv_a |    600ZD |  cuv_a |     1,1 | 57694.362147 | 1.93910441 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-02 | 08:41:36.44 |      83 |     0 |       2 |      3
+DE.20161102.32572.fits |                   science | 53.06016666666666 |  -27.82863888888889 |      cuv_a |    600ZD |  cuv_a |     1,1 | 57694.376921 | 1.79143875 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-02 | 09:02:52.29 |      84 |     0 |       3 |      2
+data end
+

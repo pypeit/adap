@@ -1,0 +1,63 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:34:16.272
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: hdf12b
+dispangle: 8500.0078125
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/hdf12b/830G_8500_OG550/2012-02-25/complete/raw
+                filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |          mjd |    airmass | exptime |    dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+ #DE.20120225.12375.fits |                  arc,tilt |                0.0 |                0.0 |        |     830G | hdf12b |     1,1 | 55982.143198 | 1.41291034 |     1.0 | 8500.0078125 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2012-02-25 | 03:26:15.88 |      45 |     0 |      -1 |     -1
+  DE.20120225.12447.fits |                  arc,tilt |                0.0 |                0.0 |        |     830G | hdf12b |     1,1 | 55982.143984 | 1.41291034 |     1.0 | 8500.0078125 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2012-02-25 | 03:27:27.88 |      46 |     0 |      -1 |     -1
+ #DE.20120225.12527.fits | pixelflat,illumflat,trace |                0.0 |                0.0 |        |     830G | hdf12b |     1,1 |  55982.14491 | 1.41291034 |     3.0 | 8500.0078125 | SINGLE:B |   OG550 |          Qz | 2012-02-25 | 03:28:47.58 |      47 |     0 |      -1 |     -1
+ #DE.20120225.12600.fits | pixelflat,illumflat,trace |                0.0 |                0.0 |        |     830G | hdf12b |     1,1 |  55982.14575 | 1.41291034 |     3.0 | 8500.0078125 | SINGLE:B |   OG550 |          Qz | 2012-02-25 | 03:30:00.08 |      48 |     0 |      -1 |     -1
+ #DE.20120225.12673.fits | pixelflat,illumflat,trace |                0.0 |                0.0 |        |     830G | hdf12b |     1,1 | 55982.146594 | 1.41291034 |     3.0 | 8500.0078125 | SINGLE:B |   OG550 |          Qz | 2012-02-25 | 03:31:13.08 |      49 |     0 |      -1 |     -1
+  DE.20120225.12811.fits | pixelflat,illumflat,trace |                0.0 |                0.0 |        |     830G | hdf12b |     1,1 | 55982.148186 | 1.41291034 |     8.0 | 8500.0078125 | SINGLE:B |   OG550 |          Qz | 2012-02-25 | 03:33:31.18 |      50 |     0 |      -1 |     -1
+  DE.20120225.12889.fits | pixelflat,illumflat,trace |                0.0 |                0.0 |        |     830G | hdf12b |     1,1 | 55982.149091 | 1.41291034 |     8.0 | 8500.0078125 | SINGLE:B |   OG550 |          Qz | 2012-02-25 | 03:34:49.13 |      51 |     0 |      -1 |     -1
+  DE.20120225.12966.fits | pixelflat,illumflat,trace |                0.0 |                0.0 |        |     830G | hdf12b |     1,1 |  55982.14998 | 1.41291034 |     8.0 | 8500.0078125 | SINGLE:B |   OG550 |          Qz | 2012-02-25 | 03:36:06.53 |      52 |     0 |      -1 |     -1
+# DE.20120225.39663.fits |                   science |  189.2378333333333 | 62.243944444444445 | hdf12b |     830G | hdf12b |     1,1 | 55982.459059 | 1.42910844 |     1.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 11:01:03.07 |      86 |     0 |       1 |     -1
+  DE.20120225.40807.fits |                   science | 189.23779166666662 | 62.243972222222226 | hdf12b |     830G | hdf12b |     1,1 | 55982.472222 | 1.40088896 |  1800.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 11:20:07.32 |      88 |     0 |       2 |      3
+  DE.20120225.42696.fits |                   science | 189.23829166666664 |  62.24447222222222 | hdf12b |     830G | hdf12b |     1,1 | 55982.494113 | 1.36846728 |  1800.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 11:51:36.42 |      89 |     0 |       3 |      2
+  DE.20120225.44583.fits |                   science | 189.23729166666664 |  62.24347222222222 | hdf12b |     830G | hdf12b |     1,1 |  55982.51596 | 1.35207142 |  1800.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 12:23:03.02 |      90 |     0 |       4 |      5
+  DE.20120225.46623.fits |                   science | 189.23779166666662 |  62.24402777777778 | hdf12b |     830G | hdf12b |     1,1 | 55982.539566 | 1.35160781 |  1800.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 12:57:03.62 |      92 |     0 |       5 |      4
+  DE.20120225.48611.fits |                   science | 189.23729166666664 |  62.24352777777778 | hdf12b |     830G | hdf12b |     1,1 | 55982.562465 | 1.36817682 |  1800.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 13:30:11.55 |      93 |     0 |       6 |      7
+  DE.20120225.50693.fits |                   science | 189.23774999999998 |             62.244 | hdf12b |     830G | hdf12b |     1,1 |  55982.58667 | 1.40489006 |  1800.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 14:04:53.60 |      95 |     0 |       7 |      8
+  DE.20120225.52569.fits |                   science | 189.23724999999996 | 62.243500000000004 | hdf12b |     830G | hdf12b |     1,1 | 55982.608383 | 1.45648882 |  1800.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 14:36:09.30 |      96 |     0 |       8 |      7
+  DE.20120225.54505.fits |                   science | 189.23824999999997 |            62.2445 | hdf12b |     830G | hdf12b |     1,1 | 55982.630767 | 1.53141996 |  1800.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 15:08:25.60 |      97 |     0 |       9 |      8
+  DE.20120225.56538.fits |                   science | 189.23774999999998 |             62.244 | hdf12b |     830G | hdf12b |     1,1 | 55982.654348 | 1.63851791 |  1200.0 | 8500.0078125 | SINGLE:B |   OG550 |         Off | 2012-02-25 | 15:42:18.16 |      99 |     0 |      10 |     -1
+data end
+

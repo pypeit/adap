@@ -1,0 +1,62 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-03T00:05:56.374
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A:
+  amp: '"SINGLE:B"'
+  binning: 1,1
+  decker: RC23_D3n
+  dispangle: 8799.98730469
+  dispname: 1200G
+  filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/RC23_D3n/1200G_8800_OG550/2014-11-28_2014-11-29/complete/raw
+               filename |                 frametype |                 ra |                 dec |   target | dispname |   decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib
+#DE.20141128.07751.fits |                  arc,tilt |  57.99999999999999 |                45.0 |  unknown |    1200G | RC23_D3n |     1,1 | 56989.089627 | 1.41291034 |     1.0 | 8799.98730469 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2014-11-28 | 02:09:11.70 |      20 |     0
+ DE.20141129.08372.fits |                  arc,tilt |  57.99999999999999 |                45.0 |  unknown |    1200G | RC23_D3n |     1,1 |  56990.09682 | 1.41291034 |     1.0 | 8799.98730469 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2014-11-29 | 02:19:32.31 |      21 |     0
+#DE.20141128.07829.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |  unknown |    1200G | RC23_D3n |     1,1 | 56989.090523 | 1.41291034 |    12.0 | 8799.98730469 | SINGLE:B |   OG550 |          Qz | 2014-11-28 | 02:10:29.55 |      21 |     0
+#DE.20141128.07911.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |  unknown |    1200G | RC23_D3n |     1,1 | 56989.091485 | 1.41291034 |    12.0 | 8799.98730469 | SINGLE:B |   OG550 |          Qz | 2014-11-28 | 02:11:51.05 |      22 |     0
+#DE.20141128.07992.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |  unknown |    1200G | RC23_D3n |     1,1 | 56989.092474 | 1.41291034 |    12.0 | 8799.98730469 | SINGLE:B |   OG550 |          Qz | 2014-11-28 | 02:13:12.10 |      23 |     0
+ DE.20141129.08449.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |  unknown |    1200G | RC23_D3n |     1,1 | 56990.097701 | 1.41291034 |    12.0 | 8799.98730469 | SINGLE:B |   OG550 |          Qz | 2014-11-29 | 02:20:49.31 |      22 |     0
+ DE.20141129.08531.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |  unknown |    1200G | RC23_D3n |     1,1 | 56990.098665 | 1.41291034 |    12.0 | 8799.98730469 | SINGLE:B |   OG550 |          Qz | 2014-11-29 | 02:22:11.21 |      23 |     0
+ DE.20141129.08613.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |  unknown |    1200G | RC23_D3n |     1,1 | 56990.099599 | 1.41291034 |    12.0 | 8799.98730469 | SINGLE:B |   OG550 |          Qz | 2014-11-29 | 02:23:33.01 |      24 |     0
+#DE.20141129.26635.fits |                   science |  351.8938333333333 | -2.0621666666666667 | RC23_D3n |    1200G | RC23_D3n |     1,1 | 56990.308187 | 1.26450002 |     1.0 | 8799.98730469 | SINGLE:B |   OG550 |         Off | 2014-11-29 | 07:23:55.62 |      59 |     0
+ DE.20141128.18313.fits |                   science | 351.89520833333324 | -2.0625277777777775 | RC23_D3n |    1200G | RC23_D3n |     1,1 | 56989.211888 | 1.08013299 |  1200.0 | 8799.98730469 | SINGLE:B |   OG550 |         Off | 2014-11-28 | 05:05:13.49 |      59 |     0
+ DE.20141128.19604.fits |                   science | 351.89520833333324 | -2.0625277777777775 | RC23_D3n |    1200G | RC23_D3n |     1,1 |  56989.22682 | 1.07728745 |  1200.0 | 8799.98730469 | SINGLE:B |   OG550 |         Off | 2014-11-28 | 05:26:44.94 |      60 |     0
+ DE.20141128.20874.fits |                   science | 351.89520833333324 | -2.0625277777777775 | RC23_D3n |    1200G | RC23_D3n |     1,1 | 56989.241568 | 1.08390687 |  1200.0 | 8799.98730469 | SINGLE:B |   OG550 |         Off | 2014-11-28 | 05:47:54.54 |      61 |     0
+ DE.20141128.22146.fits |                   science | 351.89520833333324 | -2.0625277777777775 | RC23_D3n |    1200G | RC23_D3n |     1,1 | 56989.256225 | 1.10018357 |  1200.0 | 8799.98730469 | SINGLE:B |   OG550 |         Off | 2014-11-28 | 06:09:06.34 |      62 |     0
+ DE.20141129.25165.fits |                   science |  351.8938333333333 | -2.0621666666666667 | RC23_D3n |    1200G | RC23_D3n |     1,1 | 56990.291191 | 1.19263753 |  1200.0 | 8799.98730469 | SINGLE:B |   OG550 |         Off | 2014-11-29 | 06:59:25.96 |      58 |     0
+ DE.20141129.26750.fits |                   science |  351.8938333333333 | -2.0621666666666667 | RC23_D3n |    1200G | RC23_D3n |     1,1 | 56990.309571 | 1.27111268 |  1200.0 | 8799.98730469 | SINGLE:B |   OG550 |         Off | 2014-11-29 | 07:25:50.02 |      60 |     0
+ DE.20141129.28047.fits |                   science |  351.8938333333333 | -2.0621666666666667 | RC23_D3n |    1200G | RC23_D3n |     1,1 | 56990.324529 | 1.35799246 |  1200.0 | 8799.98730469 | SINGLE:B |   OG550 |         Off | 2014-11-29 | 07:47:27.97 |      61 |     0
+#DE.20141129.29337.fits |                   science |  351.8938333333333 | -2.0621666666666667 | RC23_D3n |    1200G | RC23_D3n |     1,1 | 56990.339459 | 1.47113972 |   305.0 | 8799.98730469 | SINGLE:B |   OG550 |         Off | 2014-11-29 | 08:08:57.52 |      62 |     0
+data end
+

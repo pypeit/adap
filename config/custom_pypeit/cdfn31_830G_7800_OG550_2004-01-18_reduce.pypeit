@@ -1,0 +1,52 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T22:43:30.782
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: cdfn31
+dispangle: 7800.06445312
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/cdfn31/830G_7800_OG550/2004-01-18/complete/raw
+              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+DE.20040118.60666.fits |                  arc,tilt |              67.35 |              0.062 | HORIZON STOW |     830G | cdfn31 |     1,1 | 53022.702087 | 13.37481353 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2004-01-18 | 16:51:06.01 |      97 |     0 |      -1 |     -1
+DE.20040118.60742.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |     830G | cdfn31 |     1,1 | 53022.702968 | 13.37481353 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-18 | 16:52:22.52 |      98 |     0 |      -1 |     -1
+DE.20040118.60822.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |     830G | cdfn31 |     1,1 | 53022.703886 | 13.37481353 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-18 | 16:53:42.17 |      99 |     0 |      -1 |     -1
+DE.20040118.60900.fits | pixelflat,illumflat,trace |              67.35 |              0.062 | HORIZON STOW |     830G | cdfn31 |     1,1 | 53022.704793 | 13.37481353 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-18 | 16:55:00.62 |     100 |     0 |      -1 |     -1
+DE.20040118.48701.fits |                   science | 189.17774999999997 |  62.25936111111111 |       cdfn31 |     830G | cdfn31 |     1,1 | 53022.563602 |  1.42763365 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-18 | 13:31:41.47 |      61 |     0 |       1 |      2
+DE.20040118.49981.fits |                   science |         189.178375 |  62.25963888888889 |       cdfn31 |     830G | cdfn31 |     1,1 | 53022.578418 |    1.397324 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-18 | 13:53:01.04 |      62 |     0 |       2 |      3
+DE.20040118.51248.fits |                   science | 189.17708333333331 | 62.259055555555555 |       cdfn31 |     830G | cdfn31 |     1,1 | 53022.593062 |  1.37498877 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-18 | 14:14:08.06 |      63 |     0 |       3 |      2
+data end
+

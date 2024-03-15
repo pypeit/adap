@@ -1,0 +1,61 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:42:46.435
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: LAE-164
+dispangle: 7860.06445312
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/LAE-164/830G_7860_OG550/2010-02-07_2010-02-08/complete/raw
+               filename |                 frametype |                 ra |                dec |  target | dispname |  decker | binning |           mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20100207.12084.fits |                  arc,tilt |  57.99999999999999 |               45.0 | unknown |     830G | LAE-164 |     1,1 |  55234.139783 | 1.41291034 |     1.0 | 7860.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2010-02-07 | 03:21:24.40 |      62 |     0 |      -1 |     -1
+#DE.20100207.12155.fits |                  arc,tilt |  57.99999999999999 |               45.0 | unknown |     830G | LAE-164 |     1,1 |  55234.140607 | 1.41291034 |     1.0 | 7860.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2010-02-07 | 03:22:35.45 |      63 |     0 |      -1 |     -1
+#DE.20100207.12234.fits |                  arc,tilt |  57.99999999999999 |               45.0 | unknown |     830G | LAE-164 |     1,1 |  55234.141491 | 1.41291034 |     1.0 | 7860.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2010-02-07 | 03:23:54.65 |      64 |     0 |      -1 |     -1
+#DE.20100208.13304.fits |                  arc,tilt |  57.99999999999999 |               45.0 |         |     830G | LAE-164 |     1,1 | 55235.1539875 | 1.41291034 |     1.0 | 7860.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2010-02-08 | 03:41:44.52 |      43 |     0 |      -1 |     -1
+ DE.20100208.13379.fits |                  arc,tilt |  57.99999999999999 |               45.0 |         |     830G | LAE-164 |     1,1 |  55235.154698 | 1.41291034 |     1.0 | 7860.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2010-02-08 | 03:42:59.97 |      44 |     0 |      -1 |     -1
+#DE.20100207.12304.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | LAE-164 |     1,1 |  55234.142324 | 1.41291034 |     3.0 | 7860.06445312 | SINGLE:B |   OG550 |          Qz | 2010-02-07 | 03:25:04.75 |      65 |     0 |      -1 |     -1
+#DE.20100207.12376.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | LAE-164 |     1,1 |  55234.143169 | 1.41291034 |     3.0 | 7860.06445312 | SINGLE:B |   OG550 |          Qz | 2010-02-07 | 03:26:16.85 |      66 |     0 |      -1 |     -1
+#DE.20100207.12457.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | LAE-164 |     1,1 |   55234.14407 | 1.41291034 |     3.0 | 7860.06445312 | SINGLE:B |   OG550 |          Qz | 2010-02-07 | 03:27:37.45 |      67 |     0 |      -1 |     -1
+#DE.20100207.14246.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | LAE-164 |     1,1 |  55234.164877 | 1.41291034 |    10.0 | 7860.06445312 | SINGLE:B |   OG550 |          Qz | 2010-02-07 | 03:57:26.30 |      86 |     0 |      -1 |     -1
+#DE.20100208.13450.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         |     830G | LAE-164 |     1,1 |  55235.155598 | 1.41291034 |     3.0 | 7860.06445312 | SINGLE:B |   OG550 |          Qz | 2010-02-08 | 03:44:10.77 |      45 |     0 |      -1 |     -1
+#DE.20100208.13524.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         |     830G | LAE-164 |     1,1 |  55235.156474 | 1.41291034 |     3.0 | 7860.06445312 | SINGLE:B |   OG550 |          Qz | 2010-02-08 | 03:45:24.42 |      46 |     0 |      -1 |     -1
+ DE.20100207.14324.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | LAE-164 |     1,1 |  55234.165734 | 1.41291034 |    10.0 | 7860.06445312 | SINGLE:B |   OG550 |          Qz | 2010-02-07 | 03:58:44.50 |      87 |     0 |      -1 |     -1
+ DE.20100208.14880.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         |     830G | LAE-164 |     1,1 |   55235.17215 | 1.41291034 |    10.0 | 7860.06445312 | SINGLE:B |   OG550 |          Qz | 2010-02-08 | 04:08:00.77 |      59 |     0 |      -1 |     -1
+ DE.20100208.14960.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         |     830G | LAE-164 |     1,1 |   55235.17314 | 1.41291034 |    10.0 | 7860.06445312 | SINGLE:B |   OG550 |          Qz | 2010-02-08 | 04:09:20.57 |      60 |     0 |      -1 |     -1
+ DE.20100208.49881.fits |                   science |  150.0417083333333 | 2.8814444444444445 | LAE-164 |     830G | LAE-164 |     1,1 |  55235.577257 | 1.37040908 |  1200.0 | 7860.06445312 | SINGLE:B |   OG550 |         Off | 2010-02-08 | 13:51:21.96 |     108 |     0 |       1 |      2
+ DE.20100208.51191.fits |                   science | 150.04087499999997 | 2.8814444444444445 | LAE-164 |     830G | LAE-164 |     1,1 |  55235.592322 |  1.4954854 |  1200.0 | 7860.06445312 | SINGLE:B |   OG550 |         Off | 2010-02-08 | 14:13:11.37 |     109 |     0 |       2 |      1
+data end
+

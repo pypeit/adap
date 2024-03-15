@@ -1,0 +1,52 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-02T23:11:08.999
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: emit14
+dispangle: 7199.98974609
+dispname: 600ZD
+filter1: GG400
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/emit14/600ZD_7200_GG400/2008-03-12/complete/raw
+              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+DE.20080312.07694.fits |                  arc,tilt |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit14 |     1,1 | 54537.088977 | 1.41291034 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2008-03-12 | 02:08:14.57 |      35 |     0 |      -1 |     -1
+DE.20080312.07769.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit14 |     1,1 | 54537.089895 | 1.41291034 |     6.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2008-03-12 | 02:09:29.02 |      36 |     0 |      -1 |     -1
+DE.20080312.07842.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit14 |     1,1 | 54537.090676 | 1.41291034 |     6.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2008-03-12 | 02:10:42.52 |      37 |     0 |      -1 |     -1
+DE.20080312.07916.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit14 |     1,1 | 54537.091529 | 1.41291034 |     6.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2008-03-12 | 02:11:56.12 |      38 |     0 |      -1 |     -1
+DE.20080312.37622.fits |                   science |  189.1233333333333 |  62.26016666666667 |       emit14 |    600ZD | emit14 |     1,1 | 54537.435358 |  1.3901567 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2008-03-12 | 10:27:02.12 |      88 |     0 |       1 |      2
+DE.20080312.38896.fits |                   science | 189.12249999999997 |  62.25977777777778 |       emit14 |    600ZD | emit14 |     1,1 |  54537.45003 | 1.37057031 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2008-03-12 | 10:48:16.56 |      89 |     0 |       2 |      3
+DE.20080312.40161.fits |                   science |  189.1242083333333 | 62.260555555555555 |       emit14 |    600ZD | emit14 |     1,1 | 54537.464754 | 1.35821761 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2008-03-12 | 11:09:21.65 |      90 |     0 |       3 |      2
+data end
+

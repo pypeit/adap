@@ -1,0 +1,62 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.15.1.dev62+g88b471fa0
+# UTC 2024-03-03T00:23:49.410
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+
+[calibrations]
+    [[flatfield]]
+        saturated_slits = continue
+        slit_illum_finecorr = False
+
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+[flexure]
+    spec_method = slitcen
+    spec_maxshift = 80
+
+
+
+# Setup
+setup read
+Setup A: null
+amp: '"SINGLE:B"'
+binning: 1,1
+decker: uds11a
+dispangle: 8350.04101562
+dispname: 830G
+filter1: OG550
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/uds11a/830G_8350_OG550/2011-11-24_2011-11-26/complete/raw
+               filename |                 frametype |                 ra |                dec |  target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
+#DE.20111124.08182.fits |                  arc,tilt |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55889.094697 | 1.41291034 |     1.0 | 8350.04101562 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2011-11-24 | 02:16:22.43 |      18 |     0 |      -1 |     -1
+#DE.20111125.13952.fits |                  arc,tilt |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 |  55890.16141 | 1.41291034 |     1.0 | 8350.04101562 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2011-11-25 | 03:52:32.46 |      40 |     0 |      -1 |     -1
+ DE.20111126.10411.fits |                  arc,tilt |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55891.120422 | 1.41291034 |     1.0 | 8350.04101562 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2011-11-26 | 02:53:31.24 |      15 |     0 |      -1 |     -1
+#DE.20111124.08259.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55889.095522 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-24 | 02:17:39.28 |      19 |     0 |      -1 |     -1
+#DE.20111124.08336.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 |  55889.09641 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-24 | 02:18:56.68 |      20 |     0 |      -1 |     -1
+#DE.20111124.08414.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55889.097293 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-24 | 02:20:14.28 |      21 |     0 |      -1 |     -1
+#DE.20111124.08492.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55889.098215 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-24 | 02:21:32.48 |      22 |     0 |      -1 |     -1
+#DE.20111124.08569.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55889.099098 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-24 | 02:22:49.53 |      23 |     0 |      -1 |     -1
+#DE.20111125.14029.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55890.162328 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-25 | 03:53:49.71 |      41 |     0 |      -1 |     -1
+#DE.20111125.14107.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55890.163198 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-25 | 03:55:07.76 |      42 |     0 |      -1 |     -1
+#DE.20111125.14184.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55890.164092 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-25 | 03:56:24.76 |      43 |     0 |      -1 |     -1
+ DE.20111126.10489.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55891.121315 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-26 | 02:54:49.79 |      16 |     0 |      -1 |     -1
+ DE.20111126.10567.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55891.122215 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-26 | 02:56:07.64 |      17 |     0 |      -1 |     -1
+ DE.20111126.10645.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | uds11a |     1,1 | 55891.123134 | 1.41291034 |     8.0 | 8350.04101562 | SINGLE:B |   OG550 |          Qz | 2011-11-26 | 02:57:25.24 |      18 |     0 |      -1 |     -1
+ DE.20111124.39030.fits |                   science | 34.336124999999996 | -5.219694444444444 |  uds11a |     830G | uds11a |     1,1 |  55889.45163 | 1.36730958 |   900.0 | 8350.04101562 | SINGLE:B |   OG550 |         Off | 2011-11-24 | 10:50:30.87 |      97 |     0 |       1 |      2
+ DE.20111124.39993.fits |                   science |  34.33570833333333 | -5.219305555555556 |  uds11a |     830G | uds11a |     1,1 | 55889.462806 | 1.44759245 |   900.0 | 8350.04101562 | SINGLE:B |   OG550 |         Off | 2011-11-24 | 11:06:33.42 |      98 |     0 |       2 |      3
+ DE.20111124.40967.fits |                   science | 34.336541666666655 | -5.220083333333333 |  uds11a |     830G | uds11a |     1,1 | 55889.474119 | 1.54625761 |   900.0 | 8350.04101562 | SINGLE:B |   OG550 |         Off | 2011-11-24 | 11:22:47.12 |      99 |     0 |       3 |      2
+data end
+
