@@ -9,6 +9,9 @@
     [[flatfield]]
         saturated_slits = continue
         slit_illum_finecorr = False
+    [[wavelengths]]
+        nsnippet = 1
+        sigdetect = 5.
 
 [reduce]
     [[findobj]]
