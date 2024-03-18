@@ -236,7 +236,7 @@ def main():
 
             setup = complete_path.parent.parent.name
             date = complete_path.parent.name
-            tailored_config_files = config_path.glob(f"{mask}_{setup}_{date}_*")
+            tailored_config_files = config_path.rglob(f"{mask}_{setup}_{date}_*")
             reduce_configs= []
             for tailored_config_file in tailored_config_files:
                 reduce_subdir = tailored_config_file.stem.split("_")[-1]
@@ -246,7 +246,7 @@ def main():
                     reduce_configs.append((reduce_subdir, config_lines))
                 else:
                     # A complete custom .pypeit file
-                    pf = PypeItFile.from_file(tailored_config_file)
+                    pf = PypeItFile.from_file(tailored_config_file,preserve_comments=True)
                     reduce_configs.append((reduce_subdir, pf))
 
             if len(reduce_configs) == 0:
