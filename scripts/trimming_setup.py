@@ -319,7 +319,7 @@ def main():
 
         msgs.info(f"Processing path {complete_path}.")
 
-        tailored_config_files = config_path.glob(f"{dataset.replace('/', '_')}_*")
+        tailored_config_files = config_path.rglob(f"{dataset.replace('/', '_')}_*")
         reduce_configs= []
         for tailored_config_file in tailored_config_files:
             reduce_subdir = tailored_config_file.stem.split("_")[-1]

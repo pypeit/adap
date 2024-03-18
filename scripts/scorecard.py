@@ -119,6 +119,7 @@ def main():
     parser.add_argument("--subdirs", type=str, nargs='+', help="Specific subdirectories of the reorg_dir to work on." )
     parser.add_argument("--date_reduced", type=datetime.date.fromisoformat, default = datetime.date.today(), help="When the data was reduced. Defaults to today.")
     parser.add_argument("--rms_thresh", type=float, default=0.4)
+    parser.add_argument("--flex_shift_thresh", type=float, default=4.0)
     parser.add_argument("--wave_cov_thresh", type=float, default=60.0)
     parser.add_argument("--lower_std_chi", type=float, default=0.6)
     parser.add_argument("--upper_std_chi", type=float, default=1.6)
@@ -154,7 +155,7 @@ def main():
     columns = ['dataset', 'science_file', 'date', 'status', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
                'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
-               'obj_rms_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
+               'obj_rms_over_thresh', 'object_flex_shift_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
                'maskdef_extract_count', 'exec_time', 'mem_usage', 'git_commit', 'reduce_dir']
   
     pypeit_name = f"{args.spec_name}_A"
@@ -171,7 +172,7 @@ def main():
         print(f"Searching {log_path} for execution time...")
         reduce_exec_time = get_exec_time(log_path)
 
-        pf = PypeItFile.from_file(pypeit_file)
+        pf = PypeItFile.from_file(str(pypeit_file))
         par = PypeItPar.from_cfg_lines(pf.cfg_lines)
 
         expected_det = get_expected_det(par, args)
@@ -300,6 +301,10 @@ def main():
 
                         if specobj['WAVE_RMS'] > args.rms_thresh:
                             data[-1]['obj_rms_over_thresh'] += 1
+
+                        if specobj['FLEX_SHIFT_TOTAL'] is not None and np.fabs(specobj['FLEX_SHIFT_TOTAL']) > args.flex_shift_thresh:
+                            data[-1]['object_flex_shift_over_thresh'] += 1
+
                 except PypeItError:
                     print(f"Failed to load spec1d {spec1d_file}")
                     data[-1]['status'] = 'FAILED'
