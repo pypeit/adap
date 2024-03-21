@@ -329,7 +329,7 @@ def main():
                 reduce_configs.append((reduce_subdir, config_lines))
             else:
                 # A complete custom .pypeit file
-                pf = PypeItFile.from_file(tailored_config_file)
+                pf = PypeItFile.from_file(tailored_config_file, preserve_comments=True)
                 reduce_configs.append((reduce_subdir, pf))
 
         if len(reduce_configs) == 0:
