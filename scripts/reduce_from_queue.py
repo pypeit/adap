@@ -431,7 +431,7 @@ def main():
 
                         run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
 
-                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem), "--masks", mask]
+                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), "keck_deimos", args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem), "--subdirs", mask]
                     if 'PYPEIT_COMMIT' in os.environ:
                         scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 

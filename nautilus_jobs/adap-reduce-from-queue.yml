@@ -4,14 +4,14 @@ metadata:
   name: adap-reduce-from-queue
 spec:
   backoffLimit: 2
-  parallelism: 5
+  parallelism: 3
   template:
     spec:
       containers:
       - name: reduce-worker
         args:
         - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil;  cd PypeIt; git fetch; 
-          git checkout 1.13.0; git pull --ff-only; 
+          git checkout nirspec; git pull --ff-only; 
           pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           cd /tmp; mkdir adap_root; cd adap_root;
           pip install gspread==5.6.2; git clone https://github.com/pypeit/adap.git; cd adap; git checkout main;
@@ -22,16 +22,16 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: localhost:30081/profxj/pypeit_v1:latest
+        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
         imagePullPolicy: Always
         resources:
           limits:
             cpu: '1.5'
-            ephemeral-storage: 70Gi
+            ephemeral-storage: 40Gi
             memory: 48Gi
           requests:
             cpu: '1'
-            ephemeral-storage: 70Gi
+            ephemeral-storage: 40Gi
             memory: 32Gi
         volumeMounts:
         - mountPath: /root/.config/gspread/service_account.json
