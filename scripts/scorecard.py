@@ -160,7 +160,7 @@ def main():
   
     pypeit_name = f"{args.spec_name}_A"
 
-    data = Table(names = columns, dtype=['U64', 'U22', 'datetime64[D]', 'U8'] + [int for x in columns[4:-2]] + ['U40', 'U20'])
+    data = Table(names = columns, dtype=['U256', 'U22', 'datetime64[D]', 'U8'] + [int for x in columns[4:-2]] + ['U40', 'U20'])
     stbm = SlitTraceBitMask()
 
     for reduce_path in reduce_paths:
