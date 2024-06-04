@@ -4,14 +4,14 @@ metadata:
   name: adap-reduce-from-queue
 spec:
   backoffLimit: 2
-  parallelism: 10
+  parallelism: 6
   template:
     spec:
       containers:
       - name: reduce-worker
         args:
-        - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil;  cd PypeIt; git fetch; 
-          git checkout adap_hires; git pull --ff-only; 
+        - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil gspread;  
+          cd /tmp; git clone https://github.com/pypeit/PypeIt.git; cd PypeIt; git checkout develop;
           pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           echo $PYPEIT_COMMMIT; 
           cd /tmp; mkdir adap_root; cd adap_root;
@@ -23,7 +23,7 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
+        image: docker.io/library/python:3.12
         imagePullPolicy: Always
         resources:
           limits:
@@ -31,9 +31,9 @@ spec:
             ephemeral-storage: 20Gi
             memory: 16Gi
           requests:
-            cpu: '1'
+            cpu: '1.5'
             ephemeral-storage: 20Gi
-            memory: 10Gi
+            memory: 16Gi
         volumeMounts:
         - mountPath: /root/.config/gspread/service_account.json
           name: gcloud-service-account

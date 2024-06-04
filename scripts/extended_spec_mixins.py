@@ -84,11 +84,12 @@ class ADAPSpectrographMixin:
         # By default exclude nothing        
         return [],[]
     
-    def is_metadata_complete(self,metadata):
+    def is_metadata_complete(self,metadata, standard_as_science=False):
         """Returns whether a grouped set of files are sufficient to reduce with PypeIt.
          
         Args:
             metadata (PypeItMetaData): The metadata for the files.
+            standard_as_science (bool): True if standards should count as science.
 
         Return:
             bool : True if the goup is complete, False if incomplete.
@@ -115,19 +116,36 @@ class ADAPSpectrographMixin:
         """
         pass
 
+        def koa_config_compare(self, config1, config2):
+            """Compare the PypeIt configuration between two items using the koa attribute names.
+            The items can be rows returned from koa, or a dict with the correct keys.
+            Uses same comparison logic as spectrograph.same_configuration.
+
+            Args:
+                config1: The first row/dict for comparison
+                config2: The second row/dict for comparison
+
+            Return:
+                True if they are the same, False if not.
+            """
+            pass
+
 class ADAP_DEIMOSExtendedSpectrograph(ADAPSpectrographMixin, KeckDEIMOSSpectrograph):
     """Determine if a PypeItMetadata object has enough data to be reduced.
        For DEIMOS minimum requirements for this are a science frame, a flat frame, and
        an arc frame.
     """
 
-    def is_metadata_complete(self, metadata):
+    def is_metadata_complete(self, metadata,standard_as_science=False):
         if len(metadata.table) == 0:
             # This can happen if all of the files in this directory were removed from the metadata
             # due to unknown types.
             return False
 
         num_science_frames = np.sum(metadata.find_frames('science'))
+        if standard_as_science:
+            num_science_frames += np.sum(metadata.find_frames('standard'))
+
         num_flat_frames = np.sum(np.logical_or(metadata.find_frames('pixelflat'), metadata.find_frames('illumflat')))
         num_arc_frames = np.sum(metadata.find_frames('arc'))
         return (num_science_frames >= 1 and num_flat_frames >= 1 and num_arc_frames >= 1), f"sci {num_science_frames} flat {num_flat_frames} arc {num_arc_frames}"
@@ -146,7 +164,7 @@ class ADAP_HIRESExtendedSpectrograph(ADAPSpectrographMixin, KECKHIRESSpectrograp
     #    reasons = ["echangle and/or xdangle == 0.0"] * len(indices)
     #    return indices, reasons
 
-    def is_metadata_complete(self, metadata):
+    def is_metadata_complete(self, metadata,standard_as_science=False):
         """Determine if a PypeItMetadata object has enough data to be reduced.
         For HIRES minimum requirements for this are a science frame, a flat frame, and
         an arc frame.
@@ -157,6 +175,8 @@ class ADAP_HIRESExtendedSpectrograph(ADAPSpectrographMixin, KECKHIRESSpectrograp
             return False
 
         num_science_frames = np.sum(metadata.find_frames('science'))
+        if standard_as_science:
+            num_science_frames += np.sum(metadata.find_frames('standard'))
         num_flat_frames = np.sum(metadata.find_frames('pixelflat'))
         num_arc_frames = np.sum(metadata.find_frames('arc'))
         return (num_science_frames >= 1 and num_flat_frames >= 1 and num_arc_frames >= 1), f"sci {num_science_frames} flat {num_flat_frames} arc {num_arc_frames}"
@@ -173,10 +193,41 @@ class ADAP_HIRESExtendedSpectrograph(ADAPSpectrographMixin, KECKHIRESSpectrograp
         # Return extra keys needed for grouping that aren't in the configuration keys
         return ['decker', 'qsolist_obj_name']
     
+    def koa_config_compare(self, config1, config2):
+        """Compare the PypeIt configuration between two items using the koa attribute names.
+        The items can be rows returned from koa, or a dict with the correct keys.
+        Uses same comparison logic as spectrograph.same_configuration.
+
+        Args:
+            config1: The first row/dict for comparison
+            config2: The second row/dict for comparison
+
+        Return:
+            True if they are the same, False if not.
+        """
+        koa_key_to_pypeit_key = {'deckname': 'decker',
+                                 'xdispers': 'dispname',
+                                 'filter1': 'fil1name',
+                                 'echangl': 'echangle',
+                                 'xdangl': 'xdangle',
+                                 'binning': 'binning'}
+        
+        for key in config_key_columns['HIRES']:
+            if isinstance(config1[key], (float, np.floating)):
+                pypeit_key = koa_key_to_pypeit_key[key]
+                if not np.isclose(config1[key], config2[key], 
+                                  rtol=self.meta[pypeit_key].get('rtol', 0.0),
+                                  atol=self.meta[pypeit_key].get('atol', 0.0),
+                                  equal_nan=True):
+                    return False
+            else:
+                if config1[key] != config2[key]:
+                    return False
+        return True
 
 class ADAP_ESIExtendedSpectrograph(ADAPSpectrographMixin, KeckESISpectrograph):
 
-    def is_metadata_complete(self, metadata):
+    def is_metadata_complete(self, metadata,standard_as_science=False):
         """Determine if a PypeItMetadata object has enough data to be reduced.
         For ESI:
             3+ dome flats (not internal)
@@ -184,6 +235,8 @@ class ADAP_ESIExtendedSpectrograph(ADAPSpectrographMixin, KeckESISpectrograph):
             5+ bias
         """
         num_science_frames = np.sum(metadata.find_frames('science'))
+        if standard_as_science:
+            num_science_frames += np.sum(metadata.find_frames('standard'))
         flat_frames = np.logical_or(metadata.find_frames('pixelflat'), metadata.find_frames('illumflat'))
         dome_flat_frames = np.logical_and(flat_frames, metadata['idname'] == 'DmFlat')
         num_dome_flat_frames = np.sum(dome_flat_frames)
@@ -233,7 +286,7 @@ class ADAP_LRISExtendedSpectrograph(ADAPSpectrographMixin):
     def __init__(self, matching_files):
         super().__init__(instr_name = 'LRIS', matching_files = matching_files)
         
-    def is_metadata_complete(self, metadata):
+    def is_metadata_complete(self, metadata,standard_as_science=False):
         """Determine if a PypeItMetadata object has enough data to be reduced.
         For LRIS minimum requirements for this are a science frame, a flat frame, and
         an arc frame.
@@ -244,6 +297,8 @@ class ADAP_LRISExtendedSpectrograph(ADAPSpectrographMixin):
             return False
 
         num_science_frames = np.sum(metadata.find_frames('science'))
+        if standard_as_science:
+            num_science_frames += np.sum(metadata.find_frames('standard'))
         num_flat_frames = np.sum(metadata.find_frames('pixelflat'))
         num_arc_frames = np.sum(metadata.find_frames('arc'))
         return (num_science_frames >= 1 and num_flat_frames >= 1 and num_arc_frames >= 1), f"sci {num_science_frames} flat {num_flat_frames} arc {num_arc_frames}"
