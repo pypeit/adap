@@ -1,0 +1,6 @@
+[rdx]
+    spectrograph = keck_hires
+[calibrations]
+    [[slitedges]]
+    add_missed_orders = False
+
