@@ -184,15 +184,15 @@ def trim_keck_hires(metadata, good_frames):
     # Find the flats and arcs that have not already been excluded for some reason.
     all_flats = metadata.find_frames('pixelflat') & good_frames
     all_arcs = metadata.find_frames('arc') & good_frames
-    all_darks = metadata.find_frames('dark') & good_frames
+    #all_darks = metadata.find_frames('dark') & good_frames
 
     # Trim things not close enough to 45
     dec_criteria = np.abs(metadata['dec']-45.) >= 1
     flats_to_trim = trim_criteria(metadata, ['mjd'], 5, all_flats, [dec_criteria])
     arcs_to_trim = trim_criteria(metadata, ['mjd'], 1, all_arcs, [dec_criteria])
-    darks_to_trim = trim_criteria(metadata, ['mjd'], 1, all_darks, [dec_criteria])
+    #darks_to_trim = trim_criteria(metadata, ['mjd'], 1, all_darks, [dec_criteria])
 
-    return flats_to_trim | arcs_to_trim | darks_to_trim
+    return flats_to_trim | arcs_to_trim # | darks_to_trim
 
     #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
     #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 

@@ -31,7 +31,7 @@ config_path_grouping = {"DEIMOS": [[("decker","<U")], [("dispname","<U"), ("disp
                        }
 exclude_pypeit_types = {"DEIMOS": ["bias"],
                         "ESI":     ["standard"],
-                        "HIRES":   ["bias"],
+                        "HIRES":   ["bias","dark"],
                         "LRIS":    [],
                         "MOSFIRE": [],
                         "NIRES":   [],

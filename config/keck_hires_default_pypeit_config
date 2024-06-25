@@ -2,4 +2,4 @@
     spectrograph = keck_hires
 [calibrations]
     [[slitedges]]
-        edge_thresh = 50
+        edge_thresh = 200
