@@ -275,7 +275,11 @@ def get_config_dir_path(args, metadata):
                     value = str(value)
                     if "/" in value:
                         value = value.replace("/", "_")
-                    
+                # Prepend prefixes for readability
+                if key == "echangle":
+                    value = "ech" + value
+                elif key == "xdangle":
+                    value = "xd" + value
             grouping_strings.append(value)
         config_path = config_path / "_".join(grouping_strings)
         
