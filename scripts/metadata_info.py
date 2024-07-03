@@ -31,7 +31,7 @@ config_path_grouping = {"DEIMOS": [[("decker","<U")], [("dispname","<U"), ("disp
                        }
 exclude_pypeit_types = {"DEIMOS": ["bias"],
                         "ESI":     ["standard"],
-                        "HIRES":   ["bias","dark"],
+                        "HIRES":   ["bias", "dark"],
                         "LRIS":    [],
                         "MOSFIRE": [],
                         "NIRES":   [],
@@ -39,7 +39,7 @@ exclude_pypeit_types = {"DEIMOS": ["bias"],
                         }
 exclude_koa_types = {"DEIMOS":  ["fscal", "bias", "dark", "focus"],
                      "ESI":     ["fscal", "focus"],
-                     "HIRES":   ["fscal", "focus"],
+                     "HIRES":   ["fscal", "focus", "dark"],
                      "LRIS":    ["fscal", "focus","polcal"],
                      "MOSFIRE": ["fscal", "focus"],
                      "NIRES":   ["fscal", "focus", "bias", "dark"],
