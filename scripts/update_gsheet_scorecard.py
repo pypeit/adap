@@ -10,38 +10,9 @@ from datetime import date
 import numpy as np
 import gspread
 from gspread.utils import ValueInputOption
+import gspread_utils
 
-MAX_SCORECARD_COL = 'Y'
-def split_to_csv_tabs(t, outpath):
-    """Split the score card table into smaller CSVs that will go into tabs in the Google sheet.
-       The datasets are split based on the first letter of the mask name, according to ranges 
-       that were determined by looking at the number of raw images per datset.
-       
-       Args:
-       t (astropy.table.Table): The complete scorecard table.
-
-       outpath (pathlib.Path): The path where the csv files should be go.
-
-       Returns None. (But the csv files are written).
-       """
-    alphabet_ranges = [('0', '9'),
-                       ('A', 'B'),
-                       ('C', 'C'),
-                       ('D', 'F'),
-                       ('G', 'H'),
-                       ('I', 'L'),
-                       ('M', 'M'),
-                       ('N', 'R'),
-                       ('S', 'S'),
-                       ('T', 'V'),
-                       ('W', 'Z')]
-
-    for range in alphabet_ranges:
-        idx =[x[0].upper() >= range[0] and x[0].upper() <= range[1] for x in t['dataset']]
-        if np.sum(idx) > 0:
-            # The file will be something like 'scorecard_A-B.csv' for multi letter ranges, or
-            # 'scorecard_C.csv' for single letter ranges
-            t[idx].write(outpath / f"scorecard_{f'{range[0]}-{range[1]}' if range[0] != range[1] else range[0]}.csv", overwrite=True)
+MAX_SCORECARD_COL = 'Z'
 
 def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
 
@@ -55,7 +26,7 @@ def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
             time.sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
 
 def build_array_from_rows(data_rows):
-    scorecard_dtypes = ['U64', 'U22', 'datetime64[D]', 'U8'] + [int for x in data_rows[0][4:-2]] + ['U40', 'U20']
+    scorecard_dtypes = ['U256', 'U22', 'datetime64[D]', 'U8'] + [int for x in data_rows[0][4:-2]] + ['U40', 'U20']
     scorecard_names = data_rows[0]
     # numpy requires tuples for structured arrays
     scorecard_values = [tuple(x) for x in data_rows[1:]]
@@ -203,13 +174,8 @@ def dataset_sheet_filter(sheet, data):
     elif sheet == 'latest':
         return data
     else:
-        letters = sheet.split('-')
-        start = letters[0]
-        end = letters[-1]
-        if start == end:
-            return data[[dataset[0].upper() == start for dataset in data['dataset']]]
-        else:
-            return data[[dataset[0].upper() >= start and dataset[0].upper() <= end for dataset in data['dataset']]]
+        instrument_filter = [dataset.split('/')[0] == sheet for dataset in data['dataset']]
+        return data[instrument_filter]
 
 
 def main():
@@ -220,7 +186,7 @@ def main():
     args = parser.parse_args()
 
 
-    sheets = ['latest', 'Failed', '0-9', 'A-B', 'C', 'D-F', 'G-H', 'I-L', 'M','N-R', 'S', 'T-V', 'W-Z']
+    sheets = ['latest', 'Failed', 'DEIMOS', 'ESI', 'HIRES', 'LRIS', 'MOSFIRE', 'NIRES', 'NIRSPEC']
     
 
     print (f"Reading {args.scorecard}")
@@ -249,10 +215,7 @@ def main():
 
     print (f"Accessing {args.spreadsheet} in G-Drive")
     # This relies on the service json in ~/.config/gspread
-    account = retry_gspread_call(lambda: gspread.service_account())
-
-    # Get the spreadsheet from Google sheets
-    spreadsheet = retry_gspread_call(lambda: account.open(args.spreadsheet))
+    spreadsheet = gspread_utils.open_spreadsheet(args.spreadsheet)[0]
 
 
     for sheet in sheets:

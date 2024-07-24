@@ -314,11 +314,11 @@ def main():
 
                         run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
 
-                    #scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem), "--masks", mask]
-                    #if 'PYPEIT_COMMIT' in os.environ:
-                    #    scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
+                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.spec, args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem)]
+                    if 'PYPEIT_COMMIT' in os.environ:
+                        scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 
-                    #run_script(scorecard_cmd)
+                    run_script(scorecard_cmd)
 
 
                 except Exception as e:
@@ -340,7 +340,14 @@ def main():
                 if status != 'FAILED':
                     status = "WARNING"
 
+            # Update the work queue status
             update_dataset_status(args, dataset, status)
+
+            # Update the scorecard results
+            try:
+                run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), str(args.scorecard_max_age)])
+            except Exception as e:
+                log_message(args, f"Failed to update scorecard results for {dataset}. Exception {e}")
             
             # Cleanup before moving to the next dataset
             cleanup(args, dataset)

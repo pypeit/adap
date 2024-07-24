@@ -61,7 +61,7 @@ def get_exec_time(log_file):
     """
     Return the execution time (in seconds) from a PypeIt log file.
     """
-    regex = re.compile("Execution time: (\S.*)$")
+    regex = re.compile(r"Execution time: (\S.*)$")
 
     try:
         with open(log_file, "r") as f:
@@ -131,7 +131,7 @@ def main():
     if args.subdirs is not None:
         dirs_to_scan = [reorg_path / subdir for subdir in args.subdirs]
     else:
-        dirs_to_scan = reorg_path
+        dirs_to_scan = [reorg_path]
         
     reduce_paths = []
     while len(dirs_to_scan) > 0:
@@ -146,7 +146,8 @@ def main():
                     dirs_to_scan.append(child)
     
 
-
+    print("Reduce dirs:")
+    print("\n".join([str(x) for x in reduce_paths]))
     # Filename and table for writing the bad slit ids
     outpath = Path(args.outfile)
     bad_slits_outfile = outpath.parent / (outpath.stem + "_bad_slits" + outpath.suffix)
@@ -177,7 +178,7 @@ def main():
 
         expected_det = get_expected_det(par, args)
 
-        science_idx = pf.data['frametype'] == 'science'
+        science_idx = np.isin(pf.data['frametype'], ['science','standard'])
         for science_file in pf.data['filename'][science_idx]:
             data.add_row()
             data[-1]['dataset'] = dataset.parent 

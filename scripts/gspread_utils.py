@@ -37,9 +37,9 @@ def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
 
 
 
-def open_spreadsheet(name : str)->(gspread.spreadsheet.Spreadsheet,
+def open_spreadsheet(name : str)->tuple[gspread.spreadsheet.Spreadsheet,
                                    Optional[gspread.worksheet.Worksheet], 
-                                   Optional[str]):
+                                   Optional[str]]:
     """Open a google sheets spreadsheet or worksheet.
     
     Args:

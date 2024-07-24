@@ -211,9 +211,12 @@ def trim_keck_lris(metadata, good_frames):
     #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
     #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 
 
+def no_trimming(metadata, good_frames):
+    # A trimming function that trims nothing
+    return np.zeros_like(metadata['filename'],dtype=bool)
 
 trimming_functions = {"keck_deimos": trim_keck_deimos,
-                      "keck_esi": lambda x: np.zeros_like(x['filename'],dtype=bool),
+                      "keck_esi": no_trimming,
                       "keck_hires": trim_keck_hires,
                       "keck_lris_red_orig": trim_keck_lris}
 
