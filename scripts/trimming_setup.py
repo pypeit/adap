@@ -180,6 +180,32 @@ def trim_criteria(metadata, sort_fields, max, initial_files, all_criteria):
 
     return trimmed_files        
 
+def trim_keck_esi(metadata, good_frames):
+    # Only use dome flats
+    all_flats = (metadata.find_frames('pixelflat') & metadata.find_frames('illumflat'))  & good_frames
+    dome_flats = (metadata['idname'] == 'DmFlat') & all_flats
+    not_dome_flats = (metadata['idname'] != 'DmFlat') & all_flats
+
+    # Trim more than 5 dome flats
+    dome_flats_to_trim = trim_criteria(metadata, ['mjd'], 5, dome_flats, [])
+
+    # We want one CuAr arc (300s+) and one non-CuAr arc (between 10 and 30 s)
+    arc_frames = metadata.find_frames('arc') & good_frames
+    cu_frames = arc_frames & (metadata['lampstat02'] == "on")
+    frames_under300s = metadata['exptime'] < 300.0
+    cu_frames_to_trim = trim_criteria(metadata, ['mjd'], 1, cu_frames, [frames_under300s])
+
+    xe_or_hgne_lamps = arc_frames & ((metadata['lampstat01'] == "on") | (metadata['lampstat03']=="on"))
+    frames_beyond_10_to_20s = (metadata['exptime']<10) | (metadata['exptime']>30)
+    xe_or_hgne_lamps_to_trim = trim_criteria(metadata, ['mjd'], 1, xe_or_hgne_lamps, [frames_beyond_10_to_20s])
+
+    # If there are other arc types trim them as well
+    other_arcs_to_trim = arc_frames & np.logical_not(cu_frames | xe_or_hgne_lamps)
+
+    return not_dome_flats | dome_flats_to_trim | cu_frames_to_trim | xe_or_hgne_lamps_to_trim | other_arcs_to_trim
+
+
+
 def trim_keck_hires(metadata, good_frames):
     # Find the flats and arcs that have not already been excluded for some reason.
     all_flats = metadata.find_frames('pixelflat') & good_frames
@@ -216,7 +242,7 @@ def no_trimming(metadata, good_frames):
     return np.zeros_like(metadata['filename'],dtype=bool)
 
 trimming_functions = {"keck_deimos": trim_keck_deimos,
-                      "keck_esi": no_trimming,
+                      "keck_esi": trim_keck_esi,
                       "keck_hires": trim_keck_hires,
                       "keck_lris_red_orig": trim_keck_lris}
 
