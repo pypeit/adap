@@ -3,5 +3,4 @@
 [calibrations]
     [[slitedges]]
         edge_thresh = 200
-        length_range = 0.5
-        max_overlap = 0.5
+        max_overlap = 0.1
