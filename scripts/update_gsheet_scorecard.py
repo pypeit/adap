@@ -110,7 +110,7 @@ def update_worksheet_with_dataset(args, worksheet, worksheet_array, dataset_csv_
         start += insert_rows
     if update_rows != 0:
         range = f'A{start}:{MAX_SCORECARD_COL}{start+update_rows-1}'
-        retry_gspread_call(lambda: worksheet.update(range, convert_array_to_gspread(dataset_csv_array[next_csv_row:next_csv_row+update_rows]), value_input_option=ValueInputOption.user_entered))
+        retry_gspread_call(lambda: worksheet.update(range_name=range, values=convert_array_to_gspread(dataset_csv_array[next_csv_row:next_csv_row+update_rows]), value_input_option=ValueInputOption.user_entered))
         next_csv_row += update_rows
         start += update_rows
     if delete_rows != 0:
