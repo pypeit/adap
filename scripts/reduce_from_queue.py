@@ -281,6 +281,7 @@ def main():
         log_message(args, f"Started on pod {my_pod} and python {sys.implementation}")
         s3_storage = cloudstorage.initialize_cloud_storage("s3", args.endpoint_url)
         dataset = claim_dataset(args, my_pod)
+        max_mem = 0
         while dataset is not None:
             status = 'COMPLETE'
             try:
