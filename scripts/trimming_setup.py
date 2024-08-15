@@ -28,11 +28,14 @@ Take the 3 last in mjd that meet the criteria
 
 # Test case
 
-def find_none_rows(table):
+def find_none_rows(metadata):
     # Return indexes of rows in table that have None values.
 
+    table = metadata.table
+    # We only care about columns that go into the pypeit file
+    pypeit_colnames = metadata.set_pypeit_cols()
     rows = None
-    for col in table.colnames:
+    for col in pypeit_colnames:
         if rows is not None:
             rows = np.concatenate((np.where(np.vectorize(is_)(table[col], None))[0], rows))
         else:
@@ -237,6 +240,18 @@ def trim_keck_lris(metadata, good_frames):
     #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
     #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 
 
+def trim_keck_mosfire(metadata, good_frames):
+    # Mosfire uses scienece frames for arcs, so we'll trim all non-science arcs
+    all_non_science_arcs = good_frames & np.logical_not(metadata.find_frames('science')) & metadata.find_frames('arc')
+
+    all_flats = metadata.find_frames('pixelflat') & good_frames
+    all_lampoff_flats = metadata.find_frames('lampoffflats') & good_frames
+    dec_criteria = np.abs(metadata['dec']-45.) >= 1
+    flats_to_trim = trim_criteria(metadata, ['mjd'], 5, all_flats, [dec_criteria])
+    lampoff_flats_to_trim = trim_criteria(metadata, ['mjd'], 5, all_lampoff_flats, [dec_criteria])
+
+    return all_non_science_arcs | flats_to_trim | lampoff_flats_to_trim
+
 def no_trimming(metadata, good_frames):
     # A trimming function that trims nothing
     return np.zeros_like(metadata['filename'],dtype=bool)
@@ -244,7 +259,10 @@ def no_trimming(metadata, good_frames):
 trimming_functions = {"keck_deimos": trim_keck_deimos,
                       "keck_esi": trim_keck_esi,
                       "keck_hires": trim_keck_hires,
+                      "keck_mosfire": trim_keck_mosfire,
                       "keck_lris_red_orig": trim_keck_lris}
+
+setup_args = {"keck_mosfire": {"write_bkg_pairs": True}}
 
 def comment_out_filenames(metadata, files_idx):    
     metadata['filename'] = ['# ' + str(name) if files_idx[i] else name for i, name in enumerate(metadata['filename'])]
@@ -267,7 +285,7 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
     ps.run(setup_only=True)
 
     # Remove rows with None, as these cause PypeIt to crash
-    rows_with_none = find_none_rows(ps.fitstbl.table)
+    rows_with_none = find_none_rows(ps.fitstbl)
     ps.fitstbl.table.remove_rows(rows_with_none)
 
     # Remove rows with unknown 'None' frame types
@@ -292,7 +310,8 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
     ps.fitstbl.table['calib'][not_group_a] = 0
 
     # Write trimmed setup
-    ps.fitstbl.write_pypeit(target_dir,cfg_lines=config_lines, configs = ['A'])
+    additional_args = setup_args.get(spectrograph,dict())
+    ps.fitstbl.write_pypeit(target_dir,cfg_lines=config_lines, configs = ['A'],**additional_args)
 
 def read_lines(file):
     """Short helper method to read lines from a text file into a list, removing newlines."""

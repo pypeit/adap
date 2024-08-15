@@ -20,14 +20,15 @@ config_key_columns = {"DEIMOS":  ["slmsknam", "gratenam", "filter", "waveblue", 
                       "ESI":     ["slmsknam","prismnam","binning"],
                       "HIRES":   ["deckname", "xdispers", "fil1name","binning", "echangl","xdangl",],
                       "LRIS":    ["graname","dichroic","slitname","numamps","binning","grangle","wavelen","taplines", "grisname"],
-                      "MOSFIRE": ["maskname", "filter", "gratmode"],
+                      "MOSFIRE": ["maskname", "filter"],
                       "NIRES":   ["instr"],
                       "NIRSPEC": ["camera","dispers","filter","slitname","scifilt1","scifilt2","echlpos","disppos"],
                       }
 
-config_path_grouping = {"DEIMOS": [[("decker","<U")], [("dispname","<U"), ("dispangle", "float64"), ("filter", "<U")]],
-                        "ESI":    [[("decker", "<U")], [("dispname", "<U"), ("binning", "<U")]],
-                        "HIRES":  [[("qsolist_obj_name", "<U")], [("dispname","<U"),("decker","<U"), ("filter1", "<U"), ('echangle', "float64"), ('xdangle', "float64"), ("binning", "<U")]],
+config_path_grouping = {"DEIMOS":  [[("decker","<U")], [("dispname","<U"), ("dispangle", "float64"), ("filter", "<U")]],
+                        "ESI":     [[("decker", "<U")], [("dispname", "<U"), ("binning", "<U")]],
+                        "HIRES":   [[("qsolist_obj_name", "<U")], [("dispname","<U"),("decker","<U"), ("filter1", "<U"), ('echangle', "float64"), ('xdangle', "float64"), ("binning", "<U")]],
+                        "MOSFIRE": [[("qsolist_obj_name", "<U")],[("decker_secondary", "<U"), ("filter1", "<U")]]
                        }
 exclude_pypeit_types = {"DEIMOS": ["bias"],
                         "ESI":     ["standard"],
@@ -55,7 +56,7 @@ spec_to_instrument = {"keck_deimos": "DEIMOS",
                       "keck_lris_red": "LRIS",
                       "keck_lris_red_orig": "LRIS",
                       "keck_lris_red_mark4": "LRIS",
-                      "keck_mosire": "MOSFIRE",
+                      "keck_mosfire": "MOSFIRE",
                       "keck_nires": "NIRES",
                       "keck_nirspec": "NIRSPEC",
                      }
