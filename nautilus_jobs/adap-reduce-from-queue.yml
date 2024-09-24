@@ -1,10 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: adap-reduce-from-queue
+  name: adap2020-reduce-from-queue
 spec:
   backoffLimit: 2
-  parallelism: 6
+  parallelism: 10
   template:
     spec:
     spec:
@@ -20,8 +20,9 @@ spec:
           echo $PYPEIT_COMMMIT; 
           cd /tmp; mkdir adap_root; cd adap_root;
           pip install gspread; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2020;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
-          python scripts/reduce_from_queue.py --adap_root_dir /tmp/adap_root --spec keck_hires --scorecard_max_age 7 key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue /work_queue/work_queue.csv -- -o;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2020/ scripts/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2020/ config/ --recursive;
+          python scripts/reduce_from_queue.py --adap_root_dir /tmp/adap_root --scorecard_max_age 7 key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue /work_queue/work_queue_2020.csv -- -o;
           echo $PYPEIT_COMMMIT >> reduce_from_queue.log; du -sh /tmp >> reduce_from_queue.log; tail -2 reduce_from_queue.log; 
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress reduce_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log
         command:

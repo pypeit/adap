@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: adap-init-workqueue
+  name: adap2020-init-workqueue
 spec:
   backoffLimit: 0
   template:
@@ -10,12 +10,12 @@ spec:
       - args:
         - apt-get update;  pip install gspread awscli; apt-get install -y git; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2020;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
-          python scripts/download_work_queue_from_gs.py "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue" /work_queue/work_queue.csv;
-          chown 1001:1001 /work_queue/work_queue.csv; ls -l /work_queue;
+          python scripts/download_work_queue_from_gs.py "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue" /work_queue/work_queue_2020.csv;
+          chown 1001:1001 /work_queue/work_queue_2020.csv; ls -l /work_queue;
         command:
         - /bin/bash
         - -c
-        image: docker.io/library/python:3.12
+        image: docker.io/library/python:3.12-slim
         imagePullPolicy: Always
         name: container
         resources:

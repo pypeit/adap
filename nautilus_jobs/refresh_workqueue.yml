@@ -9,11 +9,12 @@ spec:
       containers:
       - args:
         - apt-get update;  pip install gspread; apt-get install -y git; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2020;
-          python scripts/download_work_queue_from_gs.py --refresh "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue" /work_queue/work_queue.csv
+          python scripts/download_work_queue_from_gs.py --refresh "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue" /work_queue/work_queue_2020.csv;
+          chown 1001:1001 /work_queue/work_queue_2020.csv; ls -l /work_queue;
         command:
         - /bin/bash
         - -c
-        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
+        image: docker.io/library/python:3.12
         imagePullPolicy: Always
         name: container
         resources:

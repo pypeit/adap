@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
       - args:
-        - pip install --upgrade pip setuptools wheel; pip install awscli;  aws --endpoint $ENDPOINT_URL s3 cp --no-progress /work_queue/work_queue.csv s3://pypeit/adap/results/work_queue.csv
+        - pip install --upgrade pip setuptools wheel; pip install awscli;  aws --endpoint $ENDPOINT_URL s3 cp --no-progress /work_queue/work_queue_2020.csv s3://pypeit/adap/results/work_queue_2020.csv
         command:
         - /bin/bash
         - -c
