@@ -7,6 +7,7 @@ import sys
 import numpy as np
 
 from pypeit import pypeitsetup, msgs
+from pypeit.par.pypeitpar import PypeItPar
 from pypeit.inputfiles import PypeItFile
 from IPython import embed
 
@@ -267,6 +268,16 @@ setup_args = {"keck_mosfire": {"write_bkg_pairs": True}}
 def comment_out_filenames(metadata, files_idx):    
     metadata['filename'] = ['# ' + str(name) if files_idx[i] else name for i, name in enumerate(metadata['filename'])]
 
+
+def update_metadata(metadata, spectrograph):
+    """Perform any tweaks to the metadata before trimming it"""
+
+    # Currently the only change we make is to make ESI flats also
+    # scattered light frames
+    if spectrograph == "keck_esi":
+        framebits = [metadata.type_bitmask.turn_on(framebit,'scattlight') if metadata.type_bitmask.flagged(framebit, 'pixelflat') else framebit for framebit in metadata.table['framebit']]
+        metadata.set_frame_types(framebits)
+
 def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir, config_lines):
 
 
@@ -283,6 +294,7 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
 
     # Run setup
     ps.run(setup_only=True)
+    update_metadata(ps.fitstbl, spectrograph)
 
     # Remove rows with None, as these cause PypeIt to crash
     rows_with_none = find_none_rows(ps.fitstbl)
@@ -327,6 +339,31 @@ def update_custom_pypeit(complete_path, spectrograph_name, reduce_dir, pypeit_fi
     # Update the raw data directory in the pypeit file
     pypeit_file.file_paths = [str(complete_path / "raw")]
     pypeit_file.write(complete_path / reduce_dir / dir_name / f"{dir_name}.pypeit")
+
+def update_pixelflat(spectrograph, dataset, config_lines):
+    # TODO should this be moved to extended_spec_mixins? Or made more general?
+    if spectrograph == "keck_hires":
+        dataset_parts = dataset.split('/')
+        config_parts = dataset_parts[2].split("_")
+        dataset_binning = config_parts[-1]
+        binning_to_pixelflat_map = {"1x2": "pixelflat_keck_hires_RED_1x2_20160330.fits.gz",
+                                    "1x3": "pixelflat_keck_hires_RED_1x3_20170223.fits.gz",
+                                    "2x2": "pixelflat_keck_hires_RED_2x2_20170614.fits.gz"}
+        return_lines = []
+        for line in config_lines:
+            line_parts = line.split('#',maxsplit=1) # Ignore comments that might contain "pixelflat_file"
+            line_start = line_parts[0]
+            if len(line_parts) > 1:
+                comments = line_parts[1]
+            else:
+                comments = ""
+            indx = line_start.find("pixelflat_file")
+            if indx != -1:
+                line = line_start[:indx] + "pixelflat_file = " + binning_to_pixelflat_map[dataset_binning] + comments
+            return_lines.append(line)
+    else:
+        return_lines = config_lines
+    return return_lines
 
 def main():
     parser = argparse.ArgumentParser(description='Build a trimmed down setup file for ADAP raw data. It assumes the ADAP directory structure.')
@@ -382,7 +419,10 @@ def main():
 
         if len(reduce_configs) == 0:
             msgs.info(f"Using default config file.")
-            reduce_configs.append(("reduce", default_config_lines))
+            # Add pixelflats to the config for appropriate spectrographs
+            updated_config_lines = update_pixelflat(args.spectrograph, dataset, default_config_lines)
+            reduce_configs.append(("reduce", updated_config_lines))
+            
 
         for reduce_config in reduce_configs:
             if isinstance(reduce_config[1], PypeItFile):

@@ -178,7 +178,8 @@ def main():
 
         expected_det = get_expected_det(par, args)
 
-        science_idx = np.isin(pf.data['frametype'], ['science','standard'])
+        science_idx = ['science' in ft or 'standard' in ft for ft in pf.data['frametype']]
+        print(f"Found {np.sum(science_idx)} Science/standard files.")
         for science_file in pf.data['filename'][science_idx]:
             data.add_row()
             data[-1]['dataset'] = dataset.parent 

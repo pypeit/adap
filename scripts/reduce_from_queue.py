@@ -16,6 +16,7 @@ import shutil
 import psutil
 from utils import claim_dataset, update_dataset_status
 import cloudstorage
+import metadata_info
 
 def log_message(args, msg):
     """Print a message to stdout and to a log file"""
@@ -26,7 +27,10 @@ def log_message(args, msg):
     print(msg_with_time, flush=True)
 
 def clear_log(args):
-    os.remove(args.logfile)
+    try:
+        os.remove(args.logfile)
+    except FileNotFoundError as e:
+        print(f"{args.logfile} not found")
 
 def signal_proof_sleep(seconds):
     # I've noticed the time.sleep() function doesn't alway sleep as long as I want. My theory,
@@ -260,13 +264,12 @@ def cleanup(args, dataset):
     clear_log(args)
 
     shutil.rmtree(Path(args.adap_root_dir) / dataset)
-
+    #shutil.move(Path(args.adap_root_dir) / dataset, Path("/media/dusty/novus/adap_2020/raw_data_reorg_backup") / dataset)
 
 def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
     parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
-    parser.add_argument('--spec', type=str, default="keck_esi", help="Spectrograph name")
     parser.add_argument("--logfile", type=str, default="reduce_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--backup_raw", default=False, action="store_true", help="Whether to also backup the raw data to google drive.")
@@ -284,13 +287,14 @@ def main():
         max_mem = 0
         while dataset is not None:
             status = 'COMPLETE'
+            spec = metadata_info.dataset_to_spec(dataset)
             try:
                 count = download_dataset(args, s3_storage, dataset)
                 if count == 0:
                     log_message(args, f"No files found to download for {dataset}.")    
                     status = 'FAILED'
                 else:
-                    run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, args.spec, dataset])
+                    run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, spec, dataset])
             except Exception as e:
                 log_message(args, f"Failed during prepwork for {dataset}. Exception {e}")
                 status = 'FAILED'
@@ -315,7 +319,7 @@ def main():
 
                         run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
 
-                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), args.spec, args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem)]
+                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), spec, args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem)]
                     if 'PYPEIT_COMMIT' in os.environ:
                         scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 

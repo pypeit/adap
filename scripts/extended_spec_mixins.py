@@ -107,11 +107,10 @@ class ADAPSpectrographMixin:
         # Return extra keys needed for grouping that aren't in the configuration keys
         return []
     
-    def add_extra_metadata(self, args, metadata):
+    def add_extra_metadata(self, metadata):
         """Add any extra metadata columns needed by adap_reorg_setup.py for this instrument.
          
         Args:
-            args (argparse.Namespace): The arguments to adap_reorg_setup.py
             metadata (PypeItMetaData): The metadata for the files.
 
         Return:
@@ -119,19 +118,31 @@ class ADAPSpectrographMixin:
         """
         pass
 
-    def koa_config_compare(self, config1, config2):
-        """Compare the PypeIt configuration between two items using the koa attribute names.
-        The items can be rows returned from koa, or a dict with the correct keys.
-        Uses same comparison logic as spectrograph.same_configuration.
-
+    def _koa_config_compare(self, koa_key_to_pypeit_key, config1, config2):
+        """Internal helper method to compare the PypeIt configuration between two items 
+        given a mapping of koa attribute names to pypeit names.
         Args:
+            koa_key_to_pypeit_key: Mapping of koa column names to pypeit metadata key names.
             config1: The first row/dict for comparison
             config2: The second row/dict for comparison
 
         Return:
             True if they are the same, False if not.
         """
-        pass
+        for key in config_key_columns[self.instrument_name]:
+            if isinstance(config1[key], (float, np.floating)):
+                pypeit_key = koa_key_to_pypeit_key[key]
+                if not np.isclose(config1[key], config2[key], 
+                                  rtol=self.meta[pypeit_key].get('rtol', 0.0),
+                                  atol=self.meta[pypeit_key].get('atol', 0.0),
+                                  equal_nan=True):
+                    return False
+            else:
+                if config1[key] != config2[key]:
+                    return False
+        return True
+        
+
 
 class ADAP_DEIMOSExtendedSpectrograph(ADAPSpectrographMixin, KeckDEIMOSSpectrograph):
     """Determine if a PypeItMetadata object has enough data to be reduced.
@@ -214,19 +225,8 @@ class ADAP_HIRESExtendedSpectrograph(ADAPSpectrographMixin, KECKHIRESSpectrograp
                                  'echangl': 'echangle',
                                  'xdangl': 'xdangle',
                                  'binning': 'binning'}
-        
-        for key in config_key_columns['HIRES']:
-            if isinstance(config1[key], (float, np.floating)):
-                pypeit_key = koa_key_to_pypeit_key[key]
-                if not np.isclose(config1[key], config2[key], 
-                                  rtol=self.meta[pypeit_key].get('rtol', 0.0),
-                                  atol=self.meta[pypeit_key].get('atol', 0.0),
-                                  equal_nan=True):
-                    return False
-            else:
-                if config1[key] != config2[key]:
-                    return False
-        return True
+        return super()._koa_config_compare(koa_key_to_pypeit_key, config1, config2)
+    
 
 class ADAP_ESIExtendedSpectrograph(ADAPSpectrographMixin, KeckESISpectrograph):
 
@@ -253,6 +253,34 @@ class ADAP_ESIExtendedSpectrograph(ADAPSpectrographMixin, KeckESISpectrograph):
         num_bias_frames = np.sum(metadata.find_frames('bias') )
         return ((num_science_frames >=1 and num_dome_flat_frames >= 3 and num_good_cu_frames >= 1 and num_non_cu_frames >=1 and num_bias_frames >=5),
                 f"sci {num_science_frames} domeflats {num_dome_flat_frames} Good CuAr {num_good_cu_frames} Good non-CuAR {num_non_cu_frames} bias {num_bias_frames}")
+
+    def koa_config_compare(self, config1, config2):
+        """Compare the PypeIt configuration between two items using the koa attribute names.
+        The items can be rows returned from koa, or a dict with the correct keys.
+        Uses same comparison logic as spectrograph.same_configuration.
+
+        Args:
+            config1: The first row/dict for comparison
+            config2: The second row/dict for comparison
+
+        Return:
+            True if they are the same, False if not.
+        """
+        koa_key_to_pypeit_key = {
+            "slmsknam": "decker",
+            "prismnam": "dispname",
+            "binning":  "binning",                               
+        }
+        return super()._koa_config_compare(koa_key_to_pypeit_key, config1, config2)
+
+    # Only need extra metadata if we're grouping by target
+    #def add_extra_metadata(self, metadata):
+    #    if self.file_to_object_map is not None:
+    #        new_data = [self.file_to_object_map.get(filename, '') for filename in metadata['filename']]
+    #    else:
+    #        new_data = metadata['target'].copy()
+    #    metadata.table.add_column(new_data,name='qsolist_obj_name')
+
 
 def get_lris_spec_name(obs_date, koaid=None, instrument=None):
     if koaid is None and instrument is None:
@@ -420,7 +448,4 @@ class ADAP_MOSFIRESpectrograph(ADAPSpectrographMixin, KeckMOSFIRESpectrograph):
         koa_key_to_pypeit_key = {'maskname': 'decker_secondary',
                                  'filter':   'filter1'}
         
-        for key in config_key_columns['MOSFIRE']:
-            if config1[key] != config2[key]:
-                return False
-        return True
+        return super()._koa_config_compare(koa_key_to_pypeit_key, config1, config2)

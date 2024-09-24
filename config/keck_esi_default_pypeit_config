@@ -1,14 +1,3 @@
 [rdx]
     spectrograph = keck_esi
 
-# Turn off scattered light subtraction
-[calibrations]
-  [[pixelflatframe]]
-    [[[process]]]
-    subtract_scattlight = False
-  [[illumflatframe]]
-    [[[process]]]
-    subtract_scattlight = False
-[scienceframe]
-  [[process]]
-  subtract_scattlight = False

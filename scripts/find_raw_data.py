@@ -67,7 +67,7 @@ def main(args):
         query_output = koa_query(extended_spec.instrument_name, args.out_dir, dg)
         trim_calib_files(extended_spec, files_to_download, query_output, dg.metadata)
 
-    files_to_download.write(str(args.out_dir / "files_to_download.csv"),format="csv")
+    files_to_download.write(str(args.out_dir / "files_to_download.csv"),format="csv",overwrite=True)
 
 def koa_query(instr : str, out_dir : Path, dg:DateGroup) -> Path:
 
