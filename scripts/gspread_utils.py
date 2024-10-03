@@ -5,7 +5,10 @@ import random
 
 def column_name_to_index(column_letter : str) -> int:
     """Returns a column index from a column letter"""
-    return  (ord(column_letter) - ord('A'))+1
+    return  gspread.utils.a1_to_rowcol(column_letter + "1")[1]
+
+def index_to_column_name(index : int) -> str:
+    return  gspread.utils.rowcol_to_a1(row=1,col=index)[0]
 
 def signal_proof_sleep(seconds):
     # I've noticed the time.sleep() function doesn't alway sleep as long as I want. My theory,

@@ -2,97 +2,25 @@
 """
 import argparse
 import os
-import csv
-import io
 import sys
-from pathlib import Path, PosixPath
-from contextlib import contextmanager
+from pathlib import Path
 import subprocess as sp
-import time
-from datetime import datetime, timezone
-import traceback
-import random
 import shutil
 import psutil
-from utils import claim_dataset, update_dataset_status
-import cloudstorage
 import metadata_info
 
-def log_message(args, msg):
-    """Print a message to stdout and to a log file"""
-    msg_with_time = datetime.now(timezone.utc).isoformat() + " " + msg
-    with open(args.logfile, "a") as f:
-        print(msg_with_time, file=f, flush=True)
+from utils import run_task_on_queue, init_logging, run_script
+from rclone import get_cloud_path
 
-    print(msg_with_time, flush=True)
+import logging
+logger = logging.getLogger(__name__)
+
 
 def clear_log(args):
     try:
         os.remove(args.logfile)
     except FileNotFoundError as e:
         print(f"{args.logfile} not found")
-
-def signal_proof_sleep(seconds):
-    # I've noticed the time.sleep() function doesn't alway sleep as long as I want. My theory,
-    # based on the docs, is that some network errors contacting S3/Google Drive cause a signal
-    # which raises an exception. In any event this code make sure that the retries sleep for
-    # the desired # of seconds.
-    start_time = time.time()
-    current_time = start_time
-    while current_time < start_time + seconds:
-        time.sleep(1)
-        current_time = time.time()
-
-
-def retry_cloud(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
-
-    for i in range(len(retry_delays)+1):
-        try:
-            return func()
-        except Exception:
-            if i == len(retry_delays):
-                # We've passed the max # of retries, re-reaise the exception
-                raise
-            signal_proof_sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
-
-@contextmanager
-def lock_workqueue(work_queue_file):
-    """
-    Open the work queue with a file lock to prevent race conditions between pods running in parallel.
-    This function can be used as a context manager, keeping the file locked within a "with" block.
-
-    Args:
-    work_queue_file(str or pathlib.Path):  The full path to the work queue file.
-
-    Returns:
-    file-like object For the work queue file.
-
-    """
-    fd = os.open(work_queue_file, os.O_RDWR)
-    # The documentation is unclear if this can return -1 like the underlying C call, so I test for it
-    if fd == -1:
-        raise RuntimeError("Failed to open file")
-
-    # Lock the file
-    os.lockf(fd, os.F_LOCK, 0)
-
-    # Return a nice file like object to wrap the file descriptor
-    file_object_wrapper = open(fd, "r+", closefd=False)
-    try:
-        yield file_object_wrapper
-    finally:
-        # Presumably the file object's close would also release the lock, but I didn't trust it so 
-        # I closed it and the file descriptor separately
-        file_object_wrapper.close()
-        os.close(fd)
-
-
-
-
-def run_script(command):
-    cp = sp.run(command)
-    if cp.returncode != 0:
-        raise RuntimeError(f"Failed to run '{' '.join(command)}', return code: {cp.returncode}.")
 
 
 def run_pypeit_onfile(args, file):
@@ -119,7 +47,7 @@ def run_pypeit_onfile(args, file):
         # with the multiple processes started by this script
         child_env['OMP_NUM_THREADS'] = '1'
 
-        log_message(args, f"Starting PypeIt run on {file}")
+        logger.info(f"Starting PypeIt run on {file}")
     
         # Run PypeIt on the pypeit file, using the additional arguments from our command line,
         # with stdout and stderr going to a text file, from the directory of the pypeit file, with
@@ -150,220 +78,205 @@ def run_pypeit_onfile(args, file):
                 # Normal, means the child didn't finish within the 2 second timeout
                 pass
 
-    log_message(args, f"PypeIt Max Memory Usage for {file}: {max_mem}")
+    logger.info(f"PypeIt Max Memory Usage for {file}: {max_mem}")
     if returncode != 0:
-        log_message(args, f"PypeIt returned non-zero status {returncode}, setting status to FAILED")
+        logger.error(f"PypeIt returned non-zero status {returncode}, setting status to FAILED")
         return "FAILED", max_mem
     else:
-        log_message(args, f"PypeIt returned successful status.")
+        logger.info(f"PypeIt returned successful status.")
 
     return "COMPLETE", max_mem
 
 
 
+def cleanup_old_results(args, dataset, reduce_dir):
+    """Clean up old results from a previous reduction of this dataset."""
+    logger.info(f"Cleaning up old results...")
 
-def cleanup_old_results(args, s3_storage, dataset, reduce_dir):
-    """Back up old results from a previous reduction of this dataset."""
-    log_message(args, f"Cleaning up old results...")
-    s3_reduce_dir = f"pypeit/adap/raw_data_reorg/{dataset}/complete/{reduce_dir}/"
+
+    source_reduce_dir = get_cloud_path(args, "s3") / Path(dataset, "complete", reduce_dir)
     
-    try:
-        for (url, size) in s3_storage.list_objects(s3_reduce_dir):
-
-            try:
-                retry_cloud(lambda: s3_storage.delete(url))
-            except Exception as e:
-                # If the copy fails, do not do the delete, but still continue on to the next item
-                log_message(args, f"Failed to remove: {url}: {e}")
-                
-    except Exception as e:
-        # If this fails, we still want to continue as we don't want to lose the current results
-        log_message(args, f"Failed to backup results: {e}")
-
-def download_dataset(args, s3_storage, dataset):
-    dataset_raw_path = f"{dataset}/complete/raw/"
-    local_path = Path(args.adap_root_dir) / dataset_raw_path 
-    remote_source = f"pypeit/adap_2020/raw_data_reorg/{dataset_raw_path}"
-    os.makedirs(local_path, exist_ok=True)
-    count = 0
-    for (url, size) in s3_storage.list_objects(remote_source):
+    for file in source_reduce_dir.ls(recursive=True):
         try:
-            start_time = time.time()
-            retry_cloud(lambda: s3_storage.download(url, local_path))
-            end_time = time.time()
-            log_message(args, f"Downloaded {url} in {end_time-start_time:.2f} s ({float(size*8)/(10**6*(end_time-start_time)):.2f} Mb/s)")
-            count+=1
+            file.unlink()
         except Exception as e:
-            log_message(args, f"Failed to download {url}, error: {e}")
-            raise
-    return count
+            # If the delete fails, continue to next item
+            logger.error(f"Failed to remove: {file}",exc_info=True)
+                
 
-def upload_results(args, s3_storage, dataset):
-    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete"
-    dataset_remote_path = f"pypeit/adap_2020/raw_data_reorg/{dataset}/complete"
+
+def download_dataset(args, dataset):
+    # Download data 
+    relative_path = Path(dataset, "complete", "raw")
+
+    source_loc = get_cloud_path(args, args.source) / relative_path
+    local_path = args.adap_root_dir / relative_path 
+
+    source_loc.download(local_path)
+    count = len(list(local_path.glob("*")))
+    logger.info(f"Downloaded {count} raw files for {dataset}.")
+
+def upload_results(args, dataset):
+    dataset_local_path = args.adap_root_dir / dataset / "complete"
+    dataset_remote_path = get_cloud_path(args, "s3") / dataset / "complete"
     dataset_reduce_paths = list(dataset_local_path.glob("reduce*"))
     failed = False
     if len(dataset_reduce_paths) == 0:
-        log_message(args, "No reduce results to upload.")
+        logger.error("No reduce results to upload.")
     else:
         for reduce_path in dataset_reduce_paths:
-            log_message(args, f"Uploading results in {reduce_path} to {dataset_remote_path}...")
-            for file in reduce_path.rglob('*'):
-                if not file.is_file():
-                    # Skip directories
-                    continue
-    
-                dest = f"{dataset_remote_path}/{reduce_path.name}/{file.relative_to(reduce_path)}"
-    
-                try:
-                    # Use longer retry delays to give results a good chance of beng uploaded
-                    start_time = time.time()
-                    size = file.stat().st_size
-                    retry_cloud(lambda: s3_storage.upload(file, dest), retry_delays = [30, 120, 300, 90])
-                    end_time = time.time()
-                    log_message(args, f"Uploaded {file} in {end_time-start_time:.2f} s ({float(size*8)/(10**6*(end_time-start_time)):.2f} Mb/s)")
-                except Exception as e:
-                    log_message(args, f"Failed to upload {file}, error: {e}")
-                    failed = True
+            dest_path = dataset_remote_path / reduce_path.name
+            logger.info(f"Uploading results in {reduce_path} to {dataset_remote_path}...")
+
+            try:
+                dest_path.upload(reduce_path)
+            except Exception as e:
+                logger.error(f"Failed to upload {file}",exc_info=True)
+                failed = True
 
     if failed:
         raise RuntimeError("Failed to upload results.")
 
-def backup_log(args, s3_storage, dataset):
+def backup_log(args, dataset):
     # Upload the log for this run
-    log_destfile = f"pypeit/adap_2020/raw_data_reorg/{dataset}/complete/reduce/{Path(args.logfile).name}"
-    log_message(args, f"Uploading log to s3 {log_destfile}.")
+
+    log_sourcefile = Path(args.logfile)
+    log_dest = get_cloud_path(args, "s3") / Path(dataset, "complete", "reduce")
+
+    logger.info(f"Uploading log to {log_dest}.")
     try:
-        retry_cloud(lambda: s3_storage.upload(args.logfile, log_destfile))
+        log_dest.upload(log_sourcefile)
     except Exception as e:
-        log_message(args, f"Failed to upload log to s3://{log_destfile}, error: {e}")
+        logger.error(f"Failed to upload log to {log_dest}", exc_info=True)
 
 
 def backup_results_to_gdrive(args, dataset):
     # Upload the results for this run to Google Drive
     dataset_local_path = Path(args.adap_root_dir) / dataset / "complete"
-    dataset_gdrive_path = PosixPath("backups") / dataset / "complete"
-    dataset_backup_paths = list(dataset_local_path.glob("reduce*"))
+    dataset_gdrive_path = get_cloud_path(args,"gdrive") / dataset / "complete"
+    dataset_backup_paths = [p.name for p in dataset_local_path.glob("reduce*")]
     if args.backup_raw:
-        dataset_backup_paths.append(dataset_gdrive_path / "raw")
+        dataset_backup_paths.append("raw")
 
     if len(dataset_backup_paths) == 0:
-        log_message(args, f"No results backup to Google Drive.")
+        logger.error(f"No results to backup to Google Drive.")
     else:
-        log_message(args, f"Backing up results to Google Drive.")
-        for reduce_path in dataset_backup_paths:
-            reduce_folder = reduce_path.name
-            gdrive_dest = "gdrive:" + str(dataset_gdrive_path / reduce_folder)
-            log_message(args, f"Backing up {reduce_path} to {gdrive_dest} .")
-            run_script(['rclone', '--config', Path(args.adap_root_dir) / "adap" / "config" / "rclone.conf", 'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', reduce_path, gdrive_dest])
-
+        logger.info(f"Backing up results to Google Drive.")
+        for source in dataset_backup_paths:
+            source_path = dataset_local_path / source
+            dest_path = dataset_gdrive_path / source
+            dest_path.upload(source_path)
 
 def cleanup(args, dataset):
     """Clean up after running a job and uploading its results"""
     # Clear the log so it doesn't grow forever. upload_results will have uploaded it to S3
     clear_log(args)
 
-    shutil.rmtree(Path(args.adap_root_dir) / dataset)
-    #shutil.move(Path(args.adap_root_dir) / dataset, Path("/media/dusty/novus/adap_2020/raw_data_reorg_backup") / dataset)
+    if args.local is None:
+        shutil.rmtree(Path(args.adap_root_dir) / dataset)
+    else:
+        dest_dir = args.local / dataset
+        if dest_dir.exists():
+            shutil.rmtree(dest_dir)
+        else:
+            os.makedirs(dest_dir.parent,exist_ok=True)
+        shutil.move(Path(args.adap_root_dir) / dataset, dest_dir.parent)
+
+def reduce_dataset_task(args, dataset):
+
+    max_mem = 0
+    status = 'COMPLETE'
+    spec = metadata_info.dataset_to_spec(dataset)
+    scripts_dir = args.adap_root_dir / "adap" / "scripts"
+    try:
+        count = download_dataset(args, dataset)
+        if count == 0:
+            logger.error(f"No files found to download for {dataset}.")    
+            status = 'FAILED'
+        else:
+            run_script(["python",  str(scripts_dir / "trimming_setup.py"), "--adap_root_dir", str(args.adap_root_dir), spec, dataset])
+    except Exception as e:
+        logger.error(f"Failed during prepwork for {dataset}.",exc_info=True)
+        status = 'FAILED'
+
+
+    if status != 'FAILED':
+        try:
+            # Run each pypeit file
+            for pypeit_file in (args.adap_root_dir/dataset).rglob("*.pypeit"):
+
+                # Run PypeIt
+                status, max_mem = run_pypeit_onfile(args, pypeit_file)
+
+                # Find warnings in log file
+                #logfile = pypeit_file.parent / "keck_deimos_A.log"
+                #run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
+
+                # Cleanup results from an old run
+                cleanup_old_results(args, dataset, pypeit_file.parent.parent.name)
+
+                backup_log(args, dataset)
+
+                run_script(["bash", str(scripts_dir / "tar_qa.sh"), str(pypeit_file.parent)])
+
+            scorecard_cmd = ["python", str(scripts_dir / "scorecard.py"), spec, str(args.adap_root_dir), str(args.adap_root_dir / dataset / "complete" / "reduce" / f"scorecard.csv"), "--status", status, "--mem", str(max_mem)]
+            if 'PYPEIT_COMMIT' in os.environ:
+                scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
+
+            run_script(scorecard_cmd)
+
+        except Exception as e:
+            logger.error(f"Failed processing {dataset}", exc_info=True)
+            status = 'FAILED'
+
+        # Try to upload any results regardless of status
+        try:            
+            upload_results(args, dataset)
+        except Exception as e:
+            logger.error(f"Failed uploading results for {dataset}.",exc_info=True)
+            status = 'FAILED'
+
+        # Try to backup results to gdrive
+        try:            
+            backup_results_to_gdrive(args, dataset)
+        except Exception as e:
+            logger.error(f"Failed backup up results for {dataset}.", exc_info=True)
+            if status != 'FAILED':
+                status = "WARNING"
+
+        # Update the scorecard results
+        try:
+            run_script(["python", str(scripts_dir / "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], str(args.adap_root_dir / dataset / "complete" / "reduce" / "scorecard.csv"), str(args.scorecard_max_age)])
+        except Exception as e:
+            logger.error(f"Failed to update scorecard results for {dataset}.",exc_info=True)
+        
+    # Cleanup before moving to the next dataset
+    cleanup(args, dataset)
+    return status
 
 def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
+    parser.add_argument('queue_url', type=str, help="URL of the redis server hosting the work queue.")
     parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
+    parser.add_argument('source', type=str, help="Where to pull data, either 's3' or 'gdrive'.")
+    parser.add_argument('--queue_timeout', type = int,default=120, help="Number of seconds to wait for the work queue to initialize.")
     parser.add_argument("--logfile", type=str, default="reduce_from_queue.log", help= "Log file.")
-    parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
+    parser.add_argument("--adap_root_dir", type=Path, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--backup_raw", default=False, action="store_true", help="Whether to also backup the raw data to google drive.")
     parser.add_argument("--scorecard_max_age", type=int, default=7, help="Max age of items in the scorecard's latest spreadsheet")
     parser.add_argument("--endpoint_url", type=str, default = os.getenv("ENDPOINT_URL", default="https://s3-west.nrp-nautilus.io"), help="The URL used to access S3. Defaults $ENDPOINT_URL, or the PRP Nautilus external URL.")
     parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")
+    parser.add_argument("--rclone_conf", type=str, default = f"{os.environ['HOME']}/.config/rclone/rclone.conf", help="rclone configuration.")
     parser.add_argument("pypeit_args", type=str, nargs="*", default=["-o"], help="Arguments to pass to run_pypeit")
+    parser.add_argument("--local", type=Path, default = None, help="Run in local test config, which does not download data if it already is present and moves data to a given directory when done.")
     args = parser.parse_args()
 
     try:
-        my_pod = os.environ["POD_NAME"]
-        log_message(args, f"Started on pod {my_pod} and python {sys.implementation}")
-        s3_storage = cloudstorage.initialize_cloud_storage("s3", args.endpoint_url)
-        dataset = claim_dataset(args, my_pod)
-        max_mem = 0
-        while dataset is not None:
-            status = 'COMPLETE'
-            spec = metadata_info.dataset_to_spec(dataset)
-            try:
-                count = download_dataset(args, s3_storage, dataset)
-                if count == 0:
-                    log_message(args, f"No files found to download for {dataset}.")    
-                    status = 'FAILED'
-                else:
-                    run_script(["python",  os.path.join(args.adap_root_dir, "adap", "scripts", "trimming_setup.py"), "--adap_root_dir", args.adap_root_dir, spec, dataset])
-            except Exception as e:
-                log_message(args, f"Failed during prepwork for {dataset}. Exception {e}")
-                status = 'FAILED'
-
-            if status != 'FAILED':
-                try:
-                    for pypeit_file in (Path(args.adap_root_dir)/dataset).rglob("*.pypeit"):
-
-                        # Run PypeIt
-                        status, max_mem = run_pypeit_onfile(args, pypeit_file)
-
-                        # Find warnings in log file
-                        #logfile = pypeit_file.parent / "keck_deimos_A.log"
-                        #run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
-
-                        # Cleanup results from an old run
-                        cleanup_old_results(args, s3_storage, dataset, pypeit_file.parent.parent.name)
-
-                        backup_log(args, s3_storage, dataset)
-
-                        #backup_logs_to_gdrive(args, gdrive_storage, dataset, pypeit_file.parent.parent.name)
-
-                        run_script(["bash", os.path.join(args.adap_root_dir, "adap", "scripts", "tar_qa.sh"), str(pypeit_file.parent)])
-
-                    scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), spec, args.adap_root_dir, os.path.join(args.adap_root_dir, dataset, "complete", "reduce", f"scorecard.csv"), "--status", status, "--mem", str(max_mem)]
-                    if 'PYPEIT_COMMIT' in os.environ:
-                        scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
-
-                    run_script(scorecard_cmd)
-
-
-                except Exception as e:
-                    log_message(args, f"Failed processing {dataset}. Exception {e}")
-                    status = 'FAILED'
-
-            # Try to upload any results regardless of status
-            try:            
-                upload_results(args, s3_storage, dataset)
-            except Exception as e:
-                log_message(args, f"Failed uploading results for {dataset}. Exception: {e}")
-                status = 'FAILED'
-
-            # Try to backup results to gdrive
-            try:            
-                backup_results_to_gdrive(args, dataset)
-            except Exception as e:
-                log_message(args, f"Failed backup up results for {dataset}. Exception: {e}")
-                if status != 'FAILED':
-                    status = "WARNING"
-
-            # Update the work queue status
-            update_dataset_status(args, dataset, status)
-
-            # Update the scorecard results
-            try:
-                run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), str(args.scorecard_max_age)])
-            except Exception as e:
-                log_message(args, f"Failed to update scorecard results for {dataset}. Exception {e}")
-            
-            # Cleanup before moving to the next dataset
-            cleanup(args, dataset)
-
-            # Done with this dataset, more to the next
-            dataset = claim_dataset(args, my_pod)
-        log_message(args, "No more datasets in queue, exiting")
+        init_logging(args.adap_root_dir / args.logfile)
+        run_task_on_queue(args, reduce_dataset_task)
     except:
-        exc_lines = traceback.format_exc()
-        log_message(args, "Exception caught in main, existing")        
-        log_message(args, exc_lines)
+        logger.error("Exception caught in main, exiting",exc_info=True)        
         return 1
 
     return 0

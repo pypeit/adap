@@ -9,13 +9,15 @@ from contextlib import contextmanager
 import subprocess as sp
 import time
 import gspread_utils
-import random
 import logging
 import logging.handlers
 
 import configobj
 
 from pypeit.inputfiles import PypeItFile, InputFile
+
+import redis
+
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +43,7 @@ def init_logging(logfile):
     logging.basicConfig(handlers=[stream_handler, file_handler], force=True,  level="DEBUG")
 
 
-@contextmanager
-def lock_workqueue(work_queue_file):
+def lock_workqueue(redis_server, args):
     """
     Open the work queue with a file lock to prevent race conditions between pods running in parallel.
     This function can be used as a context manager, keeping the file locked within a "with" block.
@@ -54,32 +55,19 @@ def lock_workqueue(work_queue_file):
     file-like object For the work queue file.
 
     """
-    fd = os.open(work_queue_file, os.O_RDWR)
-    # The documentation is unclear if this can return -1 like the underlying C call, so I test for it
-    if fd == -1:
-        raise RuntimeError("Failed to open file")
-
-    # Lock the file
-    os.lockf(fd, os.F_LOCK, 0)
-
-    # Return a nice file like object to wrap the file descriptor
-    file_object_wrapper = open(fd, "r+", closefd=False)
-    try:
-        yield file_object_wrapper
-    finally:
-        # Presumably the file object's close would also release the lock, but I didn't trust it so 
-        # I closed it and the file descriptor separately
-        file_object_wrapper.close()
-        os.close(fd)
+    return redis_server.lock(args.work_queue + "_lock")
 
 
-def update_gsheet_status(args, dataset, status):
+def update_gsheet_status(args, dataset, status, pod):
     # Note need to retry Google API calls due to rate limits
-
     spreadsheet, worksheet, status_col = gspread_utils.open_spreadsheet(args.gsheet)
     if status_col is None:
         # Default to B if no status column was given
         status_col = "B"
+        
+    status_index = gspread_utils.column_name_to_index(status_col)
+    pod_col = gspread_utils.index_to_column_name(status_index+1)
+
 
 
     work_queue = gspread_utils.retry_gspread_call(lambda: worksheet.col_values(1))
@@ -89,7 +77,7 @@ def update_gsheet_status(args, dataset, status):
         for i in range(0, len(work_queue)):
             if work_queue[i].strip() == dataset:
                 logger.info(f"Updating {dataset} status with {status}")
-                gspread_utils.retry_gspread_call(lambda: worksheet.update(range_name=f"{status_col}{i+1}", values=[[status]]))
+                gspread_utils.retry_gspread_call(lambda: worksheet.update(range_name=f"{status_col}{i+1}:{pod_col}{i+1}", values=[[status,pod]]))
                 found = True
                 break
         if not found:
@@ -97,34 +85,25 @@ def update_gsheet_status(args, dataset, status):
     else:
         logger.error(args, f"Could not update {dataset}, spreadsheet is empty!")
 
-def claim_dataset(args, my_pod):
+def claim_dataset(args, my_pod, blocking=False):
 
     dataset = None
 
-    with lock_workqueue(args.work_queue) as wq_file:
-        csv_reader = csv.reader(wq_file)
-        rows = []
-        found=False        
-        for row in csv_reader:
-            rows.append(row)
-            if not found and row[1] == 'IN QUEUE':
-                row[1] = my_pod
-                dataset = row[0]
-                found = True
+    redis_server = redis.Redis.from_url(args.queue_url,decode_responses=True)
+    redis_server.ping()
 
-        if found:
-            # Rewrite the work queue file with the new info
-            wq_file.truncate(0)
-            wq_file.seek(0,io.SEEK_SET)
-            csv_writer = csv.writer(wq_file)
-            csv_writer.writerows(rows)
+    if blocking:
+        dataset = redis_server.brpop(args.work_queue + "_q", timeout = args.queue_timeout)
+        # The blocking version of rpop returns the queuename and the dataset
+        dataset = dataset[1] if dataset is not None else None
+    else:
+        dataset = redis_server.rpop(args.work_queue + "_q")
 
-            # Update the scorecard. This is done within the lock on the work queue
-            # To prevent against race conditions accessing it
-            update_gsheet_status(args, dataset, "In Progress: " + my_pod)
-            logger.info(f"Pod: {my_pod} has claimed dataset {dataset}")
-        else:
-            logger.info("Work Queue is empty")
+    if dataset is not None and dataset != "init":
+        logger.info(f"Claimed dataset {dataset} for pod {my_pod}")
+        with lock_workqueue(redis_server, args):
+            update_gsheet_status(args, dataset, "In Progress", my_pod)
+
 
     return dataset
 
@@ -158,26 +137,14 @@ def run_script(command, return_output=False, save_output=None, log_output=False)
                 
         raise RuntimeError(f"Failed to run '{' '.join(command)}', return code: {cp.returncode}.")
 
-def update_dataset_status(args, dataset, status):
+def update_dataset_status(args, dataset, status, pod):
 
-    with lock_workqueue(args.work_queue) as wq_file:
-        csv_reader = csv.reader(wq_file)
-        rows = []
-        found=False        
-        for row in csv_reader:
-            rows.append(row)
-            if not found and row[0] == dataset:
-                row[1] = status
-                found = True
+    redis_server = redis.Redis.from_url(args.queue_url)
+    redis_server.ping()
 
-        if found:
-            wq_file.truncate(0)
-            wq_file.seek(0,io.SEEK_SET)
-            csv_writer = csv.writer(wq_file)
-            csv_writer.writerows(rows)
-
+    with lock_workqueue(redis_server, args) as wq:
         try:
-            update_gsheet_status(args, dataset, status)
+            update_gsheet_status(args, dataset, status, pod)
         except Exception as e:
             logger.error(f"Failed to update scorecard work queue status for {dataset}.", exc_info=True)
 
@@ -196,6 +163,49 @@ def backup_task_log(log_manager, backup_loc):
         # Treat an inability to access/clean up logs as fatal
         return
 
+def init_work_queue(args):
+    """Initialize the work queue from a Google Docs sheet"""
+
+    logger.info("Initializing work queue")
+    redis_server = redis.Redis.from_url(args.queue_url)
+    redis_server.ping()
+
+    queue_name = args.work_queue + "_q"
+
+    with lock_workqueue(redis_server,args):
+        spreadsheet, worksheet, col_name = gspread_utils.open_spreadsheet(args.gsheet)
+        if col_name is None:
+            # Default to B if no status column was given
+            col_name = "B"
+
+        status_col = gspread_utils.column_name_to_index(col_name)
+
+        work_queue_datasets = worksheet.col_values(1)
+        work_queue_status = worksheet.col_values(status_col)
+
+        if len(work_queue_datasets) > 1:
+            update_values = []
+            start_row = 4
+            end_row = len(work_queue_datasets)
+
+            # Note first row will be the title "dataset"
+            for i in range(start_row-1, len(work_queue_datasets)):
+                if work_queue_datasets[i] is not None and len(work_queue_datasets[i].strip()) > 0:
+                    # Only add datasets with blank statuses
+                    if i >= len(work_queue_status) or work_queue_status[i].strip() == '':                     
+                        # Add to queue
+                        redis_server.lpush(queue_name, work_queue_datasets[i].strip())
+                        # Update spreadsheet to indicate the item has ben queued
+                        update_values.append(["IN QUEUE"])
+                    else:
+                        # If the status isn't blank, leave it as is
+                        update_values.append([work_queue_status[i]])
+                else:
+                    update_values.append([None])
+            
+            worksheet.batch_update([{'range': f'{col_name}{start_row}:{col_name}{end_row}',
+                                    'values': update_values}])
+
 
 def run_task_on_queue(args, task):
 
@@ -203,12 +213,13 @@ def run_task_on_queue(args, task):
         my_pod = os.environ["POD_NAME"]
         logger.info(f"Started on pod {my_pod} and python {sys.implementation}")
 
-        dataset = claim_dataset(args, my_pod)
+        dataset = claim_dataset(args, my_pod, blocking=True)
 
-        if args.adap_root_dir is not None:
-            root_dir = Path(args.adap_root_dir)
-        else:
-            root_dir = Path(".")
+        if dataset == "init":
+            dataset = None
+            init_work_queue(args)
+            dataset = claim_dataset(args, my_pod)
+
     except Exception as e:
         logger.error(f"Failed initializing.", exc_info=True)
         return
@@ -222,10 +233,10 @@ def run_task_on_queue(args, task):
             status = task(args, dataset)
         except Exception as e:
             logger.error(f"Failed processing {dataset}.", exc_info=True)
-            status = f'FAILED on {my_pod}'
+            status = f'FAILED'
 
         try:
-            update_dataset_status(args, dataset, status)
+            update_dataset_status(args, dataset, status,my_pod)
         except Exception as e:
             logger.error(f"Failed to update dataset status for {dataset} to {status}.", exc_info=True)
         
@@ -236,6 +247,8 @@ def run_task_on_queue(args, task):
         except Exception as e:
             logger.error("Failed to claim dataset.", exc_info=True)
             dataset = None
+        
+    logger.info("No more datasets in queue, exiting")
 
 def get_reduce_params(dataset_prefix):
     config_path = Path(__file__).parent.parent / "config"

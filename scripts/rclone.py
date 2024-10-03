@@ -7,6 +7,20 @@ from utils import run_script
 
 logger = logging.getLogger(__name__)
 
+def get_cloud_path(args, source):
+    """Return the correct cloud enabled RClonePath for a given cloud provider.
+    Args:
+        args: The arguments to the script as returned by argparse
+        source:  The cloud provider, currently either "gdrive" for Google Drive or "s3" for nautilus S3.
+                 These are the remote names from rclone.conf.
+    Return: An RClonePath for the cloud provider.
+    """
+    if source == "gdrive":
+        source_loc = RClonePath(args.rclone_conf, "gdrive", "backups")
+    else:
+        source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap_2020", "raw_data_reorg")
+    return source_loc
+
 class RClonePath():
     """A :class:`pathlib.Path` like class for accessing remote cloud locations with rclone
     
@@ -75,3 +89,8 @@ class RClonePath():
         else:
             return RClonePath(self.rclone_config, self.service, self.path, other)
 
+    def __getattr__(self, name):
+        if name in ["root", "parents", "parent", "name", "suffix", "suffixes", "stem"]:
+            return getattr(self.path, name)
+        else:
+            return getattr(super(), name)
