@@ -199,7 +199,7 @@ def update_custom_pypeit(complete_path, reduce_dir, pypeit_file):
     (complete_path / reduce_dir / "keck_deimos_A").mkdir(parents=True, exist_ok=True)
 
     # Update the raw data directory in the pypeit file
-    pypeit_file.file_paths = [str(complete_path / "raw")]
+    pypeit_file.file_paths = [str((complete_path / "raw").resolve())]
     pypeit_file.write(complete_path / reduce_dir / "keck_deimos_A" / "keck_deimos_A.pypeit")
 
 def main():
