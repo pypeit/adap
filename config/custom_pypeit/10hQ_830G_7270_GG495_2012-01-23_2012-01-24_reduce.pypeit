@@ -19,6 +19,8 @@
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+     [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
