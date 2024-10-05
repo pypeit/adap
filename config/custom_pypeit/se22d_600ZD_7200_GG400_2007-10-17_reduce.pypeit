@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/se22d/600ZD_7200_GG400/2007-10-17/complete/raw
-              filename |                 frametype |                 ra |                 dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20071017.10813.fits |                  arc,tilt |  57.99999999999999 |                45.0 |        |    600ZD |  se22d |     1,1 | 54390.125073 | 1.41291034 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2007-10-17 | 03:00:13.56 |      22 |     0 |      -1 |     -1
-DE.20071017.10893.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |        |    600ZD |  se22d |     1,1 |  54390.12602 | 1.41291034 |    12.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-10-17 | 03:01:33.21 |      23 |     0 |      -1 |     -1
-DE.20071017.10970.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |        |    600ZD |  se22d |     1,1 | 54390.126939 | 1.41291034 |    12.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-10-17 | 03:02:50.81 |      24 |     0 |      -1 |     -1
-DE.20071017.11051.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |        |    600ZD |  se22d |     1,1 | 54390.127873 | 1.41291034 |    12.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-10-17 | 03:04:11.76 |      25 |     0 |      -1 |     -1
-DE.20071017.30595.fits |                   science |            334.388 | 0.23566666666666666 |  se22d |    600ZD |  se22d |     1,1 | 54390.354088 | 1.15151608 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-10-17 | 08:29:55.26 |      64 |     0 |       1 |      2
-DE.20071017.31872.fits |                   science |  334.3877083333333 |  0.2353888888888889 |  se22d |    600ZD |  se22d |     1,1 | 54390.368852 | 1.20386451 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-10-17 | 08:51:12.42 |      65 |     0 |       2 |      3
-DE.20071017.33149.fits |                   science | 334.38833333333326 | 0.23597222222222222 |  se22d |    600ZD |  se22d |     1,1 | 54390.383674 | 1.27271083 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-10-17 | 09:12:29.95 |      66 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                 dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20071017.10813.fits |                  arc,tilt |  57.99999999999999 |                45.0 |        |    600ZD |  se22d |     1,1 | 54390.125073 | 1.41291034 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2007-10-17 | 03:00:13.56 |      22 |     0 |    None |       0 |      -1 |     -1
+DE.20071017.10893.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |        |    600ZD |  se22d |     1,1 |  54390.12602 | 1.41291034 |    12.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-10-17 | 03:01:33.21 |      23 |     0 |    None |       0 |      -1 |     -1
+DE.20071017.10970.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |        |    600ZD |  se22d |     1,1 | 54390.126939 | 1.41291034 |    12.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-10-17 | 03:02:50.81 |      24 |     0 |    None |       0 |      -1 |     -1
+DE.20071017.11051.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 |        |    600ZD |  se22d |     1,1 | 54390.127873 | 1.41291034 |    12.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-10-17 | 03:04:11.76 |      25 |     0 |    None |       0 |      -1 |     -1
+DE.20071017.30595.fits |                   science |            334.388 | 0.23566666666666666 |  se22d |    600ZD |  se22d |     1,1 | 54390.354088 | 1.15151608 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-10-17 | 08:29:55.26 |      64 |     0 |       A |       0 |       1 |      2
+DE.20071017.31872.fits |                   science |  334.3877083333333 |  0.2353888888888889 |  se22d |    600ZD |  se22d |     1,1 | 54390.368852 | 1.20386451 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-10-17 | 08:51:12.42 |      65 |     0 |       B |     1.4 |       2 |      3
+DE.20071017.33149.fits |                   science | 334.38833333333326 | 0.23597222222222222 |  se22d |    600ZD |  se22d |     1,1 | 54390.383674 | 1.27271083 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-10-17 | 09:12:29.95 |      66 |     0 |       C |    -1.6 |       3 |      2
 data end
 

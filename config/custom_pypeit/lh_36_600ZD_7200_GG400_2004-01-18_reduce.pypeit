@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/lh_36/600ZD_7200_GG400/2004-01-18/complete/raw
-              filename |                 frametype |                 ra |               dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20040118.58038.fits |                  arc,tilt |              67.35 |             0.062 | HORIZON STOW |    600ZD |  lh_36 |     1,1 | 53022.671671 | 13.37481353 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2004-01-18 | 16:07:18.87 |      73 |     0 |      -1 |     -1
-DE.20040118.58116.fits | pixelflat,illumflat,trace |              67.35 |             0.062 | HORIZON STOW |    600ZD |  lh_36 |     1,1 | 53022.672578 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:08:36.58 |      74 |     0 |      -1 |     -1
-DE.20040118.58196.fits | pixelflat,illumflat,trace |              67.35 |             0.062 | HORIZON STOW |    600ZD |  lh_36 |     1,1 | 53022.673502 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:09:56.83 |      75 |     0 |      -1 |     -1
-DE.20040118.58276.fits | pixelflat,illumflat,trace |              67.35 |             0.062 | HORIZON STOW |    600ZD |  lh_36 |     1,1 | 53022.674427 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:11:16.98 |      76 |     0 |      -1 |     -1
-DE.20040118.35581.fits |                   science | 158.26649999999998 | 57.68069444444444 |        lh_36 |    600ZD |  lh_36 |     1,1 | 53022.411752 |  1.60840753 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-18 | 09:53:01.96 |      43 |     0 |       1 |      2
-DE.20040118.36857.fits |                   science | 158.26570833333332 | 57.68072222222222 |        lh_36 |    600ZD |  lh_36 |     1,1 | 53022.426517 |    1.526593 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-18 | 10:14:17.13 |      44 |     0 |       2 |      3
-DE.20040118.38129.fits |                   science | 158.26725000000002 | 57.68069444444444 |        lh_36 |    600ZD |  lh_36 |     1,1 | 53022.441233 |  1.45959518 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-18 | 10:35:29.81 |      45 |     0 |       3 |      2
+              filename |                 frametype |                 ra |               dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20040118.58038.fits |                  arc,tilt |              67.35 |             0.062 | HORIZON STOW |    600ZD |  lh_36 |     1,1 | 53022.671671 | 13.37481353 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2004-01-18 | 16:07:18.87 |      73 |     0 |    None |       0 |      -1 |     -1
+DE.20040118.58116.fits | pixelflat,illumflat,trace |              67.35 |             0.062 | HORIZON STOW |    600ZD |  lh_36 |     1,1 | 53022.672578 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:08:36.58 |      74 |     0 |    None |       0 |      -1 |     -1
+DE.20040118.58196.fits | pixelflat,illumflat,trace |              67.35 |             0.062 | HORIZON STOW |    600ZD |  lh_36 |     1,1 | 53022.673502 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:09:56.83 |      75 |     0 |    None |       0 |      -1 |     -1
+DE.20040118.58276.fits | pixelflat,illumflat,trace |              67.35 |             0.062 | HORIZON STOW |    600ZD |  lh_36 |     1,1 | 53022.674427 | 13.37481353 |    10.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2004-01-18 | 16:11:16.98 |      76 |     0 |    None |       0 |      -1 |     -1
+DE.20040118.35581.fits |                   science | 158.26649999999998 | 57.68069444444444 |        lh_36 |    600ZD |  lh_36 |     1,1 | 53022.411752 |  1.60840753 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-18 | 09:53:01.96 |      43 |     0 |       A |       0 |       1 |      2
+DE.20040118.36857.fits |                   science | 158.26570833333332 | 57.68072222222222 |        lh_36 |    600ZD |  lh_36 |     1,1 | 53022.426517 |    1.526593 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-18 | 10:14:17.13 |      44 |     0 |       B |     1.5 |       2 |      3
+DE.20040118.38129.fits |                   science | 158.26725000000002 | 57.68069444444444 |        lh_36 |    600ZD |  lh_36 |     1,1 | 53022.441233 |  1.45959518 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2004-01-18 | 10:35:29.81 |      45 |     0 |       C |    -1.4 |       3 |      2
 data end
 

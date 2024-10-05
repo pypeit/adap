@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/nem47/600ZD_6800_GG400/2009-04-21/complete/raw
-              filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |               mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20090421.15408.fits |                  arc,tilt |  57.99999999999999 |               45.0 |        |    600ZD |  nem47 |     1,1 |      54942.178256 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2009-04-21 | 04:16:48.46 |      37 |     0 |      -1 |     -1
-DE.20090421.15486.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  nem47 |     1,1 |      54942.179152 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2009-04-21 | 04:18:06.26 |      38 |     0 |      -1 |     -1
-DE.20090421.15569.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  nem47 |     1,1 |      54942.180141 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2009-04-21 | 04:19:29.26 |      39 |     0 |      -1 |     -1
-DE.20090421.15638.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  nem47 |     1,1 |      54942.180917 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2009-04-21 | 04:20:38.41 |      40 |     0 |      -1 |     -1
-DE.20090421.38435.fits |                   science | 189.27516666666665 | 62.371944444444445 |  nem47 |    600ZD |  nem47 |     1,1 | 54942.44485821759 | 1.43031764 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2009-04-21 | 10:40:35.75 |      87 |     0 |       1 |      2
-DE.20090421.39713.fits |                   science | 189.27608333333333 |  62.37186111111111 |  nem47 |    600ZD |  nem47 |     1,1 |      54942.459547 | 1.46986961 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2009-04-21 | 11:01:53.12 |      88 |     0 |       2 |      3
-DE.20090421.40993.fits |                   science | 189.27429166666664 |  62.37202777777778 |  nem47 |    600ZD |  nem47 |     1,1 |      54942.474421 | 1.51929076 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2009-04-21 | 11:23:13.49 |      89 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |               mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20090421.15408.fits |                  arc,tilt |  57.99999999999999 |               45.0 |        |    600ZD |  nem47 |     1,1 |      54942.178256 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2009-04-21 | 04:16:48.46 |      37 |     0 |    None |       0 |      -1 |     -1
+DE.20090421.15486.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  nem47 |     1,1 |      54942.179152 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2009-04-21 | 04:18:06.26 |      38 |     0 |    None |       0 |      -1 |     -1
+DE.20090421.15569.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  nem47 |     1,1 |      54942.180141 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2009-04-21 | 04:19:29.26 |      39 |     0 |    None |       0 |      -1 |     -1
+DE.20090421.15638.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  nem47 |     1,1 |      54942.180917 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2009-04-21 | 04:20:38.41 |      40 |     0 |    None |       0 |      -1 |     -1
+DE.20090421.38435.fits |                   science | 189.27516666666665 | 62.371944444444445 |  nem47 |    600ZD |  nem47 |     1,1 | 54942.44485821759 | 1.43031764 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2009-04-21 | 10:40:35.75 |      87 |     0 |       A |       0 |       1 |      2
+DE.20090421.39713.fits |                   science | 189.27608333333333 |  62.37186111111111 |  nem47 |    600ZD |  nem47 |     1,1 |      54942.459547 | 1.46986961 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2009-04-21 | 11:01:53.12 |      88 |     0 |       B |     1.6 |       2 |      3
+DE.20090421.40993.fits |                   science | 189.27429166666664 |  62.37202777777778 |  nem47 |    600ZD |  nem47 |     1,1 |      54942.474421 | 1.51929076 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2009-04-21 | 11:23:13.49 |      89 |     0 |       C |    -1.5 |       3 |      2
 data end
 

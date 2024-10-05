@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/hux2/600ZD_7200_GG400/2019-01-08/complete/raw
-              filename |                 frametype |                ra |                 dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20190108.11414.fits |                  arc,tilt | 58.02958333333333 |  44.997194444444446 | DOME PHLAT |    600ZD |   hux2 |     1,1 |  58491.13203 | 1.41297914 |     1.0 | 7199.98925781 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2019-01-08 | 03:10:14.05 |      37 |     0 |      -1 |     -1
-DE.20190108.11491.fits | pixelflat,illumflat,trace | 58.02958333333333 |  44.997194444444446 | DOME PHLAT |    600ZD |   hux2 |     1,1 | 58491.132922 | 1.41297914 |     5.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2019-01-08 | 03:11:31.57 |      38 |     0 |      -1 |     -1
-DE.20190108.11576.fits | pixelflat,illumflat,trace | 58.02958333333333 |  44.997194444444446 | DOME PHLAT |    600ZD |   hux2 |     1,1 | 58491.133919 | 1.41297914 |     5.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2019-01-08 | 03:12:56.23 |      39 |     0 |      -1 |     -1
-DE.20190108.11651.fits | pixelflat,illumflat,trace | 58.02958333333333 |  44.997194444444446 | DOME PHLAT |    600ZD |   hux2 |     1,1 | 58491.134775 | 1.41297914 |     5.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2019-01-08 | 03:14:11.20 |      40 |     0 |      -1 |     -1
-DE.20190108.22464.fits |                   science | 53.14858333333333 |  -27.79727777777778 |       hux2 |    600ZD |   hux2 |     1,1 | 58491.259932 | 1.49499995 |  1200.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2019-01-08 | 06:14:24.22 |      69 |     0 |       1 |      2
-DE.20190108.23754.fits |                   science | 53.14858333333333 | -27.797694444444446 |       hux2 |    600ZD |   hux2 |     1,1 | 58491.274848 | 1.48012647 |  1200.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2019-01-08 | 06:35:54.52 |      70 |     0 |       2 |      3
-DE.20190108.25039.fits |                   science | 53.14854166666665 | -27.796861111111113 |       hux2 |    600ZD |   hux2 |     1,1 | 58491.289717 | 1.48132044 |  1200.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2019-01-08 | 06:57:19.21 |      71 |     0 |       3 |      2
+              filename |                 frametype |                ra |                 dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20190108.11414.fits |                  arc,tilt | 58.02958333333333 |  44.997194444444446 | DOME PHLAT |    600ZD |   hux2 |     1,1 |  58491.13203 | 1.41297914 |     1.0 | 7199.98925781 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2019-01-08 | 03:10:14.05 |      37 |     0 |    None |       0 |      -1 |     -1
+DE.20190108.11491.fits | pixelflat,illumflat,trace | 58.02958333333333 |  44.997194444444446 | DOME PHLAT |    600ZD |   hux2 |     1,1 | 58491.132922 | 1.41297914 |     5.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2019-01-08 | 03:11:31.57 |      38 |     0 |    None |       0 |      -1 |     -1
+DE.20190108.11576.fits | pixelflat,illumflat,trace | 58.02958333333333 |  44.997194444444446 | DOME PHLAT |    600ZD |   hux2 |     1,1 | 58491.133919 | 1.41297914 |     5.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2019-01-08 | 03:12:56.23 |      39 |     0 |    None |       0 |      -1 |     -1
+DE.20190108.11651.fits | pixelflat,illumflat,trace | 58.02958333333333 |  44.997194444444446 | DOME PHLAT |    600ZD |   hux2 |     1,1 | 58491.134775 | 1.41297914 |     5.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2019-01-08 | 03:14:11.20 |      40 |     0 |    None |       0 |      -1 |     -1
+DE.20190108.22464.fits |                   science | 53.14858333333333 |  -27.79727777777778 |       hux2 |    600ZD |   hux2 |     1,1 | 58491.259932 | 1.49499995 |  1200.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2019-01-08 | 06:14:24.22 |      69 |     0 |       A |       0 |       1 |      2
+DE.20190108.23754.fits |                   science | 53.14858333333333 | -27.797694444444446 |       hux2 |    600ZD |   hux2 |     1,1 | 58491.274848 | 1.48012647 |  1200.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2019-01-08 | 06:35:54.52 |      70 |     0 |       B |     1.5 |       2 |      3
+DE.20190108.25039.fits |                   science | 53.14854166666665 | -27.796861111111113 |       hux2 |    600ZD |   hux2 |     1,1 | 58491.289717 | 1.48132044 |  1200.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2019-01-08 | 06:57:19.21 |      71 |     0 |       C |    -1.5 |       3 |      2
 data end
 

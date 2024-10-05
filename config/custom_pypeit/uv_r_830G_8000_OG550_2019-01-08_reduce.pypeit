@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/uv_r/830G_8000_OG550/2019-01-08/complete/raw
-              filename |                 frametype |                 ra |                dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20190108.10297.fits |                  arc,tilt |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |     830G |   uv_r |     1,1 | 58491.119091 | 1.41297914 |     1.0 | 8000.00195312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2019-01-08 | 02:51:37.15 |      29 |     0 |      -1 |     -1
-DE.20190108.10374.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |     830G |   uv_r |     1,1 | 58491.119995 | 1.41297914 |     5.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2019-01-08 | 02:52:54.16 |      30 |     0 |      -1 |     -1
-DE.20190108.10447.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |     830G |   uv_r |     1,1 | 58491.120833 | 1.41297914 |     5.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2019-01-08 | 02:54:07.60 |      31 |     0 |      -1 |     -1
-DE.20190108.10521.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |     830G |   uv_r |     1,1 | 58491.121695 | 1.41297914 |     5.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2019-01-08 | 02:55:21.55 |      32 |     0 |      -1 |     -1
-DE.20190108.38820.fits |                   science | 189.28570833333333 |  62.29361111111111 |       uv_r |     830G |   uv_r |     1,1 | 58491.449257 | 2.41427836 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2019-01-08 | 10:47:00.94 |      87 |     0 |       1 |      2
-DE.20190108.40107.fits |                   science |         189.286125 |           62.29325 |       uv_r |     830G |   uv_r |     1,1 | 58491.464115 | 2.20680209 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2019-01-08 | 11:08:27.16 |      88 |     0 |       2 |      3
-DE.20190108.41395.fits |                   science |          189.28525 |  62.29397222222222 |       uv_r |     830G |   uv_r |     1,1 | 58491.479043 | 2.03653662 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2019-01-08 | 11:29:55.93 |      89 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20190108.10297.fits |                  arc,tilt |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |     830G |   uv_r |     1,1 | 58491.119091 | 1.41297914 |     1.0 | 8000.00195312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2019-01-08 | 02:51:37.15 |      29 |     0 |    None |       0 |      -1 |     -1
+DE.20190108.10374.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |     830G |   uv_r |     1,1 | 58491.119995 | 1.41297914 |     5.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2019-01-08 | 02:52:54.16 |      30 |     0 |    None |       0 |      -1 |     -1
+DE.20190108.10447.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |     830G |   uv_r |     1,1 | 58491.120833 | 1.41297914 |     5.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2019-01-08 | 02:54:07.60 |      31 |     0 |    None |       0 |      -1 |     -1
+DE.20190108.10521.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |     830G |   uv_r |     1,1 | 58491.121695 | 1.41297914 |     5.0 | 8000.00195312 | SINGLE:B |   OG550 |          Qz | 2019-01-08 | 02:55:21.55 |      32 |     0 |    None |       0 |      -1 |     -1
+DE.20190108.38820.fits |                   science | 189.28570833333333 |  62.29361111111111 |       uv_r |     830G |   uv_r |     1,1 | 58491.449257 | 2.41427836 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2019-01-08 | 10:47:00.94 |      87 |     0 |       A |       0 |       1 |      2
+DE.20190108.40107.fits |                   science |         189.286125 |           62.29325 |       uv_r |     830G |   uv_r |     1,1 | 58491.464115 | 2.20680209 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2019-01-08 | 11:08:27.16 |      88 |     0 |       B |     1.5 |       2 |      3
+DE.20190108.41395.fits |                   science |          189.28525 |  62.29397222222222 |       uv_r |     830G |   uv_r |     1,1 | 58491.479043 | 2.03653662 |  1200.0 | 8000.00195312 | SINGLE:B |   OG550 |         Off | 2019-01-08 | 11:29:55.93 |      89 |     0 |       C |    -1.5 |       3 |      2
 data end
 
