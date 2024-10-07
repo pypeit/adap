@@ -169,18 +169,22 @@ def backup_results_to_gdrive(args, dataset):
 
 def cleanup(args, dataset):
     """Clean up after running a job and uploading its results"""
-    # Clear the log so it doesn't grow forever. upload_results will have uploaded it to S3
-    clear_log(args)
 
-    if args.local is None:
-        shutil.rmtree(Path(args.adap_root_dir) / dataset)
-    else:
-        dest_dir = args.local / dataset
-        if dest_dir.exists():
-            shutil.rmtree(dest_dir)
+    try:
+        # Clear the log so it doesn't grow forever. upload_results will have uploaded it to S3
+        clear_log(args)
+        
+        if args.local is None:
+            shutil.rmtree(Path(args.adap_root_dir) / dataset)
         else:
-            os.makedirs(dest_dir.parent,exist_ok=True)
-        shutil.move(Path(args.adap_root_dir) / dataset, dest_dir.parent)
+            dest_dir = args.local / dataset
+            if dest_dir.exists():
+                shutil.rmtree(dest_dir)
+            else:
+                os.makedirs(dest_dir.parent,exist_ok=True)
+            shutil.move(Path(args.adap_root_dir) / dataset, dest_dir.parent)
+    except FileNotFoundError:
+        logger.debug(f"Failed to cleanup {dataset}")
 
 def reduce_dataset_task(args, dataset):
 

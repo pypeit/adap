@@ -27,7 +27,7 @@ config_key_columns = {"DEIMOS":  ["slmsknam", "gratenam", "filter", "waveblue", 
                       }
 
 config_path_grouping = {"DEIMOS":  [[("decker","<U")], [("dispname","<U"), ("dispangle", "float64"), ("filter", "<U")]],
-                        "ESI":     [[("decker", "<U")], [("dispname", "<U"), ("binning", "<U")]],
+                        "ESI":     [[("qsolist_obj_name", "<U")], [("decker", "<U")], [("dispname", "<U"), ("binning", "<U")]],
                         "HIRES":   [[("qsolist_obj_name", "<U")], [("dispname","<U"),("decker","<U"), ("filter1", "<U"), ('echangle', "float64"), ('xdangle', "float64"), ("binning", "<U")]],
                         "MOSFIRE": [[("qsolist_obj_name", "<U")],[("decker_secondary", "<U"), ("filter1", "<U")]]
                        }

@@ -1,2 +1,4 @@
 # Causes reduction failure
 HI.20211215.63562.fits
+ES.20040123.05053.fits.gz
+ES.20040123.00000.fits.gz

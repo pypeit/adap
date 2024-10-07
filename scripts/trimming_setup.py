@@ -193,6 +193,15 @@ def trim_keck_esi(metadata, good_frames):
     # Trim more than 5 dome flats
     dome_flats_to_trim = trim_criteria(metadata, ['mjd'], 5, dome_flats, [])
 
+    num_dome_flats = np.sum(dome_flats)
+    remaining_dome_flats = num_dome_flats - np.sum(dome_flats_to_trim)
+    if remaining_dome_flats < 5:
+        # Not enough dome flats, supplement them with non-dome flats
+        not_dome_flats_to_trim = trim_criteria(metadata, ['mjd'], 5-remaining_dome_flats, not_dome_flats, [])
+    else:
+        # There's enough dome flats, trim the others
+        not_dome_flats_to_trim = not_dome_flats
+
     # We want one CuAr arc (300s+) and one non-CuAr arc (between 10 and 30 s)
     arc_frames = metadata.find_frames('arc') & good_frames
     cu_frames = arc_frames & (metadata['lampstat02'] == "on")
@@ -206,7 +215,7 @@ def trim_keck_esi(metadata, good_frames):
     # If there are other arc types trim them as well
     other_arcs_to_trim = arc_frames & np.logical_not(cu_frames | xe_or_hgne_lamps)
 
-    return not_dome_flats | dome_flats_to_trim | cu_frames_to_trim | xe_or_hgne_lamps_to_trim | other_arcs_to_trim
+    return not_dome_flats_to_trim | dome_flats_to_trim | cu_frames_to_trim | xe_or_hgne_lamps_to_trim | other_arcs_to_trim
 
 
 
@@ -284,6 +293,7 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
     # Create a PypeItSetup object for the raw files, excluding any files if needed
     raw_path = lcl_path.resolve() / "raw"
     file_list = [str(raw_file) for raw_file in raw_path.glob('*.fits')]
+    file_list += [str(raw_file) for raw_file in raw_path.glob('*.fits.gz')]
     ps = pypeitsetup.PypeItSetup(file_list=file_list, 
                                  spectrograph_name = spectrograph)
 

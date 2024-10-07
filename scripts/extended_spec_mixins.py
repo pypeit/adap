@@ -32,25 +32,25 @@ class ADAPSpectrographMixin:
     @classmethod
     def load_extended_spectrograph(cls,spec_name=None,instr_name=None,matching_files=None):
         if spec_name == "keck_deimos" or instr_name == "DEIMOS":
-            return ADAP_DEIMOSExtendedSpectrograph()
+            return ADAP_DEIMOSExtendedSpectrograph(matching_files=matching_files)
         elif spec_name == "keck_hires" or instr_name == "HIRES":
-            return ADAP_HIRESExtendedSpectrograph(matching_files)   
+            return ADAP_HIRESExtendedSpectrograph(matching_files=matching_files)   
         elif spec_name == "keck_esi" or instr_name == "ESI":
-            return ADAP_ESIExtendedSpectrograph()
+            return ADAP_ESIExtendedSpectrograph(matching_files=matching_files)
         elif spec_name == "keck_lris" or instr_name == "LRIS":
-            return ADAP_LRISExtendedSpectrograph(matching_files)
+            return ADAP_LRISExtendedSpectrograph(matching_files=matching_files)
         elif spec_name == "keck_lris_blue":
-            return ADAP_LRISBlueExtendedSpectrograph(matching_files)
+            return ADAP_LRISBlueExtendedSpectrograph(matching_files=matching_files)
         elif spec_name == "keck_lris_blue_orig":
-            return ADAP_LRISBlueOrigExtendedSpectrograph(matching_files)
+            return ADAP_LRISBlueOrigExtendedSpectrograph(matching_files=matching_files)
         elif spec_name == "keck_lris_red":
-            return ADAP_LRISRedExtendedSpectrograph(matching_files)
+            return ADAP_LRISRedExtendedSpectrograph(matching_files=matching_files)
         elif spec_name == "keck_lris_red_orig":
-            return ADAP_LRISRedOrigExtendedSpectrograph(matching_files)
+            return ADAP_LRISRedOrigExtendedSpectrograph(matching_files=matching_files)
         elif spec_name == "keck_lris_red_mark4":
-            return ADAP_LRISRedMark4ExtendedSpectrograph(matching_files)
+            return ADAP_LRISRedMark4ExtendedSpectrograph(matching_files=matching_files)
         elif spec_name == "keck_mosfire":
-            return ADAP_MOSFIRESpectrograph(matching_files)
+            return ADAP_MOSFIRESpectrograph(matching_files=matching_files)
         else:
             raise NotImplementedError(f"Not extended spectrograph defined for {spec_name}/{instr_name}")
 
@@ -129,6 +129,8 @@ class ADAPSpectrographMixin:
         Return:
             True if they are the same, False if not.
         """
+        config_ind_frames = self.config_independent_frames()
+        
         for key in config_key_columns[self.instrument_name]:
             if isinstance(config1[key], (float, np.floating)):
                 pypeit_key = koa_key_to_pypeit_key[key]
@@ -236,23 +238,27 @@ class ADAP_ESIExtendedSpectrograph(ADAPSpectrographMixin, KeckESISpectrograph):
             3+ dome flats (not internal)
             1 good CuAr (300s+) and 1 good non-CuAr arc (typically ~20s)
             5+ bias
+        Trying:
+            3+ flats
+            1 good CuAr
+            5+ bias
         """
         num_science_frames = np.sum(metadata.find_frames('science'))
         if standard_as_science:
             num_science_frames += np.sum(metadata.find_frames('standard'))
         flat_frames = np.logical_or(metadata.find_frames('pixelflat'), metadata.find_frames('illumflat'))
-        dome_flat_frames = np.logical_and(flat_frames, metadata['idname'] == 'DmFlat')
-        num_dome_flat_frames = np.sum(dome_flat_frames)
-        
+        #dome_flat_frames = np.logical_and(flat_frames, metadata['idname'] == 'DmFlat')
+        #num_dome_flat_frames = np.sum(dome_flat_frames)
+        num_flat_frames = np.sum(flat_frames)
         arc_frames = metadata.find_frames('arc')
         cu_frames = metadata[arc_frames]['lampstat02'] == "on"
         num_good_cu_frames = np.sum(np.logical_and(cu_frames,metadata[arc_frames]['exptime'] >= 300.0))
-        xe_or_hgne_lamps = np.logical_or(metadata[arc_frames]['lampstat01'] == "on",metadata[arc_frames]['lampstat03']=="on")
-        num_non_cu_frames = np.sum(np.logical_and(metadata[arc_frames][xe_or_hgne_lamps]['exptime']>=10,metadata[arc_frames][xe_or_hgne_lamps]['exptime']<=30))
+        #xe_or_hgne_lamps = np.logical_or(metadata[arc_frames]['lampstat01'] == "on",metadata[arc_frames]['lampstat03']=="on")
+        #num_non_cu_frames = np.sum(np.logical_and(metadata[arc_frames][xe_or_hgne_lamps]['exptime']>=10,metadata[arc_frames][xe_or_hgne_lamps]['exptime']<=30))
         
         num_bias_frames = np.sum(metadata.find_frames('bias') )
-        return ((num_science_frames >=1 and num_dome_flat_frames >= 3 and num_good_cu_frames >= 1 and num_non_cu_frames >=1 and num_bias_frames >=5),
-                f"sci {num_science_frames} domeflats {num_dome_flat_frames} Good CuAr {num_good_cu_frames} Good non-CuAR {num_non_cu_frames} bias {num_bias_frames}")
+        return ((num_science_frames >=1 and num_flat_frames >= 3 and num_good_cu_frames >= 1 and num_bias_frames >=5),
+                f"sci {num_science_frames} domeflats {num_flat_frames} Good CuAr {num_good_cu_frames} bias {num_bias_frames}")
 
     def koa_config_compare(self, config1, config2):
         """Compare the PypeIt configuration between two items using the koa attribute names.
@@ -273,13 +279,18 @@ class ADAP_ESIExtendedSpectrograph(ADAPSpectrographMixin, KeckESISpectrograph):
         }
         return super()._koa_config_compare(koa_key_to_pypeit_key, config1, config2)
 
-    # Only need extra metadata if we're grouping by target
-    #def add_extra_metadata(self, metadata):
-    #    if self.file_to_object_map is not None:
-    #        new_data = [self.file_to_object_map.get(filename, '') for filename in metadata['filename']]
-    #    else:
-    #        new_data = metadata['target'].copy()
-    #    metadata.table.add_column(new_data,name='qsolist_obj_name')
+    def add_extra_metadata(self, metadata):
+        if self.file_to_object_map is not None:
+            new_data = [self.file_to_object_map.get(filename, '') for filename in metadata['filename']]
+        else:
+            new_data = metadata['target'].copy()
+        metadata.table.add_column(new_data,name='qsolist_obj_name')
+
+    def extra_group_keys(self):
+        # Return extra keys needed for grouping that aren't in the configuration keys
+        return ['qsolist_obj_name']
+
+    
 
 
 def get_lris_spec_name(obs_date, koaid=None, instrument=None):
