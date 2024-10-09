@@ -4,23 +4,27 @@ metadata:
   name: adap-run-coadd2d-on-queue
 spec:
   backoffLimit: 0
-  parallelism: 5
+  parallelism: 1
   template:
     spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - name: coadd2d-worker
         args:
-        - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil;  cd PypeIt; git fetch; 
-          git checkout develop; git pull --ff-only; export OMP_NUM_THREADS=2;
+        - source /home/pypeitusr/pypeit_env/bin/activate; pip install redis boto3 google-api-python-client gspread;
+          cd /home/pypeitusr/PypeIt; git fetch; git checkout order_sync; git pull --ff-only; export OMP_NUM_THREADS=2;
           pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           cd /tmp; mkdir adap_root; cd adap_root;
-          pip install gspread==5.6.2; git clone https://github.com/pypeit/adap.git; cd adap; git checkout utils_test;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
-          python scripts/coadd2d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status" /work_queue/work_queue.csv gdrive
+          git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2019;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2019/ scripts/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2019/ config/ --recursive;
+          python scripts/coadd2d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status" redis://10.244.216.9:6379 adap_2019_coadd s3
         command:
         - /bin/bash
         - -c
-        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
+        image: gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:develop
         imagePullPolicy: Always
         resources:
           limits:
@@ -30,16 +34,14 @@ spec:
           requests:
             cpu: '2'
             ephemeral-storage: 150Gi
-            memory: 24Gi
+            memory: 48Gi
         volumeMounts:
-        - mountPath: /root/.config/gspread/service_account.json
+        - mountPath: /home/pypeitusr/.config/gspread/service_account.json
           name: gcloud-service-account
           subPath: credentials
-        - mountPath: /work_queue
-          name: work-queue
         - mountPath: /tmp
           name: ephemeral
-        - mountPath: /root/.aws/credentials
+        - mountPath: /home/pypeitusr/.aws/credentials
           name: prp-s3-credentials
           subPath: credentials
         env:
@@ -62,9 +64,6 @@ spec:
       - name: gcloud-service-account
         secret:
           secretName: adap-scorecard-gcloud
-      - name: work-queue
-        persistentVolumeClaim:
-            claimName: pypeit-adap-work-queue
       - name: prp-s3-credentials
         secret:
           secretName: prp-s3-credentials            

@@ -9,7 +9,8 @@ from pypeit import msgs
 logger = logging.getLogger(__name__)
 
 
-from utils import run_task_on_queue, RClonePath, run_script, init_logging
+from utils import run_task_on_queue, run_script, init_logging
+from rclone import RClonePath, get_cloud_path
 
 def filter_output(source_log, dest_log):
     with open(source_log, "r") as source:
@@ -33,11 +34,9 @@ def collate1d_task(args, observing_config):
 
     try:
         # Download data 
-        if args.source == "gdrive":
-            source_loc = RClonePath(args.rclone_conf, "gdrive", "backups", observing_config)
-        else:
-            source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap", "raw_data_reorg", observing_config)
-
+        source_loc = get_cloud_path(args, args.source) / observing_config
+        dest_loc = get_cloud_path(args, "s3") / observing_config / "1D_Coadd"
+        backup_loc = get_cloud_path(args, "gdrive") / observing_config / "1D_Coadd"
 
         reduce_paths = list(source_loc.rglob("Science"))
         for reduce_path in reduce_paths:
@@ -48,7 +47,6 @@ def collate1d_task(args, observing_config):
                 reduce_path.download(local_path)
 
 
-        dest_loc = source_loc / "1D_Coadd"
         # Remove prior results
         try:
             if not args.test:
@@ -92,11 +90,22 @@ def collate1d_task(args, observing_config):
                 logger.info(f"Uploading output to {dest_loc}")
                 dest_loc.upload(output_path)
 
+                logger.info(f"Backing up output to {backup_loc}")
+                backup_loc.upload(output_path)
+
             # Upload the spec1d files now that they've been fluxed
             logger.info(f"Uploading fluxed spec1ds.")
+            spec1d_dest_loc = get_cloud_path(args, "s3") / observing_config
             for spec1d in spec1d_files:
                 relative_path = spec1d.relative_to(local_config_path).parent
-                spec1d_dest = source_loc / relative_path     
+                spec1d_dest = spec1d_dest_loc / relative_path     
+                spec1d_dest.upload(spec1d)
+
+            logger.info(f"Backing up fluxed spec1ds.")
+            spec1d_dest_loc = get_cloud_path(args, "gdrive") / observing_config
+            for spec1d in spec1d_files:
+                relative_path = spec1d.relative_to(local_config_path).parent
+                spec1d_dest = spec1d_dest_loc / relative_path     
                 spec1d_dest.upload(spec1d)
 
             # Upload our logs
@@ -121,8 +130,10 @@ def collate1d_task(args, observing_config):
 def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
-    parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
+    parser.add_argument('queue_url', type=str, help="URL of the redis server hosting the work queue.")
+    parser.add_argument('work_queue', type=str, help="Work queue name.")
     parser.add_argument('source', type=str, help="Where to pull data, either 's3' or 'gdrive'.")
+    parser.add_argument('--queue_timeout', type = int,default=120, help="Number of seconds to wait for the work queue to initialize.")
     parser.add_argument("--logfile", type=str, default="collate1d_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")

@@ -16,4 +16,7 @@
     [[skysub]]
          no_local_sky = True
 
+spec2d read
+filename
+spec2d end
 

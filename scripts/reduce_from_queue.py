@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 def clear_log(args):
-    os.remove(args.logfile)
+    try:
+        os.remove(args.logfile)
+    except FileNotFoundError:
+        logger.debug(f"Could not remove log: {args.logfile} FileNotFound")
 
 
 def run_pypeit_onfile(args, file):
@@ -253,7 +256,7 @@ def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
     parser.add_argument('queue_url', type=str, help="URL of the redis server hosting the work queue.")
-    parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
+    parser.add_argument('work_queue', type=str, help="Work queue name.")
     parser.add_argument('source', type=str, help="Where to pull data, either 's3' or 'gdrive'.")
     parser.add_argument('--queue_timeout', type = int,default=120, help="Number of seconds to wait for the work queue to initialize.")
     parser.add_argument("--logfile", type=str, default="reduce_from_queue.log", help= "Log file.")
