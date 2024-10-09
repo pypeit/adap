@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 from astropy.table import Table
 import numpy as np
 
-from utils import run_task_on_queue, RClonePath, run_script, init_logging, get_reduce_params
+from utils import run_task_on_queue, run_script, init_logging, get_reduce_params
+from rclone import RClonePath, get_cloud_path
 
 def filter_output(source_log, dest_log):
     with open(source_log, "r") as source:
@@ -69,22 +70,31 @@ def get_detectors(spec2d_file, bad_slits):
     
     return detectors, bad_slits
 
-def update_coadd2d_params(coadd2d_filepath, reduce_params):
+def update_coadd2d_params(args, coadd2d_filepath, reduce_params):
 
     # Read in the coadd2d file and update it's params
     coadd2d_file = Coadd2DFile.from_file(coadd2d_filepath, preserve_comments=True)
+    
+    # Update with the default coadd2d params
+    default_config_path = Path(args.adap_root_dir, "adap", "config", "default_2dcoadd_config")
+    coadd2d_defaults = Coadd2DFile.from_file(str(default_config_path), preserve_comments=True, vet=False)
+
+    coadd2d_file.config.merge(coadd2d_defaults.config)
+
+    # Merge in the reduce params from the pypeit file
     if 'reduce' in reduce_params:
         if 'reduce' not in coadd2d_file.config:
             coadd2d_file.config['reduce'] = reduce_params['reduce']
         else:
-            recursive_update(coadd2d_file.config['reduce'], reduce_params['reduce'])
+            coadd2d_file.config['reduce'].merge(reduce_params['reduce'])
+    
 
-        # Save a backup of the original file
-        orig_file = coadd2d_filepath.with_name(coadd2d_filepath.name + ".orig")
-        coadd2d_filepath.rename(orig_file)
+    # Save a backup of the original file
+    orig_file = coadd2d_filepath.with_name(coadd2d_filepath.name + ".orig")
+    coadd2d_filepath.rename(orig_file)
 
-        # Rewrite the file with the new params
-        coadd2d_file.write(coadd2d_filepath)
+    # Rewrite the file with the new params
+    coadd2d_file.write(coadd2d_filepath)
 
 def coadd2d_task(args, observing_config):
 
@@ -96,10 +106,9 @@ def coadd2d_task(args, observing_config):
 
     try:
         # Download data 
-        if args.source == "gdrive":
-            source_loc = RClonePath(args.rclone_conf, "gdrive", "backups", observing_config)
-        else:
-            source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap", "raw_data_reorg", observing_config)
+        source_loc = get_cloud_path(args, args.source) / observing_config
+        dest_loc = get_cloud_path(args, "s3") / observing_config / "2D_Coadd"
+        backup_loc = get_cloud_path(args, "gdrive") / observing_config / "2D_Coadd"
 
 
         reduce_paths = list(source_loc.rglob("Science"))
@@ -120,7 +129,6 @@ def coadd2d_task(args, observing_config):
                 bad_slit_file.download(local_path.parent)
 
 
-        dest_loc = source_loc / "2D_Coadd"
         # Remove prior results
         try:
             dest_loc.unlink()
@@ -182,7 +190,7 @@ def coadd2d_task(args, observing_config):
         # Run the generated coadd2d files
         for coadd2d_file in coadd2d_output.glob("keck_deimos*.coadd2d"):
             logger.info(f"Updating coadd2d file {coadd2d_file.name}")
-            update_coadd2d_params(coadd2d_file, reduce_params)
+            update_coadd2d_params(args, coadd2d_file, reduce_params)
             logger.info(f"Running coadd2d file {coadd2d_file.name}")
             try:
                 run_script(["pypeit_coadd_2dspec", coadd2d_file.name], save_output=f"{coadd2d_file.stem}.log")
@@ -201,6 +209,9 @@ def coadd2d_task(args, observing_config):
             if coadd2d_output.exists():
                 logger.info(f"Uploading output to {dest_loc}")
                 dest_loc.upload(coadd2d_output)
+
+                logger.info(f"Backing up output to {backup_loc}")
+                backup_loc.upload(coadd2d_output)
 
             # Upload our logs
             logfile = root_path / args.logfile
@@ -224,8 +235,10 @@ def coadd2d_task(args, observing_config):
 def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
-    parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
+    parser.add_argument('queue_url', type=str, help="URL of the redis server hosting the work queue.")
+    parser.add_argument('work_queue', type=str, help="Work queue name.")
     parser.add_argument('source', type=str, help="Where to pull data, either 's3' or 'gdrive'.")
+    parser.add_argument('--queue_timeout', type = int,default=120, help="Number of seconds to wait for the work queue to initialize.")
     parser.add_argument("--logfile", type=str, default="coadd2d_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")
