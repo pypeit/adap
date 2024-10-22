@@ -13,10 +13,9 @@
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
-    [[skysub]]
-         no_local_sky = True
 
 spec2d read
 filename
 spec2d end
+
 
