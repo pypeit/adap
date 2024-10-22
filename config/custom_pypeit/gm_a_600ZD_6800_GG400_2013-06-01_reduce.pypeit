@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/gm_a/600ZD_6800_GG400/2013-06-01/complete/raw
-              filename |                 frametype |                 ra |               dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20130601.12216.fits |                  arc,tilt |  57.99999999999999 |              45.0 | DOME PHLAT |    600ZD |   gm_a |     1,1 | 56444.141308 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2013-06-01 | 03:23:36.69 |      23 |     0 |      -1 |     -1
-DE.20130601.12294.fits | pixelflat,illumflat,trace |  57.99999999999999 |              45.0 | DOME PHLAT |    600ZD |   gm_a |     1,1 | 56444.142205 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:24:54.79 |      24 |     0 |      -1 |     -1
-DE.20130601.12368.fits | pixelflat,illumflat,trace |  57.99999999999999 |              45.0 | DOME PHLAT |    600ZD |   gm_a |     1,1 | 56444.143069 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:26:08.09 |      25 |     0 |      -1 |     -1
-DE.20130601.12441.fits | pixelflat,illumflat,trace |  57.99999999999999 |              45.0 | DOME PHLAT |    600ZD |   gm_a |     1,1 | 56444.143918 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:27:21.74 |      26 |     0 |      -1 |     -1
-DE.20130601.26201.fits |                   science | 189.18791666666664 | 62.25866666666667 |       gm_a |    600ZD |   gm_a |     1,1 | 56444.303253 | 1.37423294 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 07:16:41.97 |      72 |     0 |       1 |      2
-DE.20130601.27468.fits |                   science | 189.18724999999998 | 62.25838888888889 |       gm_a |    600ZD |   gm_a |     1,1 | 56444.317853 | 1.39669416 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 07:37:48.72 |      73 |     0 |       2 |      3
-DE.20130601.28737.fits |                   science | 189.18854166666665 | 62.25897222222222 |       gm_a |    600ZD |   gm_a |     1,1 | 56444.332512 | 1.42697649 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 07:58:57.02 |      74 |     0 |       3 |      2
+              filename |                 frametype |                 ra |               dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20130601.12216.fits |                  arc,tilt |  57.99999999999999 |              45.0 | DOME PHLAT |    600ZD |   gm_a |     1,1 | 56444.141308 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2013-06-01 | 03:23:36.69 |      23 |     0 |    None |       0 |      -1 |     -1
+DE.20130601.12294.fits | pixelflat,illumflat,trace |  57.99999999999999 |              45.0 | DOME PHLAT |    600ZD |   gm_a |     1,1 | 56444.142205 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:24:54.79 |      24 |     0 |    None |       0 |      -1 |     -1
+DE.20130601.12368.fits | pixelflat,illumflat,trace |  57.99999999999999 |              45.0 | DOME PHLAT |    600ZD |   gm_a |     1,1 | 56444.143069 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:26:08.09 |      25 |     0 |    None |       0 |      -1 |     -1
+DE.20130601.12441.fits | pixelflat,illumflat,trace |  57.99999999999999 |              45.0 | DOME PHLAT |    600ZD |   gm_a |     1,1 | 56444.143918 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:27:21.74 |      26 |     0 |    None |       0 |      -1 |     -1
+DE.20130601.26201.fits |                   science | 189.18791666666664 | 62.25866666666667 |       gm_a |    600ZD |   gm_a |     1,1 | 56444.303253 | 1.37423294 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 07:16:41.97 |      72 |     0 |       A |       0 |       1 |      2
+DE.20130601.27468.fits |                   science | 189.18724999999998 | 62.25838888888889 |       gm_a |    600ZD |   gm_a |     1,1 | 56444.317853 | 1.39669416 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 07:37:48.72 |      73 |     0 |       B |    -1.5 |       2 |      3
+DE.20130601.28737.fits |                   science | 189.18854166666665 | 62.25897222222222 |       gm_a |    600ZD |   gm_a |     1,1 | 56444.332512 | 1.42697649 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 07:58:57.02 |      74 |     0 |       C |     1.5 |       3 |      2
 data end
 

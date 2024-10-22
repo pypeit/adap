@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,15 +43,15 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/csmo1/600ZD_7500_GG400/2013-06-01/complete/raw
-               filename |                 frametype |                 ra |                dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
- DE.20130601.13830.fits |                  arc,tilt |  57.99999999999999 |               45.0 | DOME PHLAT |    600ZD |  csmo1 |     1,1 | 56444.159988 | 1.41291034 |     1.0 | 7500.02246094 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2013-06-01 | 03:50:30.20 |      39 |     0 |      -1 |     -1
- DE.20130601.13908.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | DOME PHLAT |    600ZD |  csmo1 |     1,1 | 56444.160882 | 1.41291034 |     4.0 | 7500.02246094 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:51:48.15 |      40 |     0 |      -1 |     -1
- DE.20130601.13982.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | DOME PHLAT |    600ZD |  csmo1 |     1,1 | 56444.161751 | 1.41291034 |     4.0 | 7500.02246094 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:53:02.40 |      41 |     0 |      -1 |     -1
- DE.20130601.14056.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | DOME PHLAT |    600ZD |  csmo1 |     1,1 | 56444.162606 | 1.41291034 |     4.0 | 7500.02246094 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:54:16.25 |      42 |     0 |      -1 |     -1
-#DE.20130601.20735.fits |                   science |            150.356 | 1.9066666666666665 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.239912 | 1.21416718 |   300.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 05:45:35.70 |      65 |     0 |       1 |     -1
-#DE.20130601.21121.fits |                   science |            150.356 | 1.9066666666666665 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.244302 | 1.23418145 |   300.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 05:52:01.90 |      66 |     0 |       2 |     -1
- DE.20130601.21804.fits |                   science |            150.356 | 1.9066666666666665 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.252271 | 1.27476692 |  1200.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 06:03:24.05 |      67 |     0 |       3 |      4
- DE.20130601.23071.fits |                   science | 150.35558333333333 | 1.9066944444444442 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.266938 | 1.36615682 |  1200.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 06:24:31.25 |      68 |     0 |       4 |      5
- DE.20130601.24342.fits |                   science | 150.35641666666666 | 1.9066666666666665 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.281624 | 1.48516206 |  1200.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 06:45:42.11 |      69 |     0 |       5 |      4
+               filename |                 frametype |                 ra |                dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+ DE.20130601.13830.fits |                  arc,tilt |  57.99999999999999 |               45.0 | DOME PHLAT |    600ZD |  csmo1 |     1,1 | 56444.159988 | 1.41291034 |     1.0 | 7500.02246094 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2013-06-01 | 03:50:30.20 |      39 |     0 |    None |       0 |      -1 |     -1
+ DE.20130601.13908.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | DOME PHLAT |    600ZD |  csmo1 |     1,1 | 56444.160882 | 1.41291034 |     4.0 | 7500.02246094 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:51:48.15 |      40 |     0 |    None |       0 |      -1 |     -1
+ DE.20130601.13982.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | DOME PHLAT |    600ZD |  csmo1 |     1,1 | 56444.161751 | 1.41291034 |     4.0 | 7500.02246094 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:53:02.40 |      41 |     0 |    None |       0 |      -1 |     -1
+ DE.20130601.14056.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | DOME PHLAT |    600ZD |  csmo1 |     1,1 | 56444.162606 | 1.41291034 |     4.0 | 7500.02246094 | SINGLE:B |   GG400 |          Qz | 2013-06-01 | 03:54:16.25 |      42 |     0 |    None |       0 |      -1 |     -1
+#DE.20130601.20735.fits |                   science |            150.356 | 1.9066666666666665 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.239912 | 1.21416718 |   300.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 05:45:35.70 |      65 |     0 |       A |       0 |       1 |     -1
+#DE.20130601.21121.fits |                   science |            150.356 | 1.9066666666666665 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.244302 | 1.23418145 |   300.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 05:52:01.90 |      66 |     0 |       A |       0 |       2 |     -1
+ DE.20130601.21804.fits |                   science |            150.356 | 1.9066666666666665 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.252271 | 1.27476692 |  1200.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 06:03:24.05 |      67 |     0 |       A |       0 |       3 |      4
+ DE.20130601.23071.fits |                   science | 150.35558333333333 | 1.9066944444444442 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.266938 | 1.36615682 |  1200.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 06:24:31.25 |      68 |     0 |       B |    -1.5 |       4 |      5
+ DE.20130601.24342.fits |                   science | 150.35641666666666 | 1.9066666666666665 |      csmo1 |    600ZD |  csmo1 |     1,1 | 56444.281624 | 1.48516206 |  1200.0 | 7500.02246094 | SINGLE:B |   GG400 |         Off | 2013-06-01 | 06:45:42.11 |      69 |     0 |       C |     1.5 |       5 |      4
 data end
 

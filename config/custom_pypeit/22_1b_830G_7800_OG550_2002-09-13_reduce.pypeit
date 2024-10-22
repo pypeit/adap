@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/22_1b/830G_7800_OG550/2002-09-13/complete/raw
-              filename |                 frametype |                 ra |                 dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20020913.59842.fits |                  arc,tilt |              67.35 |               0.062 | HORIZON STOW |     830G |  22_1b |     1,1 | 52530.692541 | 13.37481353 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2002-09-13 | 16:37:22.33 |      67 |     0 |      -1 |     -1
-DE.20020913.59920.fits | pixelflat,illumflat,trace |              67.35 |               0.062 | HORIZON STOW |     830G |  22_1b |     1,1 | 52530.693433 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2002-09-13 | 16:38:40.58 |      68 |     0 |      -1 |     -1
-DE.20020913.59997.fits | pixelflat,illumflat,trace |              67.35 |               0.062 | HORIZON STOW |     830G |  22_1b |     1,1 | 52530.694322 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2002-09-13 | 16:39:57.43 |      69 |     0 |      -1 |     -1
-DE.20020913.60072.fits | pixelflat,illumflat,trace |              67.35 |               0.062 | HORIZON STOW |     830G |  22_1b |     1,1 | 52530.695184 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2002-09-13 | 16:41:12.03 |      70 |     0 |      -1 |     -1
-DE.20020913.30472.fits |                   science |  334.3333333333333 |               0.315 |  ssa22_1b_02 |     830G |  22_1b |     1,1 | 52530.352603 |  1.07870872 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2002-09-13 | 08:27:52.06 |      18 |     0 |       1 |      2
-DE.20020913.31744.fits |                   science | 334.33287499999994 | 0.31463888888888886 |  ssa22_1b_02 |     830G |  22_1b |     1,1 | 52530.367331 |  1.06474627 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2002-09-13 | 08:49:04.31 |      19 |     0 |       2 |      3
-DE.20020913.33018.fits |                   science |          334.33375 |  0.3153333333333333 |  ssa22_1b_02 |     830G |  22_1b |     1,1 | 52530.382058 |  1.06008245 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2002-09-13 | 09:10:18.42 |      20 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                 dec |       target | dispname | decker | binning |          mjd |     airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20020913.59842.fits |                  arc,tilt |              67.35 |               0.062 | HORIZON STOW |     830G |  22_1b |     1,1 | 52530.692541 | 13.37481353 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2002-09-13 | 16:37:22.33 |      67 |     0 |    None |       0 |      -1 |     -1
+DE.20020913.59920.fits | pixelflat,illumflat,trace |              67.35 |               0.062 | HORIZON STOW |     830G |  22_1b |     1,1 | 52530.693433 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2002-09-13 | 16:38:40.58 |      68 |     0 |    None |       0 |      -1 |     -1
+DE.20020913.59997.fits | pixelflat,illumflat,trace |              67.35 |               0.062 | HORIZON STOW |     830G |  22_1b |     1,1 | 52530.694322 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2002-09-13 | 16:39:57.43 |      69 |     0 |    None |       0 |      -1 |     -1
+DE.20020913.60072.fits | pixelflat,illumflat,trace |              67.35 |               0.062 | HORIZON STOW |     830G |  22_1b |     1,1 | 52530.695184 | 13.37481353 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2002-09-13 | 16:41:12.03 |      70 |     0 |    None |       0 |      -1 |     -1
+DE.20020913.30472.fits |                   science |  334.3333333333333 |               0.315 |  ssa22_1b_02 |     830G |  22_1b |     1,1 | 52530.352603 |  1.07870872 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2002-09-13 | 08:27:52.06 |      18 |     0 |       A |       0 |       1 |      2
+DE.20020913.31744.fits |                   science | 334.33287499999994 | 0.31463888888888886 |  ssa22_1b_02 |     830G |  22_1b |     1,1 | 52530.367331 |  1.06474627 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2002-09-13 | 08:49:04.31 |      19 |     0 |       B |     2.1 |       2 |      3
+DE.20020913.33018.fits |                   science |          334.33375 |  0.3153333333333333 |  ssa22_1b_02 |     830G |  22_1b |     1,1 | 52530.382058 |  1.06008245 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2002-09-13 | 09:10:18.42 |      20 |     0 |       C |    -1.9 |       3 |      2
 data end
 

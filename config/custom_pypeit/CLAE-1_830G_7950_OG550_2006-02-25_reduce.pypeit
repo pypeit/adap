@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/CLAE-1/830G_7950_OG550/2006-02-25/complete/raw
-              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20060225.58370.fits |                  arc,tilt | 237.99958333333328 | 32.948611111111106 |   BD+33 2642 |     830G | CLAE-1 |     1,1 | 53791.675507 | 1.02969211 |     1.0 | 7950.01367188 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2006-02-25 | 16:12:50.55 |     109 |     0 |      -1 |     -1
-DE.20060225.58448.fits | pixelflat,illumflat,trace | 237.99958333333328 | 32.948611111111106 |   BD+33 2642 |     830G | CLAE-1 |     1,1 | 53791.676417 | 1.03011547 |     5.0 | 7950.01367188 | SINGLE:B |   OG550 |          Qz | 2006-02-25 | 16:14:08.75 |     110 |     0 |      -1 |     -1
-DE.20060225.58523.fits | pixelflat,illumflat,trace | 237.99958333333328 | 32.948611111111106 |   BD+33 2642 |     830G | CLAE-1 |     1,1 |  53791.67726 | 1.03055222 |     5.0 | 7950.01367188 | SINGLE:B |   OG550 |          Qz | 2006-02-25 | 16:15:23.45 |     111 |     0 |      -1 |     -1
-DE.20060225.58598.fits | pixelflat,illumflat,trace | 237.99958333333328 | 32.948611111111106 |   BD+33 2642 |     830G | CLAE-1 |     1,1 | 53791.678151 | 1.03102486 |     5.0 | 7950.01367188 | SINGLE:B |   OG550 |          Qz | 2006-02-25 | 16:16:38.55 |     112 |     0 |      -1 |     -1
-DE.20060225.36951.fits |                   science | 149.97529166666664 |  2.128888888888889 | COSMOS-LAE-1 |     830G | CLAE-1 |     1,1 | 53791.427606 | 1.05151251 |  1800.0 | 7950.01367188 | SINGLE:B |   OG550 |         Off | 2006-02-25 | 10:15:51.72 |      76 |     0 |       1 |      2
-DE.20060225.38867.fits |                   science | 149.97516666666664 | 2.1280555555555556 | COSMOS-LAE-1 |     830G | CLAE-1 |     1,1 | 53791.449784 | 1.07067067 |  1800.0 | 7950.01367188 | SINGLE:B |   OG550 |         Off | 2006-02-25 | 10:47:47.34 |      77 |     0 |       2 |      3
-DE.20060225.40774.fits |                   science | 149.97537499999996 |  2.129722222222222 | COSMOS-LAE-1 |     830G | CLAE-1 |     1,1 |  53791.47185 | 1.11194674 |  1800.0 | 7950.01367188 | SINGLE:B |   OG550 |         Off | 2006-02-25 | 11:19:34.02 |      78 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20060225.58370.fits |                  arc,tilt | 237.99958333333328 | 32.948611111111106 |   BD+33 2642 |     830G | CLAE-1 |     1,1 | 53791.675507 | 1.02969211 |     1.0 | 7950.01367188 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2006-02-25 | 16:12:50.55 |     109 |     0 |    None |       0 |      -1 |     -1
+DE.20060225.58448.fits | pixelflat,illumflat,trace | 237.99958333333328 | 32.948611111111106 |   BD+33 2642 |     830G | CLAE-1 |     1,1 | 53791.676417 | 1.03011547 |     5.0 | 7950.01367188 | SINGLE:B |   OG550 |          Qz | 2006-02-25 | 16:14:08.75 |     110 |     0 |    None |       0 |      -1 |     -1
+DE.20060225.58523.fits | pixelflat,illumflat,trace | 237.99958333333328 | 32.948611111111106 |   BD+33 2642 |     830G | CLAE-1 |     1,1 |  53791.67726 | 1.03055222 |     5.0 | 7950.01367188 | SINGLE:B |   OG550 |          Qz | 2006-02-25 | 16:15:23.45 |     111 |     0 |    None |       0 |      -1 |     -1
+DE.20060225.58598.fits | pixelflat,illumflat,trace | 237.99958333333328 | 32.948611111111106 |   BD+33 2642 |     830G | CLAE-1 |     1,1 | 53791.678151 | 1.03102486 |     5.0 | 7950.01367188 | SINGLE:B |   OG550 |          Qz | 2006-02-25 | 16:16:38.55 |     112 |     0 |    None |       0 |      -1 |     -1
+DE.20060225.36951.fits |                   science | 149.97529166666664 |  2.128888888888889 | COSMOS-LAE-1 |     830G | CLAE-1 |     1,1 | 53791.427606 | 1.05151251 |  1800.0 | 7950.01367188 | SINGLE:B |   OG550 |         Off | 2006-02-25 | 10:15:51.72 |      76 |     0 |       A |       0 |       1 |      2
+DE.20060225.38867.fits |                   science | 149.97516666666664 | 2.1280555555555556 | COSMOS-LAE-1 |     830G | CLAE-1 |     1,1 | 53791.449784 | 1.07067067 |  1800.0 | 7950.01367188 | SINGLE:B |   OG550 |         Off | 2006-02-25 | 10:47:47.34 |      77 |     0 |       B |    -3.0 |       2 |      3
+DE.20060225.40774.fits |                   science | 149.97537499999996 |  2.129722222222222 | COSMOS-LAE-1 |     830G | CLAE-1 |     1,1 |  53791.47185 | 1.11194674 |  1800.0 | 7950.01367188 | SINGLE:B |   OG550 |         Off | 2006-02-25 | 11:19:34.02 |      78 |     0 |       C |     3.0 |       3 |      2
 data end
 

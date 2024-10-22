@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/lym11/830G_7800_OG550/2005-05-11/complete/raw
-              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20050511.13978.fits |                  arc,tilt | 29.999999999999996 |               45.0 | HORIZON STOW |     830G |  lym11 |     1,1 | 53501.161696 | 1.41291034 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2005-05-11 | 03:52:58.82 |      33 |     0 |      -1 |     -1
-DE.20050511.14057.fits | pixelflat,illumflat,trace | 29.999999999999996 |               45.0 | HORIZON STOW |     830G |  lym11 |     1,1 | 53501.162625 | 1.41291034 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-05-11 | 03:54:17.27 |      34 |     0 |      -1 |     -1
-DE.20050511.14131.fits | pixelflat,illumflat,trace | 29.999999999999996 |               45.0 | HORIZON STOW |     830G |  lym11 |     1,1 | 53501.163468 | 1.41291034 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-05-11 | 03:55:31.32 |      35 |     0 |      -1 |     -1
-DE.20050511.14205.fits | pixelflat,illumflat,trace | 29.999999999999996 |               45.0 | HORIZON STOW |     830G |  lym11 |     1,1 | 53501.164323 | 1.41291034 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-05-11 | 03:56:45.07 |      36 |     0 |      -1 |     -1
-DE.20050511.25526.fits |                   science | 188.96304166666664 |  62.18336111111111 |        lym11 |     830G |  lym11 |     1,1 |  53501.29537 | 1.36011014 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-05-11 | 07:05:26.04 |      70 |     0 |       1 |      2
-DE.20050511.26804.fits |                   science | 188.96304166666664 | 62.182944444444445 |        lym11 |     830G |  lym11 |     1,1 | 53501.310197 |  1.3520153 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-05-11 | 07:26:44.41 |      71 |     0 |       2 |      3
-DE.20050511.28074.fits |                   science | 188.96308333333332 |  62.18377777777778 |        lym11 |     830G |  lym11 |     1,1 | 53501.324855 | 1.35093364 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-05-11 | 07:47:54.43 |      72 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20050511.13978.fits |                  arc,tilt | 29.999999999999996 |               45.0 | HORIZON STOW |     830G |  lym11 |     1,1 | 53501.161696 | 1.41291034 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2005-05-11 | 03:52:58.82 |      33 |     0 |    None |       0 |      -1 |     -1
+DE.20050511.14057.fits | pixelflat,illumflat,trace | 29.999999999999996 |               45.0 | HORIZON STOW |     830G |  lym11 |     1,1 | 53501.162625 | 1.41291034 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-05-11 | 03:54:17.27 |      34 |     0 |    None |       0 |      -1 |     -1
+DE.20050511.14131.fits | pixelflat,illumflat,trace | 29.999999999999996 |               45.0 | HORIZON STOW |     830G |  lym11 |     1,1 | 53501.163468 | 1.41291034 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-05-11 | 03:55:31.32 |      35 |     0 |    None |       0 |      -1 |     -1
+DE.20050511.14205.fits | pixelflat,illumflat,trace | 29.999999999999996 |               45.0 | HORIZON STOW |     830G |  lym11 |     1,1 | 53501.164323 | 1.41291034 |     6.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-05-11 | 03:56:45.07 |      36 |     0 |    None |       0 |      -1 |     -1
+DE.20050511.25526.fits |                   science | 188.96304166666664 |  62.18336111111111 |        lym11 |     830G |  lym11 |     1,1 |  53501.29537 | 1.36011014 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-05-11 | 07:05:26.04 |      70 |     0 |       A |       0 |       1 |      2
+DE.20050511.26804.fits |                   science | 188.96304166666664 | 62.182944444444445 |        lym11 |     830G |  lym11 |     1,1 | 53501.310197 |  1.3520153 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-05-11 | 07:26:44.41 |      71 |     0 |       B |     1.5 |       2 |      3
+DE.20050511.28074.fits |                   science | 188.96308333333332 |  62.18377777777778 |        lym11 |     830G |  lym11 |     1,1 | 53501.324855 | 1.35093364 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-05-11 | 07:47:54.43 |      72 |     0 |       C |    -1.5 |       3 |      2
 data end
 

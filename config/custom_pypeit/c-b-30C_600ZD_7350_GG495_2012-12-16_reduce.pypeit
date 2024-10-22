@@ -9,19 +9,19 @@
     [[flatfield]]
         saturated_slits = continue
         slit_illum_finecorr = False
-    [[wavelengths]]
-        nsnippet = 1
-        sigdetect = 5.
 
 [reduce]
     [[findobj]]
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -43,17 +43,17 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/c-b-30C/600ZD_7350_GG495/2012-12-16/complete/raw
-              filename |                 frametype |                 ra |                dec |          target | dispname |  decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20121216.12406.fits |                  arc,tilt |  57.99999999999999 |               45.0 |         unknown |    600ZD | c-b-30C |     1,1 | 56277.143511 | 1.41291034 |     1.0 | 7349.99462891 | SINGLE:B |   GG495 | Kr Xe Ar Ne | 2012-12-16 | 03:26:46.75 |      30 |     0 |      -1 |     -1
-DE.20121216.12483.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         unknown |    600ZD | c-b-30C |     1,1 | 56277.144393 | 1.41291034 |     6.0 | 7349.99462891 | SINGLE:B |   GG495 |          Qz | 2012-12-16 | 03:28:03.65 |      31 |     0 |      -1 |     -1
-DE.20121216.12559.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         unknown |    600ZD | c-b-30C |     1,1 | 56277.145282 | 1.41291034 |     6.0 | 7349.99462891 | SINGLE:B |   GG495 |          Qz | 2012-12-16 | 03:29:19.05 |      32 |     0 |      -1 |     -1
-DE.20121216.12635.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         unknown |    600ZD | c-b-30C |     1,1 | 56277.146158 | 1.41291034 |     6.0 | 7349.99462891 | SINGLE:B |   GG495 |          Qz | 2012-12-16 | 03:30:35.10 |      33 |     0 |      -1 |     -1
-DE.20121216.38331.fits |                   science |  150.1988333333333 | 2.3823055555555555 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 |  56277.44359 | 2.10100018 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 10:38:51.09 |      65 |     0 |       1 |      2
-DE.20121216.39721.fits |                   science | 150.19812499999998 |             2.3835 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 |  56277.45958 | 1.79953498 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 11:02:01.35 |      66 |     0 |       2 |      1
-DE.20121216.41019.fits |                   science |  150.1988333333333 | 2.3823055555555555 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.474623 |  1.5987647 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 11:23:39.15 |      67 |     0 |       3 |      4
-DE.20121216.42289.fits |                   science | 150.19812499999998 |             2.3835 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.489376 | 1.45100311 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 11:44:49.15 |      68 |     0 |       4 |      3
-DE.20121216.43569.fits |                   science |  150.1988333333333 | 2.3823055555555555 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.504256 | 1.33851327 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 12:06:09.60 |      69 |     0 |       5 |      6
-DE.20121216.44852.fits |                   science | 150.19812499999998 |             2.3835 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.519067 | 1.25213034 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 12:27:32.10 |      70 |     0 |       6 |      5
-DE.20121216.46123.fits |                   science |  150.1988333333333 | 2.3823055555555555 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.533759 | 1.18596739 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 12:48:43.40 |      71 |     0 |       7 |      6
+              filename |                 frametype |                 ra |                dec |          target | dispname |  decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20121216.12406.fits |                  arc,tilt |  57.99999999999999 |               45.0 |         unknown |    600ZD | c-b-30C |     1,1 | 56277.143511 | 1.41291034 |     1.0 | 7349.99462891 | SINGLE:B |   GG495 | Kr Xe Ar Ne | 2012-12-16 | 03:26:46.75 |      30 |     0 |    None |       0 |      -1 |     -1
+DE.20121216.12483.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         unknown |    600ZD | c-b-30C |     1,1 | 56277.144393 | 1.41291034 |     6.0 | 7349.99462891 | SINGLE:B |   GG495 |          Qz | 2012-12-16 | 03:28:03.65 |      31 |     0 |    None |       0 |      -1 |     -1
+DE.20121216.12559.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         unknown |    600ZD | c-b-30C |     1,1 | 56277.145282 | 1.41291034 |     6.0 | 7349.99462891 | SINGLE:B |   GG495 |          Qz | 2012-12-16 | 03:29:19.05 |      32 |     0 |    None |       0 |      -1 |     -1
+DE.20121216.12635.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |         unknown |    600ZD | c-b-30C |     1,1 | 56277.146158 | 1.41291034 |     6.0 | 7349.99462891 | SINGLE:B |   GG495 |          Qz | 2012-12-16 | 03:30:35.10 |      33 |     0 |    None |       0 |      -1 |     -1
+DE.20121216.38331.fits |                   science |  150.1988333333333 | 2.3823055555555555 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 |  56277.44359 | 2.10100018 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 10:38:51.09 |      65 |     0 |       A |       0 |       1 |      2
+DE.20121216.39721.fits |                   science | 150.19812499999998 |             2.3835 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 |  56277.45958 | 1.79953498 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 11:02:01.35 |      66 |     0 |       B |     5.0 |       2 |      1
+DE.20121216.41019.fits |                   science |  150.1988333333333 | 2.3823055555555555 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.474623 |  1.5987647 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 11:23:39.15 |      67 |     0 |       A |       0 |       3 |      4
+DE.20121216.42289.fits |                   science | 150.19812499999998 |             2.3835 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.489376 | 1.45100311 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 11:44:49.15 |      68 |     0 |       B |     5.0 |       4 |      3
+DE.20121216.43569.fits |                   science |  150.1988333333333 | 2.3823055555555555 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.504256 | 1.33851327 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 12:06:09.60 |      69 |     0 |       A |       0 |       5 |      6
+DE.20121216.44852.fits |                   science | 150.19812499999998 |             2.3835 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.519067 | 1.25213034 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 12:27:32.10 |      70 |     0 |       B |     5.0 |       6 |      5
+DE.20121216.46123.fits |                   science |  150.1988333333333 | 2.3823055555555555 | vu_cos_backup_P |    600ZD | c-b-30C |     1,1 | 56277.533759 | 1.18596739 |  1200.0 | 7349.99462891 | SINGLE:B |   GG495 |         Off | 2012-12-16 | 12:48:43.40 |      71 |     0 |       A |       0 |       7 |      6
 data end
 
