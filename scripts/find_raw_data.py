@@ -4,7 +4,7 @@ from pathlib import Path
 from time import sleep
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.time import Time
 
 from extended_spec_mixins import ADAPSpectrographMixin
@@ -16,8 +16,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Find and download raw data for science files queried from koa.')
     parser.add_argument('spectrograph_name', type=str, help="The name of the spectrograph.")
     parser.add_argument('out_dir', type=Path, help="Output directory where the query results are downloaded.")
-    parser.add_argument('input_query_results', type=Path, help="A KOA query output file containing the science files (and enough info to download them).")
-    parser.add_argument('--koaids', type=str, nargs='+', default=None, help="File containing a list of koaids to filter the input query results by. Only thses KOA ids will be considered. If not specified, all files in the query output will be considered.")
+    parser.add_argument('koaids', type=Path, default=None, help="File containing a list of koaids to of science frames to start with.")
     parser.add_argument('--date_window', type=float, default=3.0, help="How long a time range to use when grouping files. Measured in days. Defaults to 3 days.")
     parser.add_argument('--download', default=False, action="store_true", help="Whether or not to download the files after finding them. Defaults to False.")
     parser.add_argument('--raw_data_dir', type=Path, default=None, help="Where to download the raw data. If not specified, the out_dir argument is used.")
@@ -26,37 +25,39 @@ def parse_args():
 def main(args):
     extended_spec = ADAPSpectrographMixin.load_extended_spectrograph(spec_name=args.spectrograph_name, matching_files = None)
 
-    if not args.input_query_results.exists():
-        print(f"Input query results '{args.input_query_results}' file does not exist.", file=sys.stderr)
+    if not args.koaids.exists():
+        print(f"Input koaids '{args.input_query_results}' file does not exist.", file=sys.stderr)
         return 1
-    format = args.input_query_results.suffix[1:]
-    input_query_results = Table.read(args.input_query_results, format=format)
+
+    koaids = read_koaid_file(args.koaids)
+    if len(koaids) == 0:
+        print(f"Input koaids file is empty.",file=sys.stderr)
+        return 1
 
     if not args.out_dir.exists():
         args.out_dir.mkdir(parents=True,exist_ok=True)
         
-    if args.koaids is not None:
-        filter = [result['koaid'] in args.koaids for result in input_query_results]
-        input_query_results = input_query_results[filter]
-
     if not args.raw_data_dir:
         args.raw_data_dir = args.out_dir            
     else:
         if not args.raw_data_dir.exists():
             args.raw_data_dir.mkdir(parents=True,exist_ok=True)
             
+    # Query for the science files
+    koaid_query_results = koa_query_koaids(koaids,extended_spec.instrument_name,args.out_dir)
+
     date_groups = list[DateGroup]()
-    for i in range(len(input_query_results)):
-        file_date = Time(input_query_results[i]["date_obs"],format="iso")
+    for i in range(len(koaid_query_results)):
+        file_date = Time(koaid_query_results[i]["date_obs"],format="iso")
         found = False
         for dg in date_groups:
             if dg.is_date_in_window(file_date):
-                dg.add_metadata_row(input_query_results[i],file_date)
+                dg.add_metadata_row(koaid_query_results[i],file_date)
                 found=True
         if found is False:
-            date_groups.append(DateGroup(args,file_date,input_query_results[i:i+1]))
+            date_groups.append(DateGroup(args,file_date,koaid_query_results[i:i+1]))
 
-    print(f"Grouped {len(input_query_results)} files into {len(date_groups)} date groups")
+    print(f"Grouped {len(koaid_query_results)} files into {len(date_groups)} date groups")
 
     files_to_download = Table(names=["koaid","instrume","filehand"],dtype=[mi.KOA_ID_DTYPE, "<U10", "<U256"])    
     for dg in date_groups:
@@ -64,12 +65,48 @@ def main(args):
         for dg_file in dg.metadata:
             files_to_download.add_row([dg_file["koaid"], dg_file["instrume"], dg_file["filehand"]])
 
-        query_output = koa_query(extended_spec.instrument_name, args.out_dir, dg)
+        query_output = koa_query_dg(extended_spec.instrument_name, args.out_dir, dg)
         trim_calib_files(extended_spec, files_to_download, query_output, dg.metadata)
 
     files_to_download.write(str(args.out_dir / "files_to_download.csv"),format="csv",overwrite=True)
 
-def koa_query(instr : str, out_dir : Path, dg:DateGroup) -> Path:
+def read_koaid_file(filename:Path):
+    koaids = []
+    with open(filename) as f:
+        for line in f:
+            line = line.strip()
+            if len(line) == 0:
+                continue
+            koaids.append(line)
+    return koaids
+
+def koa_query_koaids(koaids: list[str], instr: str, out_dir:Path) -> Table:
+    fields = ["koaid"] + mi.common_observation_columns + mi.common_program_columns + mi.instr_columns[instr]
+    batch_size = 100
+    batch_start = 0
+    next_batch = koaids[batch_start:batch_start+batch_size]
+    result_table = None
+    while len(next_batch) > 0:
+        koaid_strings = ["'" + koaid + "'" for koaid in koaids]
+        query = f"select {','.join(fields)} from koa_{instr.lower()} where koaid in ({','.join(koaid_strings)})"
+        outname = out_dir / "temp_science_query_results.ipac"
+        print(query)
+        Koa.query_adql(query, str(outname), overwrite=True, format="ipac")  # save table in tabname
+        # Sleep to be nice and not hit koa with too man queries too quickly
+        sleep(2)
+        query_output_table= Table.read(str(outname), format="ipac")
+        if result_table is None:
+            result_table = query_output_table
+        else:
+            result_table = vstack([result_table,query_output_table])
+        outname.unlink(missing_ok=True)
+        batch_start +=batch_size
+        next_batch = koaids[batch_start:batch_start+batch_size]
+
+    return result_table
+
+
+def koa_query_dg(instr : str, out_dir : Path, dg:DateGroup) -> Path:
 
     fields = ["koaid"] + mi.common_observation_columns + mi.common_program_columns + mi.instr_columns[instr]
     # Exclude unwanted types, and "object" files which are not calibration files
