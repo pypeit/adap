@@ -1,0 +1,5 @@
+[rdx]
+    spectrograph = keck_mosfire
+[calibrations]
+    [[flatfield]]
+        tweak_slits = False

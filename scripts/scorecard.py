@@ -25,37 +25,6 @@ def get_1d_std_chis_out_of_range(sobjs, lower_thresh, upper_thresh):
             num_out_of_range += 1
     
     return num_out_of_range
-
-def split_to_csv_tabs(t, outpath):
-    """Split the score card table into smaller CSVs that will go into tabs in the Google sheet.
-       The datasets are split based on the first letter of the mask name, according to ranges 
-       that were determined by looking at the number of raw images per datset.
-       
-       Args:
-       t (astropy.table.Table): The complete scorecard table.
-
-       outpath (pathlib.Path): The path where the csv files should be go.
-
-       Returns None. (But the csv files are written).
-       """
-    alphabet_ranges = [('0', '9'),
-                       ('A', 'B'),
-                       ('C', 'C'),
-                       ('D', 'F'),
-                       ('G', 'H'),
-                       ('I', 'L'),
-                       ('M', 'M'),
-                       ('N', 'R'),
-                       ('S', 'S'),
-                       ('T', 'V'),
-                       ('W', 'Z')]
-
-    for range in alphabet_ranges:
-        idx =[x[0].upper() >= range[0] and x[0].upper() <= range[1] for x in t['dataset']]
-        if np.sum(idx) > 0:
-            # The file will be something like 'scorecard_A-B.csv' for multi letter ranges, or
-            # 'scorecard_C.csv' for single letter ranges
-            t[idx].write(outpath / f"scorecard_{f'{range[0]}-{range[1]}' if range[0] != range[1] else range[0]}.csv", overwrite=True)
         
 def get_exec_time(log_file):
     """
