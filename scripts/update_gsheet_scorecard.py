@@ -12,7 +12,7 @@ import gspread
 from gspread.utils import ValueInputOption
 import gspread_utils
 
-MAX_SCORECARD_COL = 'Z'
+MAX_SCORECARD_COL = 'AA'
 
 def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
 
