@@ -14,4 +14,8 @@
         use_2dmodel_mask = False
         boxcar_radius = 1.0
 
+spec2d read
+filename
+spec2d end
+
 
