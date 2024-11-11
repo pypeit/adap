@@ -61,7 +61,7 @@ def get_exec_time(log_file):
     """
     Return the execution time (in seconds) from a PypeIt log file.
     """
-    regex = re.compile("Execution time: (\S.*)$")
+    regex = re.compile(r"Execution time: (\S.*)$")
 
     try:
         with open(log_file, "r") as f:
@@ -119,7 +119,7 @@ def main():
     parser.add_argument("--subdirs", type=str, nargs='+', help="Specific subdirectories of the reorg_dir to work on." )
     parser.add_argument("--date_reduced", type=datetime.date.fromisoformat, default = datetime.date.today(), help="When the data was reduced. Defaults to today.")
     parser.add_argument("--rms_thresh", type=float, default=0.4)
-    parser.add_argument("--flex_shift_thresh", type=float, default=4.0)
+    parser.add_argument("--flex_shift_thresh", type=float, default=10.0)
     parser.add_argument("--wave_cov_thresh", type=float, default=60.0)
     parser.add_argument("--lower_std_chi", type=float, default=0.6)
     parser.add_argument("--upper_std_chi", type=float, default=1.6)
@@ -153,7 +153,7 @@ def main():
     bad_slits_data = Table(names=["slit_id", "spec2d"], dtype=["U11", "U80"])
 
     columns = ['dataset', 'science_file', 'date', 'status', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
-               'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
+               'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'slit_spec_flex_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
                'obj_rms_over_thresh', 'object_flex_shift_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
                'maskdef_extract_count', 'exec_time', 'mem_usage', 'git_commit', 'reduce_dir']
@@ -204,6 +204,7 @@ def main():
                 total_bad_flat_slits = set()
                 total_skip_flat_slits = set()
                 total_bad_reduce_slits = set()
+                total_bad_slit_spec_flex = set()
                 all_slit_ids = set()
 
                 # Find slits that don't meet the wavelength coverage threshold, the rms threshold, or
@@ -226,6 +227,9 @@ def main():
                         no_chis = (std_chis == 0.0) & (med_chis==0.0)
                         chis_out_of_range = ((std_chis<args.lower_std_chi) | (std_chis>args.upper_std_chi)) & np.logical_not(no_chis)
 
+                        # Process slit spectral flexure
+                        bad_slit_spec_flex = np.abs(spec2dobj['sci_spec_flexure']['sci_spec_flexure']) >= args.flex_shift_thresh
+
                         # Process slit mask bitmask flags
                         bad_wv_slits = np.array([stbm.flagged(x, 'BADWVCALIB') for x in spec2dobj.slits.mask])
                         bad_tilt_slits = np.array([stbm.flagged(x, 'BADTILTCALIB') for x in spec2dobj.slits.mask])
@@ -247,6 +251,7 @@ def main():
                         total_skip_flat_slits.update(combined_slit_ids[skip_flat_slits])
                         total_bad_reduce_slits.update(combined_slit_ids[bad_reduce_slits])
                         bad_chi_slits.update(combined_slit_ids[chis_out_of_range])
+                        total_bad_slit_spec_flex.update(combined_slit_ids[bad_slit_spec_flex])
                         all_slit_ids.update(combined_slit_ids)
 
                 except PypeItError:
@@ -259,7 +264,7 @@ def main():
                     data[-1]['status'] = 'FAILED'
 
                 total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
-                bad_slits =  total_bad_coverage | total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits
+                bad_slits =  total_bad_coverage | total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits | total_bad_slit_spec_flex
                 
                 # Gather the bad_slits for writing out
                 bad_slits_data = vstack((bad_slits_data, Table([list(bad_slits), [science_file] * len(bad_slits)], names=["slit_id", "spec2d"], dtype=["U11", "U80"])), join_type='exact')
@@ -269,6 +274,7 @@ def main():
                 data[-1]['slit_wv_cov_under_thresh'] = len(total_bad_coverage)
                 data[-1]['slit_rms_over_thresh'] = len(total_bad_slit_rms)
                 data[-1]['slit_std_chi_out_of_range'] = len(bad_chi_slits)
+                data[-1]['slit_spec_flex_over_thresh'] = len(total_bad_slit_spec_flex)
                 data[-1]['total_bad_flags'] = len(total_bad_flag_slits)
                 data[-1]['bad_wv_count'] = len(total_bad_wv_slits)
                 data[-1]['bad_tilt_count'] = len(total_bad_tilt_slits)
