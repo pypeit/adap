@@ -369,7 +369,11 @@ def update_pixelflat(spectrograph, dataset, config_lines):
                 comments = ""
             indx = line_start.find("pixelflat_file")
             if indx != -1:
-                line = line_start[:indx] + "pixelflat_file = " + binning_to_pixelflat_map[dataset_binning] + comments
+                if dataset_binning in binning_to_pixelflat_map:
+                    line = line_start[:indx] + "pixelflat_file = " + binning_to_pixelflat_map[dataset_binning] + comments
+                else:
+                    # No pixelflat for this binning, comment out hte pixelflat line
+                    line = line_start[:indx] + "#pixelflat_file = <no known pixelflat file available for this binning>" + comments
             return_lines.append(line)
     else:
         return_lines = config_lines

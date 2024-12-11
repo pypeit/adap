@@ -2,3 +2,8 @@
 HI.20211215.63562.fits
 ES.20040123.05053.fits.gz
 ES.20040123.00000.fits.gz
+# Fail due to over saturated flats
+HI.20050116.12079.fits
+HI.20050116.12191.fits
+HI.20050116.12680.fits
+HI.20050116.12920.fits
