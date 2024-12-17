@@ -1,0 +1,74 @@
+# Auto-generated PypeIt input file using PypeIt version: 1.17.1.dev25+g160035af1
+# UTC 2024-12-11T21:25:43.413+00:00
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_hires
+[calibrations]
+    [[slitedges]]
+        edge_thresh = 200
+        max_overlap = 0.2
+    [[flatfield]]
+        # The below will be updated by trimming_setup.py to
+        # reflect the correct archival pixel flat for the dataset
+        pixelflat_file = pixelflat_keck_hires_RED_1x3_20170223.fits.gz
+
+# Setup
+setup read
+Setup A:
+  binning: 1,3
+  decker: D1
+  dispname: RED
+  echangle: 0.70588011
+  filter1: og530
+  xdangle: 1.41949999
+setup end
+
+# Data block 
+data read
+ path /tmp/adap_root/HIRES/WISEAJ0439+1634/RED_D1_og530_ech0.706_xd1.42_1x3/2018-11-15_2018-11-16/complete/raw
+                filename |                 frametype |                 ra |                 dec |         target | dispname | decker | binning |          mjd | airmass | exptime | filter1 |   echangle |    xdangle | hatch | lampstat01 | frameno | calib
+# HI.20181115.06248.fits |                  arc,tilt | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58437.072335 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |      ThAr2 |      51 |     0
+# HI.20181115.06293.fits |                  arc,tilt | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58437.072861 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |      ThAr2 |      52 |     0
+# HI.20181115.56942.fits |                  arc,tilt |  76.37745833333332 |   52.83030555555556 |        G191B2B |      RED |     D1 |     1,3 | 58437.659071 |    1.79 |     1.0 |   og530 | 0.70588011 | 1.41900003 | False |      ThAr2 |     105 |     0
+# HI.20181116.08955.fits |                  arc,tilt | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.103671 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |      ThAr2 |     175 |     0
+  HI.20181116.09000.fits |                  arc,tilt | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.104196 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |      ThAr2 |     176 |     0
+# HI.20181115.05768.fits | pixelflat,illumflat,trace |              340.0 | 0.03869444444444445 |   horizon lock |      RED |     D1 |     1,3 | 58437.066781 |   13.37 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      41 |     0
+# HI.20181115.05813.fits | pixelflat,illumflat,trace |              340.0 | 0.03869444444444445 |   horizon lock |      RED |     D1 |     1,3 | 58437.067306 |   13.37 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      42 |     0
+# HI.20181115.05859.fits | pixelflat,illumflat,trace |              340.0 | 0.03869444444444445 |   horizon lock |      RED |     D1 |     1,3 | 58437.067837 |   13.37 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      43 |     0
+# HI.20181115.05905.fits | pixelflat,illumflat,trace |              340.0 | 0.03869444444444445 |   horizon lock |      RED |     D1 |     1,3 | 58437.068363 |   13.37 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      44 |     0
+# HI.20181115.05950.fits | pixelflat,illumflat,trace |              340.0 | 0.03869444444444445 |   horizon lock |      RED |     D1 |     1,3 | 58437.068888 |   13.37 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      45 |     0
+# HI.20181115.05996.fits | pixelflat,illumflat,trace |              340.0 | 0.03869444444444445 |   horizon lock |      RED |     D1 |     1,3 | 58437.069419 |   13.37 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      46 |     0
+# HI.20181115.06042.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58437.069945 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      47 |     0
+# HI.20181115.06087.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58437.070476 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      48 |     0
+# HI.20181115.06132.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58437.071007 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      49 |     0
+# HI.20181115.06178.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58437.071532 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |      50 |     0
+# HI.20181116.08474.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.098105 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     165 |     0
+# HI.20181116.08519.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.098624 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     166 |     0
+# HI.20181116.08564.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.099149 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     167 |     0
+# HI.20181116.08610.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.099681 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     168 |     0
+# HI.20181116.08656.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.100212 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     169 |     0
+  HI.20181116.08702.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.100737 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     170 |     0
+  HI.20181116.08747.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.101263 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     171 |     0
+  HI.20181116.08793.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.101794 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     172 |     0
+  HI.20181116.08838.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.102319 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     173 |     0
+  HI.20181116.08885.fits | pixelflat,illumflat,trace | 229.99999999999997 |                45.0 |      DOME FLAT |      RED |     D1 |     1,3 | 58438.102862 |    1.41 |     1.0 |   og530 | 0.70588011 | 1.41949999 | False |         on |     174 |     0
+  HI.20181115.30675.fits |                   science |  69.94616666666667 |  16.571166666666667 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.355055 |    1.33 |   700.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      89 |     0
+  HI.20181115.31788.fits |                   science |  69.94608333333333 |   16.57102777777778 | J0439+1634_OFF |      RED |     D1 |     1,3 |  58437.36794 |    1.25 |   708.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      90 |     0
+  HI.20181115.33060.fits |                   science |             69.946 |   16.57086111111111 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.382656 |    1.18 |   822.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      91 |     0
+  HI.20181115.33978.fits |                   science |  69.94595833333332 |  16.570805555555555 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.393293 |    1.14 |   647.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      92 |     0
+  HI.20181115.35405.fits |                   science |             69.946 |   16.57111111111111 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.409797 |    1.08 |  1963.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      94 |     0
+  HI.20181115.37675.fits |                   science |             69.946 |            16.57125 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.436076 |    1.03 |  1598.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      95 |     0
+  HI.20181115.42058.fits |                   science |  69.94629166666667 |  16.570916666666665 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.486805 |     1.0 |   817.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      97 |     0
+  HI.20181115.43598.fits |                   science |  69.94616666666667 |  16.570888888888888 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.504631 |    1.02 |  2100.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      98 |     0
+  HI.20181115.45745.fits |                   science |  69.94616666666667 |  16.570888888888888 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.529482 |    1.06 |  2100.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      99 |     0
+  HI.20181116.27853.fits |                   science |  69.94624999999999 |  16.571055555555557 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58438.322387 |     1.6 |  2100.0 |   og530 | 0.70588011 | 1.41949999 |  True |        off |     193 |     0
+  HI.20181116.30002.fits |                   science |  69.94624999999999 |  16.571055555555557 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58438.347273 |    1.37 |  2100.0 |   og530 | 0.70588011 | 1.41949999 |  True |        off |     194 |     0
+  HI.20181115.28120.fits |                   science |  69.94624999999999 |   16.57111111111111 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.325476 |     1.6 |    65.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      85 |     0
+  HI.20181115.28447.fits |                   science |  69.94645833333333 |   16.57113888888889 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.329265 |    1.55 |   550.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      86 |     0
+  HI.20181115.29382.fits |                   science |  69.94608333333333 |   16.57122222222222 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.340097 |    1.45 |   178.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      87 |     0
+  HI.20181115.30013.fits |                   science |  69.94595833333332 |  16.571277777777777 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.347387 |    1.39 |   383.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      88 |     0
+  HI.20181115.35045.fits |                   science |  69.94604166666666 |   16.57102777777778 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.405636 |     1.1 |    13.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      93 |     0
+  HI.20181115.40020.fits |                   science |  69.94654166666668 |  16.571555555555555 | J0439+1634_OFF |      RED |     D1 |     1,3 | 58437.463217 |     1.0 |   335.0 |   og530 | 0.70588011 | 1.41849995 |  True |        off |      96 |     0
+data end
+
