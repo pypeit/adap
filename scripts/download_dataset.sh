@@ -8,10 +8,11 @@ logs=("keck_hires_A/keck_hires_A.log" "keck_hires_A/keck_hires_A_useful_warns.lo
 
 usage() {
     echo ""
-    echo "Usage: download_datasets.sh [-l|--logs] [-h|--help] <dataset> [<dest>]"
+    echo "Usage: download_datasets.sh [-l|--logs] [-r|--raw] [-h|--help] <dataset> [<dest>]"
     echo "Downloads the ADAP results for <dataset> to <dest>"
     echo ""
     echo "If -l or --logs is given, only the logs will be downloaded"
+    echo "If -r or --raw is given, the raw data will also be downloaded"
     echo "If no destination is given, the current directory is used."
     echo ""
     echo "Examples:"
@@ -27,6 +28,7 @@ usage() {
 
 
 only_logs=false
+include_raw=false
 dataset=""
 dest=""
 while [[ ! -z $1 ]]
@@ -37,6 +39,9 @@ do
             ;;
         --logs | -l)
             only_logs=true
+            ;;
+        --raw | -r)
+            include_raw=true
             ;;
         *)
             if [[ -z $dataset ]]
@@ -116,3 +121,9 @@ do
         aws --endpoint $nautilus_endpoint s3 cp "${adap_remote_root}/${dataset}/complete/${reduce_dir}" "${dest}/${reduce_dir}" --recursive
     fi
 done
+
+if [[ $include_raw == true ]]
+then
+    echo Downloading raw files...
+    aws --endpoint $nautilus_endpoint s3 cp "${adap_remote_root}/${dataset}/complete/raw/" "${dest}/raw/" --recursive
+fi
