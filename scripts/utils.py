@@ -263,7 +263,7 @@ def get_reduce_params(dataset_prefix):
 
     # Look for custom files of the dataset
     dataset_prefix_pattern = dataset_prefix.replace("/", "_") + "*"
-    custom_files = list(config_path.glob(dataset_prefix_pattern))
+    custom_files = list(config_path.rglob(dataset_prefix_pattern))
 
     if len(custom_files) > 1:
         raise ValueError(f"Can't find reduce parameters for {dataset_prefix} because there was more than one custom parameter match")
