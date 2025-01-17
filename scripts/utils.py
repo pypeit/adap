@@ -265,12 +265,12 @@ def get_reduce_params(dataset_prefix):
     dataset_prefix_pattern = dataset_prefix.replace("/", "_") + "*"
     custom_files = list(config_path.rglob(dataset_prefix_pattern))
 
-    if len(custom_files) > 1:
-        raise ValueError(f"Can't find reduce parameters for {dataset_prefix} because there was more than one custom parameter match")
-    elif len(custom_files) == 0:
+    if len(custom_files) == 0:
         # Just use the default
         param_file = config_path / "default_pypeit_config"
     else:
+        if len(custom_files) > 1:
+            logger.warning(f"Found multiple custom configurations for {dataset_prefix}. Using the first one.")
         param_file = custom_files[0]
 
     if param_file.suffix == ".pypeit":

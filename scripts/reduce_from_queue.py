@@ -217,7 +217,7 @@ def reduce_dataset_task(args, dataset):
 
                 run_script(["bash", str(scripts_dir / "tar_qa.sh"), str(pypeit_file.parent)])
 
-            scorecard_cmd = ["python", str(scripts_dir / "scorecard.py"), "keck_deimos", str(args.adap_root_dir), str(args.adap_root_dir / dataset / "complete" / "reduce" / f"scorecard.csv"), "--status", status, "--mem", str(max_mem), "--subdirs", mask]
+            scorecard_cmd = ["python", str(scripts_dir / "scorecard.py"), "keck_deimos", str(args.adap_root_dir), str(args.adap_root_dir / dataset / "complete" / "reduce" / f"scorecard.csv"), "--status", status, "--mem", str(max_mem), "--subdirs", mask, "--config", str(args.adap_root_dir / "adap" / "config" / "scorecard_config.txt")]
             if 'PYPEIT_COMMIT' in os.environ:
                 scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 

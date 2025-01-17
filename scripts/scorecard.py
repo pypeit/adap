@@ -5,6 +5,9 @@ import argparse
 from pathlib import Path
 import datetime
 from traceback import print_exc
+from dataclasses import dataclass
+from copy import copy
+
 from pypeit.pypmsgs import PypeItError
 import numpy as np
 from astropy.stats import mad_std
@@ -108,11 +111,46 @@ def get_expected_det(par, args):
 
     return expected_det
 
+
+
+@dataclass
+class AcceptanceCriteria:
+    rms_thresh : float
+    flex_shift_thresh : float
+    wave_cov_thresh : float
+    lower_std_chi : float
+    upper_std_chi : float
+
+def read_criteria_from_config(filename:Path, dataset_path:Path, default_config : AcceptanceCriteria):
+    criteria = copy(default_config)
+    t = Table.read(str(filename), format='ascii.fixed_width',fill_values=None)
+    dataset = dataset_path.parent
+    idx = t['dataset'] == str(dataset)
+    if len(t[idx]) > 0:
+
+        if t[idx]['rms_thresh'][0] != '':            
+            criteria.rms_thresh = float(t[idx]['rms_thresh'][0])
+
+        if t[idx]['flex_shift_thresh'][0] != '':            
+            criteria.flex_shift_thresh = float(t[idx]['flex_shift_thresh'][0])
+    
+        if t[idx]['wave_cov_thresh'][0] != '':            
+            criteria.wave_cov_thresh = float(t[idx]['wave_cov_thresh'][0])
+
+        if t[idx]['lower_std_chi'][0] != '':            
+            criteria.lower_std_chi = float(t[idx]['lower_std_chi'][0])
+
+        if t[idx]['upper_std_chi'][0] != '':            
+            criteria.upper_std_chi = float(t[idx]['upper_std_chi'][0])
+
+    return criteria
+
 def main():
     parser = argparse.ArgumentParser(description='Build score card for completed pypeit reductions.\nAssumes the directory structure created by adap_reorg_setup.py')
     parser.add_argument("spec_name", type=str, help = "Name of the spectrograph for the reduction.")
     parser.add_argument("reorg_dir", type=str, help = "Root of directory structure created by adap_reorg_setup.py")
     parser.add_argument("outfile", type=str, help='Output csv file.')
+    parser.add_argument("--config", type=Path, help='Config file allowing for criteria per datasets.')
     parser.add_argument("--commit", type=str, default = "", help='Optional, git commit id for the PypeIt version used')
     parser.add_argument("--mem", type=int, default=0, help="Optional, The maximum memory usage during the PypeIt reduction.")
     parser.add_argument("--status", type=str, default = None, help='Status of running the reduction')
@@ -145,6 +183,13 @@ def main():
                 if child.is_dir():
                     dirs_to_scan.append(child)
     
+    # Default criteria from command line arguments
+    default_criteria = AcceptanceCriteria(rms_thresh = args.rms_thresh, 
+                                          flex_shift_thresh = args.flex_shift_thresh,
+                                          wave_cov_thresh = args.wave_cov_thresh,
+                                          lower_std_chi=args.lower_std_chi,
+                                          upper_std_chi=args.upper_std_chi)
+    
 
 
     # Filename and table for writing the bad slit ids
@@ -164,10 +209,12 @@ def main():
     stbm = SlitTraceBitMask()
 
     for reduce_path in reduce_paths:
-        dataset = reduce_path.parent.relative_to(args.reorg_dir)
+        dataset_path = reduce_path.parent.relative_to(args.reorg_dir)
         pypeit_file = reduce_path / pypeit_name / f"{pypeit_name}.pypeit"
         log_path = str(reduce_path / pypeit_name / f"{pypeit_name}.log")
         science_path = reduce_path / pypeit_name / "Science"
+
+        criteria = read_criteria_from_config(args.config, dataset_path, default_criteria)
 
         print(f"Searching {log_path} for execution time...")
         reduce_exec_time = get_exec_time(log_path)
@@ -180,7 +227,7 @@ def main():
         science_idx = pf.data['frametype'] == 'science'
         for science_file in pf.data['filename'][science_idx]:
             data.add_row()
-            data[-1]['dataset'] = dataset.parent 
+            data[-1]['dataset'] = dataset_path.parent 
             data[-1]['science_file'] = science_file
             data[-1]['status'] = args.status
             data[-1]['git_commit'] = args.commit
@@ -218,17 +265,17 @@ def main():
                         # Process wavsol data, ignoring slits where RMS is 0
                         nonzero_rms_slits = spec2dobj.wavesol['RMS'] != 0.0
 
-                        bad_coverage = spec2dobj.wavesol['IDs_Wave_cov(%)'][nonzero_rms_slits] < args.wave_cov_thresh
-                        bad_slit_rms = spec2dobj.wavesol['RMS'][nonzero_rms_slits] > args.rms_thresh
+                        bad_coverage = spec2dobj.wavesol['IDs_Wave_cov(%)'][nonzero_rms_slits] < criteria.wave_cov_thresh
+                        bad_slit_rms = spec2dobj.wavesol['RMS'][nonzero_rms_slits] > criteria.rms_thresh
 
                         # Process std_chis, ignoring slits where both std and med chi are 0
                         std_chis = spec2dobj['std_chis']
                         med_chis = spec2dobj['med_chis']                
                         no_chis = (std_chis == 0.0) & (med_chis==0.0)
-                        chis_out_of_range = ((std_chis<args.lower_std_chi) | (std_chis>args.upper_std_chi)) & np.logical_not(no_chis)
+                        chis_out_of_range = ((std_chis<criteria.lower_std_chi) | (std_chis>criteria.upper_std_chi)) & np.logical_not(no_chis)
 
                         # Process slit spectral flexure
-                        bad_slit_spec_flex = np.abs(spec2dobj['sci_spec_flexure']['sci_spec_flexure']) >= args.flex_shift_thresh
+                        bad_slit_spec_flex = np.abs(spec2dobj['sci_spec_flexure']['sci_spec_flexure']) >= criteria.flex_shift_thresh
 
                         # Process slit mask bitmask flags
                         bad_wv_slits = np.array([stbm.flagged(x, 'BADWVCALIB') for x in spec2dobj.slits.mask])
@@ -305,10 +352,10 @@ def main():
                                 data[-1]['object_without_opt_wo_box'] += 1
                                 print(f"File {spec1d_file} object {specobj['NAME']} is missing OPT_COUNTS and BOX_COUNTS.")
 
-                        if specobj['WAVE_RMS'] > args.rms_thresh:
+                        if specobj['WAVE_RMS'] > criteria.rms_thresh:
                             data[-1]['obj_rms_over_thresh'] += 1
 
-                        if specobj['FLEX_SHIFT_TOTAL'] is not None and np.fabs(specobj['FLEX_SHIFT_TOTAL']) > args.flex_shift_thresh:
+                        if specobj['FLEX_SHIFT_TOTAL'] is not None and np.fabs(specobj['FLEX_SHIFT_TOTAL']) > criteria.flex_shift_thresh:
                             data[-1]['object_flex_shift_over_thresh'] += 1
 
                 except PypeItError:
