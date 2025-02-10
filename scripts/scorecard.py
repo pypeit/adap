@@ -89,7 +89,6 @@ def main():
     parser.add_argument("--date_reduced", type=datetime.date.fromisoformat, default = datetime.date.today(), help="When the data was reduced. Defaults to today.")
     parser.add_argument("--rms_thresh", type=float, default=0.4)
     parser.add_argument("--flex_shift_thresh", type=float, default=10.0)
-    parser.add_argument("--wave_cov_thresh", type=float, default=60.0)
     parser.add_argument("--lower_std_chi", type=float, default=0.6)
     parser.add_argument("--upper_std_chi", type=float, default=1.6)
 
@@ -123,7 +122,7 @@ def main():
     bad_slits_data = Table(names=["slit_id", "spec2d"], dtype=["U11", "U80"])
 
     columns = ['dataset', 'science_file', 'date', 'status', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
-               'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'slit_spec_flex_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
+               'slit_rms_over_thresh', 'slit_spec_flex_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
                'skip_flat_count', 'bad_reduce_count', 'object_count', 
                'obj_rms_over_thresh', 'object_flex_shift_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
                'maskdef_extract_count', 'exec_time', 'mem_usage', 'git_commit', 'reduce_dir']
@@ -166,7 +165,6 @@ def main():
             else:            
                 print(f"Processing file {spec2d_files[0]}")
 
-                total_bad_coverage = set()
                 total_bad_slit_rms = set()
                 bad_chi_slits = set()
                 total_bad_flag_slits = set()
@@ -178,7 +176,7 @@ def main():
                 total_bad_slit_spec_flex = set()
                 all_slit_ids = set()
 
-                # Find slits that don't meet the wavelength coverage threshold, the rms threshold, or
+                # Find slits that don't meet the rms threshold, or
                 # that have bits set in the bitmask flags
                 try:
                     allspec2d = AllSpec2DObj.from_fits(spec2d_files[0], chk_version=False)
@@ -189,7 +187,6 @@ def main():
                         # Process wavsol data, ignoring slits where RMS is 0
                         nonzero_rms_slits = spec2dobj.wavesol['RMS'] != 0.0
 
-                        bad_coverage = spec2dobj.wavesol['IDs_Wave_cov(%)'][nonzero_rms_slits] < args.wave_cov_thresh
                         bad_slit_rms = spec2dobj.wavesol['RMS'][nonzero_rms_slits] > args.rms_thresh
 
                         # Process std_chis, ignoring slits where both std and med chi are 0
@@ -212,7 +209,6 @@ def main():
                         # totals. A set of det:slitord_id (spat_id)s is used to prevent
                         # us from counting slits twice per science file
                         wave_sol_combined_ids = np.array([f"{det}:{spatid}" for spatid in spec2dobj.wavesol['SpatOrderID'][nonzero_rms_slits]])
-                        total_bad_coverage.update(wave_sol_combined_ids[bad_coverage])
                         total_bad_slit_rms.update(wave_sol_combined_ids[bad_slit_rms])
 
                         combined_slit_ids = np.array([f"{det}:{spatid}" for spatid in spec2dobj.slits.slitord_id])
@@ -235,14 +231,13 @@ def main():
                     data[-1]['status'] = 'FAILED'
 
                 total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
-                bad_slits =  total_bad_coverage | total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits | total_bad_slit_spec_flex
+                bad_slits =   total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits | total_bad_slit_spec_flex
                 
                 # Gather the bad_slits for writing out
                 bad_slits_data = vstack((bad_slits_data, Table([list(bad_slits), [science_file] * len(bad_slits)], names=["slit_id", "spec2d"], dtype=["U11", "U80"])), join_type='exact')
 
                 data[-1]['bad_slit_count'] = len(bad_slits)
                 data[-1]['slit_count'] = len(all_slit_ids)
-                data[-1]['slit_wv_cov_under_thresh'] = len(total_bad_coverage)
                 data[-1]['slit_rms_over_thresh'] = len(total_bad_slit_rms)
                 data[-1]['slit_std_chi_out_of_range'] = len(bad_chi_slits)
                 data[-1]['slit_spec_flex_over_thresh'] = len(total_bad_slit_spec_flex)
