@@ -199,7 +199,7 @@ def main():
 
     columns = ['dataset', 'science_file', 'date', 'status', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
                'slit_wv_cov_under_thresh', 'slit_rms_over_thresh', 'slit_spec_flex_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
-               'skip_flat_count', 'bad_reduce_count', 'object_count', 
+               'skip_flat_count', 'bad_skysub_count',  'bad_extract_count', 'object_count', 
                'obj_rms_over_thresh', 'object_flex_shift_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
                'maskdef_extract_count', 'exec_time', 'mem_usage', 'git_commit', 'reduce_dir']
   
@@ -250,7 +250,8 @@ def main():
                 total_bad_tilt_slits = set()
                 total_bad_flat_slits = set()
                 total_skip_flat_slits = set()
-                total_bad_reduce_slits = set()
+                total_bad_skysub_slits = set()
+                total_bad_extract_slits = set()
                 total_bad_slit_spec_flex = set()
                 all_slit_ids = set()
 
@@ -282,7 +283,8 @@ def main():
                         bad_tilt_slits = np.array([stbm.flagged(x, 'BADTILTCALIB') for x in spec2dobj.slits.mask])
                         bad_flat_slits = np.array([stbm.flagged(x, 'BADFLATCALIB') for x in spec2dobj.slits.mask])
                         skip_flat_slits = np.array([stbm.flagged(x, 'SKIPFLATCALIB') for x in spec2dobj.slits.mask])
-                        bad_reduce_slits = np.array([stbm.flagged(x, 'BADREDUCE') for x in spec2dobj.slits.mask])
+                        bad_skysub_slits = np.array([stbm.flagged(x, 'BADSKYSUB') for x in spec2dobj.slits.mask])
+                        bad_extract_slits = np.array([stbm.flagged(x, 'BADEXTRACT') for x in spec2dobj.slits.mask])
 
                         # Combine the results for this detector/mosaic with the 
                         # totals. A set of det:slitord_id (spat_id)s is used to prevent
@@ -296,7 +298,8 @@ def main():
                         total_bad_tilt_slits.update(combined_slit_ids[bad_tilt_slits])
                         total_bad_flat_slits.update(combined_slit_ids[bad_flat_slits])
                         total_skip_flat_slits.update(combined_slit_ids[skip_flat_slits])
-                        total_bad_reduce_slits.update(combined_slit_ids[bad_reduce_slits])
+                        total_bad_skysub_slits.update(combined_slit_ids[bad_skysub_slits])
+                        total_bad_extract_slits.update(combined_slit_ids[bad_extract_slits])
                         bad_chi_slits.update(combined_slit_ids[chis_out_of_range])
                         total_bad_slit_spec_flex.update(combined_slit_ids[bad_slit_spec_flex])
                         all_slit_ids.update(combined_slit_ids)
@@ -310,8 +313,8 @@ def main():
                     print(f"Marking '{data[-1]['science_file']}' as failed. det_count {data[-1]['det_count']} does not match expected {expected_det}.")
                     data[-1]['status'] = 'FAILED'
 
-                total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
-                bad_slits =  total_bad_coverage | total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits | total_bad_slit_spec_flex
+                total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_skysub_slits | total_bad_extract_slits
+                bad_slits =  total_bad_coverage | total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits
                 
                 # Gather the bad_slits for writing out
                 bad_slits_data = vstack((bad_slits_data, Table([list(bad_slits), [science_file] * len(bad_slits)], names=["slit_id", "spec2d"], dtype=["U11", "U80"])), join_type='exact')
@@ -327,7 +330,8 @@ def main():
                 data[-1]['bad_tilt_count'] = len(total_bad_tilt_slits)
                 data[-1]['bad_flat_count'] = len(total_bad_flat_slits)
                 data[-1]['skip_flat_count'] = len(total_skip_flat_slits)
-                data[-1]['bad_reduce_count'] = len(total_bad_reduce_slits)
+                data[-1]['bad_skysub_count'] = len(total_bad_skysub_slits)
+                data[-1]['bad_extract_count'] = len(total_bad_extract_slits)
                 data[-1]['exec_time'] = reduce_exec_time
                 data[-1]['mem_usage'] = args.mem
 

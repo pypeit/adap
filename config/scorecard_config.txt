@@ -1,2 +1,1 @@
 dataset                                         | rms_thresh | flex_shift_thresh | wave_cov_thresh | lower_std_chi | upper_std_chi | notes
-041615B1/1200G_8800_OG550/2015-10-16            |            | 55                |                 |               |               | slits over 3 files had slit_spec_flex_over_thresh, but these were correct flexure adjustments

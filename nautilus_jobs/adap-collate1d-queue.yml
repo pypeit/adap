@@ -4,7 +4,7 @@ metadata:
   name: adap-run-coadd1d-on-queue
 spec:
   backoffLimit: 0
-  parallelism: 9
+  parallelism: 1
   template:
     spec:
       containers:
