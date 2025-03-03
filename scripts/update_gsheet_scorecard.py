@@ -249,10 +249,7 @@ def main():
 
     print (f"Accessing {args.spreadsheet} in G-Drive")
     # This relies on the service json in ~/.config/gspread
-    account = retry_gspread_call(lambda: gspread.service_account())
-
-    # Get the spreadsheet from Google sheets
-    spreadsheet = retry_gspread_call(lambda: account.open(args.spreadsheet))
+    spreadsheet = gspread_utils.open_spreadsheet(args.spreadsheet)[0]
 
 
     for sheet in sheets:
