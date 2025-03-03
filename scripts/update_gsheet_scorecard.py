@@ -11,6 +11,8 @@ import numpy as np
 import gspread
 from gspread.utils import ValueInputOption
 
+import gspread_utils
+
 MAX_SCORECARD_COL = 'AB'
 def split_to_csv_tabs(t, outpath):
     """Split the score card table into smaller CSVs that will go into tabs in the Google sheet.

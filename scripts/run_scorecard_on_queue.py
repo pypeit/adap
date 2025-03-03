@@ -11,12 +11,11 @@ from astropy.table import Table
 
 from utils import run_task_on_queue, run_script, init_logging
 from rclone import get_cloud_path
-import metadata_info
 
 def run_scorecard_task(args, dataset):
 
     root_path = Path(args.adap_root_dir)
-    spec_name = keck_deimos
+    spec_name = 'keck_deimos'
 
     # Download data from either s3 or google as requested
     s3_loc = get_cloud_path(args, "s3")
@@ -65,7 +64,7 @@ def run_scorecard_task(args, dataset):
             
         # Build command, adding the commit if available
     
-        scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), spec_name, args.adap_root_dir, str(scorecard_file), "--status", status, "--mem", str(mem_usage), "--subdirs", dataset]
+        scorecard_cmd = ["python", os.path.join(args.adap_root_dir, "adap", "scripts", "scorecard.py"), spec_name, args.adap_root_dir, str(scorecard_file), "--status", status, "--config", os.path.join(args.adap_root_dir, "adap", "config", "scorecard_config.txt"), "--mem", str(mem_usage), "--subdirs", dataset]
         if git_commit is not None:
             scorecard_cmd += ['--commit', git_commit]
 
