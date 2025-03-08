@@ -4,7 +4,7 @@ metadata:
   name: adap-run-coadd1d-on-queue
 spec:
   backoffLimit: 0
-  parallelism: 1
+  parallelism: 5
   template:
     spec:
       containers:
@@ -17,7 +17,7 @@ spec:
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2019;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2019/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2019/ config/ --recursive;
-          python scripts/collate1d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status@D" redis://10.244.121.210:6379 adap_2019_coadd s3
+          python scripts/collate1d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status@D" redis://10.244.117.130:6379 adap_2019_coadd s3
         command:
         - /bin/bash
         - -c
@@ -26,11 +26,11 @@ spec:
         resources:
           limits:
             cpu: '2'
-            ephemeral-storage: 50Gi
+            ephemeral-storage: 150Gi
             memory: 16Gi
           requests:
             cpu: '2'
-            ephemeral-storage: 50Gi
+            ephemeral-storage: 150Gi
             memory: 16Gi
         volumeMounts:
         - mountPath: /home/pypeitusr/.config/gspread/service_account.json
@@ -54,8 +54,6 @@ spec:
              value: noninteractive
            - name: QT_QPA_PLATFORM
              value: offscreen
-      nodeSelector:
-        nautilus.io/disktype: nvme
       restartPolicy: Never
       volumes:
       - name: gcloud-service-account
