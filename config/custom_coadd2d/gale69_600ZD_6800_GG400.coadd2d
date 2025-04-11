@@ -1,0 +1,45 @@
+# Auto-generated Coadd2D input file using PypeIt version: 1.17.2.dev92+gb8455e659
+# UTC 2025-03-09T22:48:00.808+00:00
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+    redux_path = /tmp/adap_root/gale69/600ZD_6800_GG400/2D_Coadd
+    scidir = Science
+    qadir = QA
+    detnum = "2,6", "3,7", "4,8"
+[calibrations]
+    calib_dir = Calibrations
+    [[wavelengths]]
+        refframe = observed
+[coadd2d]
+    offsets = maskdef_offsets
+    weights = auto
+    spat_toler = 20
+    spec_samp_fact = 1.0
+    spat_samp_fact = 1.0
+[flexure]
+    spec_method = skip
+[reduce]
+    [[findobj]]
+        skip_skysub = True
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+        use_dither_offset = True
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
+
+# Data block
+spec2d read
+ path /tmp/adap_root/gale69/600ZD_6800_GG400/2010-03-17/complete/reduce/keck_deimos_A/Science
+                                                       filename
+spec2d_DE.20100317.53964-gale69_DEIMOS_20100317T145914.640.fits
+spec2d_DE.20100317.54340-gale69_DEIMOS_20100317T150530.221.fits
+spec2d_DE.20100317.54709-gale69_DEIMOS_20100317T151142.432.fits
+spec2d end
+

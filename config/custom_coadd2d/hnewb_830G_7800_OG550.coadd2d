@@ -1,0 +1,47 @@
+# Auto-generated Coadd2D input file using PypeIt version: 1.17.2.dev92+gb8455e659
+# UTC 2025-03-10T12:49:02.546+00:00
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+    redux_path = /tmp/adap_root/hnewb/830G_7800_OG550/2D_Coadd
+    scidir = Science
+    qadir = QA
+    detnum = "2,6", "3,7", "4,8"
+[calibrations]
+    calib_dir = Calibrations
+    [[wavelengths]]
+        refframe = observed
+[coadd2d]
+    offsets = maskdef_offsets
+    weights = auto
+    spat_toler = 20
+    spec_samp_fact = 1.0
+    spat_samp_fact = 1.0
+    exclude_slits = MSC04:1150, MSC03:417
+[flexure]
+    spec_method = skip
+[reduce]
+    [[findobj]]
+        skip_skysub = True
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+        use_dither_offset = True
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
+
+# Data block
+# Data block 
+spec2d read
+ path /tmp/adap_root/hnewb/830G_7800_OG550/2010-03-16/complete/reduce/keck_deimos_A/Science
+                                                      filename
+spec2d_DE.20100316.33295-hnewb_DEIMOS_20100316T091448.106.fits
+spec2d_DE.20100316.34571-hnewb_DEIMOS_20100316T093602.074.fits
+spec2d_DE.20100316.35831-hnewb_DEIMOS_20100316T095703.600.fits
+spec2d end
+
