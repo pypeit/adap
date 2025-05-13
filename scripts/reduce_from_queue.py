@@ -131,7 +131,7 @@ def upload_results(args, dataset):
             try:
                 dest_path.upload(reduce_path)
             except Exception as e:
-                logger.error(f"Failed to upload {file}",exc_info=True)
+                logger.error(f"Failed to upload {reduce_path}",exc_info=True)
                 failed = True
 
     if failed:

@@ -7,7 +7,7 @@ from utils import run_script
 
 logger = logging.getLogger(__name__)
 
-def get_cloud_path(args, source):
+def get_cloud_path(args, source, adap="adap_2020"):
     """Return the correct cloud enabled RClonePath for a given cloud provider.
     Args:
         args: The arguments to the script as returned by argparse
@@ -18,7 +18,7 @@ def get_cloud_path(args, source):
     if source == "gdrive":
         source_loc = RClonePath(args.rclone_conf, "gdrive", "backups")
     else:
-        source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap_2020", "raw_data_reorg")
+        source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", adap, "raw_data_reorg")
     return source_loc
 
 class RClonePath():
@@ -56,9 +56,14 @@ class RClonePath():
     def rglob(self, pattern):
         return [rp for rp in self.ls(True) if fnmatch(rp.path.name, pattern)]
 
-    def _copy(self, source, dest):
+    def _copy(self, source, dest, file=False):
+        # For files, use copyto, which won't assume the source and destination are directories
+        if file:
+            command = 'copyto'
+        else:
+            command = 'copy'
         # Run rclone copy with nice looking progress
-        run_script(["rclone", '--config', self.rclone_config,  'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', '--retries-sleep', '60s', str(source), str(dest)])
+        run_script(["rclone", '--config', self.rclone_config,  command, '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', '--retries-sleep', '60s', str(source), str(dest)])
 
     def unlink(self):
         run_script(["rclone", '--config', self.rclone_config,  'delete', str(self)], log_output=True)
@@ -67,9 +72,16 @@ class RClonePath():
         logger.info(f"Downloading {self} to {dest}")
         self._copy(self, dest)
 
+    def download_file(self, dest):        
+        logger.info(f"Downloading file {self} to {dest}")
+        self._copy(self, dest, file=True)
+
     def upload(self, source):
         logger.info(f"Uploading {source} to {self}")
-        self._copy(source, self)
+        if Path(source).is_file():
+            self._copy(source, self, file=True)
+        else:
+            self._copy(source, self, file=False)
 
     def sync_from(self, path):
         logger.info(f"Syncing {self} from {path}")

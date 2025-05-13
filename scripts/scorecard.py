@@ -77,11 +77,33 @@ def get_expected_det(par, args):
 
     return expected_det
 
+def get_dataset_from_reduce_path(args, reduce_path):
+    # Extract the dataset name from the reduction path, given the various ways adap does paths
+
+    # First remove the root dir
+    rel_path = reduce_path.relative_to(args.reorg_dir)
+
+    # Test one, the "dataset/complete/reduce/spec_a/" format
+    try:
+        i = rel_path.parts.index("complete")
+    except ValueError as e:
+        # No "complete" look for the format dataset/reduce
+        try:
+            i = rel_path.parts.index("reduce")
+        except ValueError as e:
+            # Unknown format, just use asis
+            i = len(rel_path.parts)
+
+    # Trim off the end parts of the path that are not the dataset
+    return str(Path(*rel_path.parts[0:i]))
+
+
 def main():
     parser = argparse.ArgumentParser(description='Build score card for completed pypeit reductions.\nAssumes the directory structure created by adap_reorg_setup.py')
     parser.add_argument("spec_name", type=str, help = "Name of the spectrograph for the reduction.")
     parser.add_argument("reorg_dir", type=str, help = "Root of directory structure created by adap_reorg_setup.py")
     parser.add_argument("outfile", type=str, help='Output csv file.')
+    parser.add_argument("--pypeit_name", type=str, default=None, help="Name of .pypeit file used in the reduction")
     parser.add_argument("--commit", type=str, default = "", help='Optional, git commit id for the PypeIt version used')
     parser.add_argument("--mem", type=int, default=0, help="Optional, The maximum memory usage during the PypeIt reduction.")
     parser.add_argument("--status", type=str, default = None, help='Status of running the reduction')
@@ -91,7 +113,7 @@ def main():
     parser.add_argument("--flex_shift_thresh", type=float, default=10.0)
     parser.add_argument("--lower_std_chi", type=float, default=0.6)
     parser.add_argument("--upper_std_chi", type=float, default=1.6)
-
+    parser.add_argument("--fracpos_thresh", type=float, default=0.1)
     args = parser.parse_args()
 
     reorg_path = Path(args.reorg_dir)
@@ -106,8 +128,8 @@ def main():
         path = dirs_to_scan.pop()
         if not path.is_dir():
             continue
-        if path.name.startswith("reduce"):
-            reduce_paths.append(path)
+        if path.name == "Science":
+            reduce_paths.append(path.parent)
         else:
             for child in path.iterdir():
                 if child.is_dir():
@@ -121,22 +143,25 @@ def main():
     bad_slits_outfile = outpath.parent / (outpath.stem + "_bad_slits" + outpath.suffix)
     bad_slits_data = Table(names=["slit_id", "spec2d"], dtype=["U11", "U80"])
 
-    columns = ['dataset', 'science_file', 'date', 'status', 'bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
+    columns = ['dataset', 'science_file', 'date', 'status', 'sn_percentile_16', 'sn_percentile_50', 'sn_percentile_84','bad_slit_count', 'det_count', 'slit_count', 'slit_std_chi_out_of_range', 
                'slit_rms_over_thresh', 'slit_spec_flex_over_thresh', 'total_bad_flags', 'bad_wv_count', 'bad_tilt_count', 'bad_flat_count', 
-               'skip_flat_count', 'bad_reduce_count', 'object_count', 
+               'skip_flat_count', 'bad_skysub_count',  'bad_extract_count', 'object_count', 'object_fracpos_over_thresh',
                'obj_rms_over_thresh', 'object_flex_shift_over_thresh', 'object_without_opt_with_box', 'object_without_opt_wo_box', 
                'maskdef_extract_count', 'exec_time', 'mem_usage', 'git_commit', 'reduce_dir']
   
-    pypeit_name = f"{args.spec_name}_A"
+    if args.pypeit_name is None:
+        pypeit_name = f"{args.spec_name}_A"
+    else:
+        pypeit_name = Path(args.pypeit_name).stem
 
-    data = Table(names = columns, dtype=['U256', 'U22', 'datetime64[D]', 'U8'] + [int for x in columns[4:-2]] + ['U40', 'U20'])
+    data = Table(names = columns, dtype=['U256', 'U22', 'datetime64[D]', 'U8'] + [float,float,float] + [int for x in columns[4:-5]] + ['U40', 'U20'])
     stbm = SlitTraceBitMask()
 
     for reduce_path in reduce_paths:
-        dataset = reduce_path.parent.relative_to(args.reorg_dir)
-        pypeit_file = reduce_path / pypeit_name / f"{pypeit_name}.pypeit"
-        log_path = str(reduce_path / pypeit_name / f"{pypeit_name}.log")
-        science_path = reduce_path / pypeit_name / "Science"
+        dataset = get_dataset_from_reduce_path(args, reduce_path)
+        pypeit_file = reduce_path / f"{pypeit_name}.pypeit"
+        log_path = str(reduce_path / f"{pypeit_name}.log")
+        science_path = reduce_path / "Science"
 
         print(f"Searching {log_path} for execution time...")
         reduce_exec_time = get_exec_time(log_path)
@@ -150,7 +175,7 @@ def main():
         print(f"Found {np.sum(science_idx)} Science/standard files.")
         for science_file in pf.data['filename'][science_idx]:
             data.add_row()
-            data[-1]['dataset'] = dataset.parent 
+            data[-1]['dataset'] = dataset 
             data[-1]['science_file'] = science_file
             data[-1]['status'] = args.status
             data[-1]['git_commit'] = args.commit
@@ -172,7 +197,8 @@ def main():
                 total_bad_tilt_slits = set()
                 total_bad_flat_slits = set()
                 total_skip_flat_slits = set()
-                total_bad_reduce_slits = set()
+                total_bad_skysub_slits = set()
+                total_bad_extract_slits = set()
                 total_bad_slit_spec_flex = set()
                 all_slit_ids = set()
 
@@ -203,7 +229,8 @@ def main():
                         bad_tilt_slits = np.array([stbm.flagged(x, 'BADTILTCALIB') for x in spec2dobj.slits.mask])
                         bad_flat_slits = np.array([stbm.flagged(x, 'BADFLATCALIB') for x in spec2dobj.slits.mask])
                         skip_flat_slits = np.array([stbm.flagged(x, 'SKIPFLATCALIB') for x in spec2dobj.slits.mask])
-                        bad_reduce_slits = np.array([stbm.flagged(x, 'BADREDUCE') for x in spec2dobj.slits.mask])
+                        bad_skysub_slits = np.array([stbm.flagged(x, 'BADSKYSUB') for x in spec2dobj.slits.mask])
+                        bad_extract_slits = np.array([stbm.flagged(x, 'BADEXTRACT') for x in spec2dobj.slits.mask])
 
                         # Combine the results for this detector/mosaic with the 
                         # totals. A set of det:slitord_id (spat_id)s is used to prevent
@@ -216,7 +243,8 @@ def main():
                         total_bad_tilt_slits.update(combined_slit_ids[bad_tilt_slits])
                         total_bad_flat_slits.update(combined_slit_ids[bad_flat_slits])
                         total_skip_flat_slits.update(combined_slit_ids[skip_flat_slits])
-                        total_bad_reduce_slits.update(combined_slit_ids[bad_reduce_slits])
+                        total_bad_skysub_slits.update(combined_slit_ids[bad_skysub_slits])
+                        total_bad_extract_slits.update(combined_slit_ids[bad_extract_slits])
                         bad_chi_slits.update(combined_slit_ids[chis_out_of_range])
                         total_bad_slit_spec_flex.update(combined_slit_ids[bad_slit_spec_flex])
                         all_slit_ids.update(combined_slit_ids)
@@ -230,7 +258,7 @@ def main():
                     print(f"Marking '{data[-1]['science_file']}' as failed. det_count {data[-1]['det_count']} does not match expected {expected_det}.")
                     data[-1]['status'] = 'FAILED'
 
-                total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_reduce_slits
+                total_bad_flag_slits = total_bad_wv_slits | total_bad_tilt_slits | total_bad_flat_slits | total_bad_skysub_slits | total_bad_extract_slits
                 bad_slits =   total_bad_slit_rms | bad_chi_slits | total_bad_flag_slits | total_bad_slit_spec_flex
                 
                 # Gather the bad_slits for writing out
@@ -246,7 +274,8 @@ def main():
                 data[-1]['bad_tilt_count'] = len(total_bad_tilt_slits)
                 data[-1]['bad_flat_count'] = len(total_bad_flat_slits)
                 data[-1]['skip_flat_count'] = len(total_skip_flat_slits)
-                data[-1]['bad_reduce_count'] = len(total_bad_reduce_slits)
+                data[-1]['bad_skysub_count'] = len(total_bad_skysub_slits)
+                data[-1]['bad_extract_count'] = len(total_bad_skysub_slits)
                 data[-1]['exec_time'] = reduce_exec_time
                 data[-1]['mem_usage'] = args.mem
 
@@ -260,6 +289,19 @@ def main():
                     data[-1]['object_count'] += len(sobjs)
                     data[-1]['maskdef_extract_count'] += np.count_nonzero(sobjs['MASKDEF_EXTRACT'])            
 
+                    if sobjs[0]['PYPELINE'] == 'Echelle':
+                        fracpos_field = 'ECH_FRACPOS'
+                    else:
+                        fracpos_field = 'SPAT_FRACPOS'
+                    fracpos_median = np.full(sobjs[fracpos_field].shape,np.median(sobjs[fracpos_field]))
+                    fracpos_difference = np.fabs(np.subtract(sobjs[fracpos_field], fracpos_median))
+                    fracpos_percent_diff = np.divide(fracpos_difference, fracpos_median)
+                    data[-1]['object_fracpos_over_thresh'] = np.sum(fracpos_percent_diff > args.fracpos_thresh)
+
+                    s2n_percentile = np.percentile(sobjs['S2N'], [16,50,84])
+                    data[-1]['sn_percentile_16'] = s2n_percentile[0]
+                    data[-1]['sn_percentile_50'] = s2n_percentile[1]
+                    data[-1]['sn_percentile_84'] = s2n_percentile[2]
                     # Object RMS will eventually be replaced with slit rms once that's added to the
                     # spec2d
                     for specobj in sobjs:
@@ -277,6 +319,8 @@ def main():
                         if specobj['FLEX_SHIFT_TOTAL'] is not None and np.fabs(specobj['FLEX_SHIFT_TOTAL']) > args.flex_shift_thresh:
                             data[-1]['object_flex_shift_over_thresh'] += 1
 
+                        
+
                 except PypeItError:
                     print(f"Failed to load spec1d {spec1d_file}")
                     data[-1]['status'] = 'FAILED'
@@ -284,7 +328,7 @@ def main():
 
     data.sort(['status', 'dataset', 'science_file'])
 
-    data.write(args.outfile, format='csv', overwrite=True)
+    data.write(args.outfile, format='csv', overwrite=True, formats={'sn_percentile_16':'%0.5f','sn_percentile_50':'%0.5f', 'sn_percentile_84':'%0.5f'})
     bad_slits_data.write(str(bad_slits_outfile), format='csv', overwrite=True)
 
 if __name__ == '__main__':    

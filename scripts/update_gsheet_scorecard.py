@@ -12,7 +12,7 @@ import gspread
 from gspread.utils import ValueInputOption
 import gspread_utils
 
-MAX_SCORECARD_COL = 'AA'
+MAX_SCORECARD_COL = 'AE'
 
 def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
 
@@ -26,7 +26,7 @@ def retry_gspread_call(func, retry_delays = [30, 60, 60, 90], retry_jitter=5):
             time.sleep(retry_delays[i] + random.randrange(1, retry_jitter+1))
 
 def build_array_from_rows(data_rows):
-    scorecard_dtypes = ['U256', 'U22', 'datetime64[D]', 'U8'] + [int for x in data_rows[0][4:-2]] + ['U40', 'U20']
+    scorecard_dtypes = ['U256', 'U22', 'datetime64[D]', 'U8'] + [float,float,float] + [int for x in data_rows[0][4:-5]] + ['U40', 'U20']
     scorecard_names = data_rows[0]
     # numpy requires tuples for structured arrays
     scorecard_values = [tuple(x) for x in data_rows[1:]]
@@ -186,8 +186,8 @@ def main():
     args = parser.parse_args()
 
 
-    sheets = ['latest', 'Failed', 'DEIMOS', 'ESI', 'HIRES', 'LRIS', 'MOSFIRE', 'NIRES', 'NIRSPEC']
-    
+    #sheets = ['latest', 'Failed', 'DEIMOS', 'ESI', 'HIRES', 'LRIS', 'MOSFIRE', 'NIRES', 'NIRSPEC']
+    sheets = ['HIRES']
 
     print (f"Reading {args.scorecard}")
     csv_rows = []

@@ -2,6 +2,7 @@ import sys
 import argparse
 from pathlib import Path
 from time import sleep
+import re
 
 import numpy as np
 from astropy.table import Table, vstack
@@ -18,6 +19,7 @@ def parse_args():
     parser.add_argument('out_dir', type=Path, help="Output directory where the query results are downloaded.")
     parser.add_argument('koaids', type=Path, default=None, help="File containing a list of koaids to of science frames to start with.")
     parser.add_argument('--date_window', type=float, default=3.0, help="How long a time range to use when grouping files. Measured in days. Defaults to 3 days.")
+    parser.add_argument('--std_as_calib', default=False, action="store_true", help="Whether to consider standard observations as calibration files")
     parser.add_argument('--download', default=False, action="store_true", help="Whether or not to download the files after finding them. Defaults to False.")
     parser.add_argument('--raw_data_dir', type=Path, default=None, help="Where to download the raw data. If not specified, the out_dir argument is used.")
     return parser.parse_args()
@@ -59,14 +61,24 @@ def main(args):
 
     print(f"Grouped {len(koaid_query_results)} files into {len(date_groups)} date groups")
 
-    files_to_download = Table(names=["koaid","instrume","filehand"],dtype=[mi.KOA_ID_DTYPE, "<U10", "<U256"])    
+    if args.std_as_calib:
+        types_to_exclude = mi.exclude_koa_types[extended_spec.instrument_name]
+    else:
+        types_to_exclude = mi.exclude_koa_types[extended_spec.instrument_name] + ['object']
+
+    files_to_download = Table(names=["koaid","instrume","filehand","koaimtyp","targname","echangl","xdangl","binning"],dtype=[mi.KOA_ID_DTYPE, "<U10", "<U256", "<U6", "<U15",float,float,"<U6"])
     for dg in date_groups:
         # Put the science/standard files into the files to download
         for dg_file in dg.metadata:
-            files_to_download.add_row([dg_file["koaid"], dg_file["instrume"], dg_file["filehand"]])
+            files_to_download.add_row([dg_file["koaid"], dg_file["instrume"], dg_file["filehand"], dg_file["koaimtyp"],dg_file["targname"],dg_file["echangl"],dg_file["xdangl"],dg_file["binning"]])
 
-        query_output = koa_query_dg(extended_spec.instrument_name, args.out_dir, dg)
-        trim_calib_files(extended_spec, files_to_download, query_output, dg.metadata)
+        query_output = koa_query_dg(extended_spec.instrument_name, args.out_dir, dg, types_to_exclude)
+
+        query_output_table = Table.read(str(query_output), format="ipac")
+        if args.std_as_calib:
+            query_output_table = trim_std_files(query_output_table)
+
+        trim_calib_files(extended_spec, files_to_download, query_output_table, dg.metadata)
 
     files_to_download.write(str(args.out_dir / "files_to_download.csv"),format="csv",overwrite=True)
 
@@ -106,11 +118,11 @@ def koa_query_koaids(koaids: list[str], instr: str, out_dir:Path) -> Table:
     return result_table
 
 
-def koa_query_dg(instr : str, out_dir : Path, dg:DateGroup) -> Path:
+def koa_query_dg(instr : str, out_dir : Path, dg:DateGroup, exclude_types : list[str]) -> Path:
 
     fields = ["koaid"] + mi.common_observation_columns + mi.common_program_columns + mi.instr_columns[instr]
     # Exclude unwanted types, and "object" files which are not calibration files
-    exclude_types = [f"'{t}'" for t in mi.exclude_koa_types[instr]] + ["'object'"]
+    exclude_types = [f"'{t}'" for t in exclude_types]
     start_date, end_date = dg.window
     query = f"select {','.join(fields)} from koa_{instr.lower()} where date_obs BETWEEN TO_TIMESTAMP('{start_date.to_value('iso', subfmt='date')} 00:00:00', 'YYYY-MM-DD HH24:MI:SS') and TO_TIMESTAMP('{end_date.to_value('iso', subfmt='date')} 23:59:59','YYYY-MM-DD HH24:MI:SS') and koaimtyp not in ({','.join(exclude_types)})"
     outname = out_dir / (dg.get_dir_name() + ".ipac")
@@ -124,14 +136,31 @@ def koa_query_dg(instr : str, out_dir : Path, dg:DateGroup) -> Path:
     sleep(2)
     return outname
 
-def trim_calib_files(ex_spec, files_to_download, query_output : Path, dg_metadata):
-    query_output_table = Table.read(str(query_output), format="ipac")
+
+def trim_std_files(query_output_table :Table) -> Table:
+    # Trim any "object" files to be known standard stars
+
+    std_star_regexes = [r'feige *110([^\d]|$)',
+                        r'feige *34([^\d]|$)',
+                        r'hz *44([^\d]|$)',
+                        r'g191-*b2b',
+    ]
+    object_files = query_output_table["koaimtyp"] == 'object'
+    calib_files = np.logical_not(object_files)
+    std_files = False ** len(query_output_table['targname'])
+    for regex in std_star_regexes:
+        matches = [re.search(regex,str(targname), re.IGNORECASE) is not None for targname in query_output_table['targname']]
+        std_files = np.logical_or(std_files, matches)
+
+    return query_output_table[np.logical_or(calib_files, np.logical_and(object_files, std_files))]
+
+def trim_calib_files(ex_spec, files_to_download, query_output_table : Table, dg_metadata):
 
     for query_file in query_output_table:
         for dg_file in dg_metadata:
             if ex_spec.koa_config_compare(query_file, dg_file):
                 if query_file["koaid"] not in files_to_download["koaid"]:
-                    files_to_download.add_row([query_file["koaid"], query_file["instrume"], query_file["filehand"]])
+                    files_to_download.add_row([query_file["koaid"], query_file["instrume"], query_file["filehand"], query_file["koaimtyp"], query_file["targname"], query_file["echangl"],query_file["xdangl"],query_file["binning"]])
     
 
 

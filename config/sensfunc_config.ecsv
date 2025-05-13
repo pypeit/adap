@@ -1,0 +1,15 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: id, datatype: string}
+# - {name: extr, datatype: string}
+# - {name: algorithm, datatype: string}
+# - {name: multi, datatype: string}
+# - {name: sens_file, datatype: string}
+# - {name: use_flat, datatype: bool}
+# schema: astropy-2.0
+id extr algorithm multi sens_file use_flat
+DEFAULT "" IR "" "" True
+HIRES/SDSSJ0818+1722/2008B_H160Hr_A.Cowie/2009-01-31 "" IR "" "" False
+spec1d_HI.20050119.28769-G191B2B_HIRES_20050119T075930.854.fits "" IR "" "" False
+spec1d_HI.20050119.57568-HZ44_HIRES_20050119T155929.875.fits "" IR "" "" False
