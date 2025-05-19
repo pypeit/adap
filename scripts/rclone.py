@@ -18,7 +18,7 @@ def get_cloud_path(args, source, adap="adap"):
     if source == "gdrive":
         source_loc = RClonePath(args.rclone_conf, "gdrive", "backups")
     else:
-        source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap", "raw_data_reorg")
+        source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", adap, "raw_data_reorg")
     return source_loc
 
 class RClonePath():

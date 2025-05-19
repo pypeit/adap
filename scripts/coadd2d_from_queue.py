@@ -117,7 +117,7 @@ def update_path_root_dir(args, observing_config, file_path):
 def update_coadd2d_paths(args, custom_coadd2d_file, observing_config, coadd2d_output):
 
     # Get the file_paths and redux_path from the coadd2d file, and update it to the correct root dir
-    coadd2d_file = Coadd2DFile.from_file(custom_coadd2d_file)
+    coadd2d_file = Coadd2DFile.from_file(custom_coadd2d_file, preserve_comments=True)
     
     updated_paths = [update_path_root_dir(args, observing_config,file_path) for file_path in coadd2d_file.file_paths]
 

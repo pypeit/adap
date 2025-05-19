@@ -1,5 +1,5 @@
 # Auto-generated Coadd2D input file using PypeIt version: 1.17.2.dev92+gb8455e659
-# UTC 2025-03-11T04:34:03.758+00:00
+# UTC 2025-04-11T22:31:55.872+00:00
 
 # User-defined execution parameters
 [rdx]
@@ -24,7 +24,7 @@
 [reduce]
     [[findobj]]
         skip_skysub = True
-        snr_thresh = 10
+        snr_thresh = 20
     [[slitmask]]
         obj_toler = 0.5
     [[extraction]]
@@ -32,7 +32,6 @@
         use_2dmodel_mask = False
         boxcar_radius = 1.0
 
-# Data block
 spec2d read
  path /tmp/adap_root/miki13D2/830G_8100_OG550/2013-06-11/complete/reduce/keck_deimos_A/Science
                                                          filename
