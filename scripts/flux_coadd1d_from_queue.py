@@ -20,6 +20,31 @@ from rclone import get_cloud_path
 import metadata_info
 
 
+def update_paths(pypeit_input_file, dataset, root_dir):
+
+    if pypeit_input_file.suffix == ".flux":
+        pif = FluxFile.from_file(pypeit_input_file, preserve_comments=True)
+    elif pypeit_input_file.suffix == ".coadd1d":
+        pif = Coadd1DFile.from_file(pypeit_input_file, preserve_comments=True)
+
+    new_paths = []
+    try:
+        for path in pif.file_paths:
+            dataset_start = path.index(dataset)
+            new_paths.append(str(root_dir / path[dataset_start:]))
+    except Exception as e:
+        logger.error(f"Failed to create new paths for {pypeit_input_file}", exc_info=True)
+        return False
+    
+    try:
+        pif.file_paths = new_paths
+        pif.write(pypeit_input_file)
+    except Exception as e:
+        logger.error(f"Failed to write custom input file '{pypeit_input_file}'", exc_info=True)
+        return False
+    
+    return True
+
 def run_flux_coadd1d_task(args, dataset_prefix):
     root_path = Path(args.adap_root_dir)
     spec_name = metadata_info.dataset_to_spec(dataset_prefix)
@@ -90,8 +115,30 @@ def run_flux_coadd1d_task(args, dataset_prefix):
             coadd_file_name = f"{spec_name}.coadd1d"
             coadd_output_name = f"coadd1d_{dataset_file_name}.fits"
 
-            logger.info("Running pypeit_flux_setup...")
-            run_script(["pypeit_flux_setup", "--name", spec_name, "--skip_standards", "--recursive", "--coadd_output", coadd_output_name, str(root_path / dataset_prefix)], save_output=str(local_coadd_dir / "flux_setup_output.txt"))
+            # Determine if there are any custom flux or coadd1d files. If there are we may be able to skip pypeit_flux_setup
+            config_dir = root_path / "adap" / "config"
+
+            custom_base_name = dataset_prefix.replace("/", "_")
+            custom_flux_file = config_dir/(custom_base_name + ".flux")
+            custom_coadd1d_file = config_dir/(custom_base_name + ".coadd1d")
+
+            # If either of the custom files does not exist, we need to run pypeit_flux_setup
+            if (not custom_flux_file.exists()) or (not custom_coadd1d_file.exists()):
+                logger.info("Running pypeit_flux_setup...")
+                run_script(["pypeit_flux_setup", "--name", spec_name, "--skip_standards", "--recursive", "--coadd_output", coadd_output_name, str(root_path / dataset_prefix)], save_output=str(local_coadd_dir / "flux_setup_output.txt"))
+
+            # Copy any custom files over
+            if custom_flux_file.exists():
+                logger.info(f"Copying custom flux file {custom_flux_file}")
+                shutil.copy2(custom_flux_file, local_coadd_dir / flux_file_name)
+                if not update_paths(local_coadd_dir / flux_file_name, dataset_prefix, root_path):
+                    status = "FAILED"
+
+            if custom_coadd1d_file.exists():
+                logger.info(f"Copying custom coadd1d file {custom_coadd1d_file}")
+                shutil.copy2(custom_coadd1d_file, local_coadd_dir / coadd_file_name)
+                if not update_paths(local_coadd_dir / coadd_file_name, dataset_prefix, root_path):
+                    status = "FAILED"
 
             # Now flux
             try:
