@@ -1,0 +1,6 @@
+[sensfunc]
+    algorithm = IR
+    use_flat = True
+    star_ra = 101.306
+    star_dec = 2.13741
+

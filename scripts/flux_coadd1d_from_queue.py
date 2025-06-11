@@ -45,6 +45,15 @@ def update_paths(pypeit_input_file, dataset, root_dir):
     
     return True
 
+def update_setup_ids(args, coadd1d_file):
+    cf = Coadd1DFile.from_file(coadd1d_file, preserve_comments=True)
+    # Determine the setup ids using the format of the filename relative to the root
+    # The relative path should be <instr>/<target>/<run>/<date>/<config>/reduce/Science/<spec1d>
+    # The setup id should be <date>_<config>
+    setup_ids = ["_".join(Path(f).relative_to(args.adap_root_dir).parts[-5:5]) for f in cf.filenames]
+    cf.data["setup_id"] = setup_ids
+    cf.write(coadd1d_file)
+
 def run_flux_coadd1d_task(args, dataset_prefix):
     root_path = Path(args.adap_root_dir)
     spec_name = metadata_info.dataset_to_spec(dataset_prefix)
@@ -125,7 +134,7 @@ def run_flux_coadd1d_task(args, dataset_prefix):
             # If either of the custom files does not exist, we need to run pypeit_flux_setup
             if (not custom_flux_file.exists()) or (not custom_coadd1d_file.exists()):
                 logger.info("Running pypeit_flux_setup...")
-                run_script(["pypeit_flux_setup", "--name", spec_name, "--skip_standards", "--recursive", "--coadd_output", coadd_output_name, str(root_path / dataset_prefix)], save_output=str(local_coadd_dir / "flux_setup_output.txt"))
+                run_script(["python", str(root_path / "adap" / "scripts" / "adap_flux_setup.py"), "--name", spec_name, "--skip_standards", "--recursive", "--coadd_output", coadd_output_name, str(root_path / dataset_prefix)], save_output=str(local_coadd_dir / "flux_setup_output.txt"))
 
             # Copy any custom files over
             if custom_flux_file.exists():
@@ -139,6 +148,11 @@ def run_flux_coadd1d_task(args, dataset_prefix):
                 shutil.copy2(custom_coadd1d_file, local_coadd_dir / coadd_file_name)
                 if not update_paths(local_coadd_dir / coadd_file_name, dataset_prefix, root_path):
                     status = "FAILED"
+            else:
+                # Update the setup ids for newly generated coadd1d files
+                logger.info("Updating coadd1d setup ids...")
+                update_setup_ids(args, coadd_file_name)
+
 
             # Now flux
             try:
@@ -148,7 +162,8 @@ def run_flux_coadd1d_task(args, dataset_prefix):
             except Exception as e:
                 logger.error(f"Failed to run pypeit_flux_calib on {flux_file_name}.", exc_info=True)
                 status = "FAILED"
-                
+
+            # Now coadd                
             try:
                 logger.info("Running pypeit_coadd_1dspec...")
                 output_file = local_coadd_dir / "pypeit_coadd_1dspec_output.txt"

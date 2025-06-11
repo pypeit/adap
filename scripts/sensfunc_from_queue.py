@@ -128,6 +128,10 @@ def get_senfunc_args(args, dataset, file_name):
             # Boolean argument
             if config_row[name]:
                 sensfunc_args += ["--" + name]
+        elif name == "sens_file":
+            if config_row[name] != "":
+                # The sensfile overrides other arguments
+                sensfunc_args += ["--sens_file", str(args.adap_root_dir / "adap" / "config" / config_row[name])]
         elif config_row[name] != "":
             # String argument
             sensfunc_args += ["--" + name, str(config_row[name])]
@@ -179,7 +183,7 @@ def backup_log(args, dataset):
     # Upload the log for this run
 
     log_sourcefile = Path(args.logfile)
-    log_dest = get_cloud_path(args, "s3") / Path(dataset, "reduce")
+    log_dest = get_cloud_path(args, "s3") / Path(dataset, "reduce", args.logfile)
     if log_sourcefile.exists():
         logger.info(f"Uploading log to {log_dest}.")
         try:
