@@ -20,15 +20,18 @@ or
 
 ${slit mask}/${grating}_${grating tilt}_${filter}/${start date}_${end date}
 
+Reduced data is stored in a directory named "keck_deimos_A" underneath the date
+directory. 1D and 2D coadd results are stored at multiple levels depending on
+which files were coadded.
+
 For example:
 
-041615B1/1200G_8800_OG550/2015-11-12_2015-11-13/
-
-These are the subdirectories under this hierarchy containing the reduced data:
-
-- keck_deimos_A/: The results of a PypeIt reduction of the raw data.
-- 1D_Coadd/:      The results of collating and coadding the 1D reduced spectra.
-- 2D_Coadd/:      The results of coadding the 2D reduced spectra.
+041615B1/1200G_8800_OG550/2015-11-12_2015-11-13/keck_deimos_A/
+041615B1/1200G_8800_OG550/1D_Coadd
+041615B1/1200G_8800_OG550/2D_Coadd
+CLAE-1/830G_7900_OG550/2006-02-25/1D_Coadd
+CLAE-1/830G_7900_OG550/2006-02-25/2D_Coadd
+CLAE-1/830G_7950_OG550/1D_Coadd
 
 File Formats
 ============
@@ -85,7 +88,7 @@ https://pypeit.readthedocs.io/en/latest/pypeit_par.html.
 ------------------
 Files named "collate_report.dat" are IPAC files containing information about
 the files created during 1D coadding. More information about this format can
-be found at https://pypeit.readthedocs.io/en/latest/collate1d.html.
+be found at https://pypeit.readthedocs.io/en/latest/collate1d.html#collate-report-dat.
 
 log files
 ---------
@@ -213,4 +216,4 @@ Software Used
 -------------
 All data was reduced with PypeIt (https://pypeit.readthedocs.io/en/latest/).
 Additional software used to generate this archive and run the PypeIt software is
-located at https://github.com/pypeit/adap.
+located at https://github.com/pypeit/adap on the adap_2019 branch.
