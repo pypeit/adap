@@ -1,0 +1,68 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: adap-koa-download
+spec:
+  backoffLimit: 2
+  parallelism: 1
+  template:
+    spec:
+      containers:
+      - name: download-worker
+        args:
+        - apt-get -y update; pip install awscli astropy pykoa; 
+          cd /tmp;  mkdir adap_root; cd adap_root;
+          git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2020;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap_2020/koa_to_download/ /tmp/koa_to_download/ --recursive;
+          mkdir /tmp/RAW_DATA;
+          python scripts/koa_download.py /tmp/RAW_DATA/ /tmp/koa_to_download/*;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/RAW_DATA/ s3://pypeit/adap_2020/RAW_DATA/std_star/ --recursive;
+        command:
+        - /bin/bash
+        - -c
+        image: docker.io/library/python:3.12
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: '1.5'
+            ephemeral-storage: 64Gi
+            memory: 8Gi
+          requests:
+            cpu: '1.5'
+            ephemeral-storage: 64Gi
+            memory: 8Gi
+        volumeMounts:
+        - mountPath: /root/.config/gspread/service_account.json
+          name: gcloud-service-account
+          subPath: credentials
+        - mountPath: /tmp
+          name: ephemeral
+        - mountPath: /root/.aws/credentials
+          name: prp-s3-credentials
+          subPath: credentials
+        env:
+           - name: POD_NAME
+             valueFrom:
+                fieldRef:
+                   fieldPath: metadata.name
+           - name: ENDPOINT_URL
+             value: http://rook-ceph-rgw-nautiluss3.rook
+           - name: S3_ENDPOINT
+             value: rook-ceph-rgw-nautiluss3.rook
+           - name: DEBIAN_FRONTEND
+             value: noninteractive
+           - name: QT_QPA_PLATFORM
+             value: offscreen
+      nodeSelector:
+        nautilus.io/disktype: nvme
+      restartPolicy: Never
+      volumes:
+      - name: gcloud-service-account
+        secret:
+          secretName: adap-scorecard-gcloud
+      - name: prp-s3-credentials
+        secret:
+          secretName: prp-s3-credentials            
+      - emptyDir: {}
+        name: ephemeral
