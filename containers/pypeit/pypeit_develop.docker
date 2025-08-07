@@ -1,0 +1,23 @@
+
+FROM ubuntu:24.04
+ARG user=pypeitusr
+ARG venv=pypeit_env
+
+ENV DEBIAN_FRONTEND="noninteractive" TZ="US"
+
+RUN  apt-get update && \
+     apt-get install -y build-essential git rclone python3.12 python3.12-dev python3.12-venv
+
+RUN useradd -m $user
+
+USER $user
+
+RUN python3.12 -m venv /home/$user/$venv && \
+    /home/$user/$venv/bin/pip install awscli 
+
+RUN cd /home/$user && git clone https://github.com/pypeit/PypeIt.git && cd PypeIt && \
+    git checkout develop && /home/$user/$venv/bin/pip install -e ".[dev]"
+
+
+
+

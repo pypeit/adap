@@ -1,0 +1,3 @@
+FROM redis AS pypeit_workqueue_redis
+COPY dump.rdb /data/dump.rdb
+CMD ["redis-server"]
