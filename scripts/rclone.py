@@ -30,12 +30,12 @@ class RClonePath():
         path_components (list of str or :obj:`pathlib.Path`): The path components that make up the path.
 
     """
-    def __init__(self, rclone_conf, service, *path_components):
+    def __init__(self, rclone_conf, service, *path_components, is_file=None):
         self.service=service
         if service not in ['s3', 'gdrive']:
             raise ValueError(f"Unknown service {service}")
         self.rclone_config = str(rclone_conf)
-
+        self._is_file = is_file
         self.path = Path(*path_components)
 
     def ls(self, recursive=False):
@@ -43,11 +43,15 @@ class RClonePath():
         combined_results = []
         while len(paths_to_search) != 0:
             path = paths_to_search.pop()
-            results = run_script(["rclone", '--config', self.rclone_config, 'lsf', self.service + ":" + str(path)], return_output=True)
+            results = run_script(["rclone", '--config', self.rclone_config, 'lsf',  self.service + ":" + str(path)], return_output=True)
             for result in results:                    
-                if recursive and result.endswith("/"):
-                    paths_to_search.append(path / result)
-                combined_results.append(RClonePath(self.rclone_config, self.service, path, result))
+                if result.endswith("/"):
+                    is_file = False
+                    if recursive:
+                        paths_to_search.append(path / result)
+                else:
+                    is_file = True
+                combined_results.append(RClonePath(self.rclone_config, self.service, path, result, is_file=is_file))
         return combined_results
 
     def glob(self, pattern):
@@ -56,20 +60,41 @@ class RClonePath():
     def rglob(self, pattern):
         return [rp for rp in self.ls(True) if fnmatch(rp.path.name, pattern)]
 
-    def _copy(self, source, dest):
+    def _copy(self, source, dest, file=False):
+        # For files, use copyto, which won't assume the source and destination are directories
+        if file:
+            command = 'copyto'
+        else:
+            command = 'copy'
         # Run rclone copy with nice looking progress
-        run_script(["rclone", '--config', self.rclone_config,  'copy', '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', '--retries-sleep', '60s', str(source), str(dest)])
+        run_script(["rclone", '--config', self.rclone_config,  command, '-P', '--stats-one-line', '--stats', '60s', '--stats-unit', 'bits', '--retries-sleep', '60s', str(source), str(dest)])
 
     def unlink(self):
         run_script(["rclone", '--config', self.rclone_config,  'delete', str(self)], log_output=True)
+
+    def is_file(self):
+        return False if self._is_file is None else self._is_file    
+
+    def set_is_file(self, value):
+        self._is_file = value
 
     def download(self, dest):        
         logger.info(f"Downloading {self} to {dest}")
         self._copy(self, dest)
 
+    def download_file(self, dest):        
+        logger.info(f"Downloading file {self} to {dest}")
+        self._copy(self, dest, file=True)
+
     def upload(self, source):
         logger.info(f"Uploading {source} to {self}")
-        self._copy(source, self)
+        if isinstance(source,str):
+            source = Path(source)
+
+        if source.is_file():
+            self._copy(source, self, file=True)
+        else:
+            self._copy(source, self, file=False)
 
     def sync_from(self, path):
         logger.info(f"Syncing {self} from {path}")
