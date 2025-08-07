@@ -10,7 +10,7 @@ PypeIt Containers
 The PypeIt containers are  built from the ``pypeit`` subdirectory.
 There are two containers, one for a development 
 version of pypeit (``pypeit_develop.docker``) and one for a release 
-version of pypeit ( ``pypeit_release.docker``. 
+version of pypeit (``pypeit_release.docker``). 
 
 
 PypeIt Release Container
@@ -41,7 +41,7 @@ After this the virtual environment can be cleaned up if desired::
 
 The PypeIt Development Container
 --------------------------------
-The PypeIt development container is built using the `PypeIt develop branch <https://github.com/pypeit/PypeIt/tree/develop>` 
+The PypeIt development container is built using the `PypeIt develop branch <https://github.com/pypeit/PypeIt/tree/develop>`_ 
 and the latest dependencies at the time the container is built.
 
 Jobs using this container will probably want to do a re-install of PypeIt to get the latest and greatest development code,
@@ -62,7 +62,7 @@ to properly setup and install PypeIt in the development container::
 Redis Work Queue Container
 ==========================
 
-The ADAP Nautilus scripts use `Redis <https://redis.io/docs/latest/>` to manage a job queue. 
+The ADAP Nautilus scripts use `Redis <https://redis.io/docs/latest/>`_ to manage a job queue. 
 That ``redis`` instance runs in its own container build from ``pypeit_workqueue_redis.docker`` in the ``redis``
 subdirectory.
 
@@ -77,7 +77,7 @@ To build the PypeIt release container::
     $ docker build -f pypeit_release.docker --tag gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:1.16.0 --tag gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:release .
     $ docker push gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:1.16.0
 
-To build the PypeIt development container:    :
+To build the PypeIt development container::
 
     $ docker build -f pypeit_release.docker --tag gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:develop .
     $ docker push gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:develop
