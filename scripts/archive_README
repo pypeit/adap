@@ -70,6 +70,22 @@ and https://pypeit.readthedocs.io/en/latest/fluxing.html#archival-sensitivity-fu
 NOTE: A spectrum with relative flux calibration is expressed in units of
 [1e-17 erg/s/cm^2/Ang], have the correct shape over the wavelength range and
 differ from an absolute calibration only in the normalization.
+There are two sets of 1D coadd frames. The frames stored in the 1D coadd output files
+are only for objects in the input mask design file. Each object is extracted from
+each individual frame and then the 1D files are coadded.
+The second version begins with 'spec1d', these are stored with the 2D coadd output files.  
+The spectra are extracted from this final 2D coadded file. That results in a single 
+file with a corresponding single text file listing the detections by extension, 
+which includes serendipitous detections.
+
+2D coadd output files
+---------------------
+
+FITS files that begin with 'spec2d' are coadded files that come from combining the
+individual spec2d files from the PypeIt processing. The format of the output
+is that of a standard PypeIt 2D spectrum file. The format is listed here:
+https://pypeit.readthedocs.io/en/stable/out_spec2D.html
+As noted above, from this file there is a second set of extracted 1D spectra.
 
 pypeit files
 ------------
