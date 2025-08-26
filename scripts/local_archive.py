@@ -8,9 +8,10 @@ import argparse
 import sys
 
 from pypeit.archive import ArchiveDir
+import logging
+logger = logging.getLogger(__name__)
 
-   
-from archive import create_metadata_archives, populate_archive, write_messages
+from archive import create_metadata_archives, populate_archive, write_messages, init_logging
 
 def get_parser():
 
@@ -20,6 +21,7 @@ def get_parser():
     parser.add_argument('--copy', type=str, default=None, help="Copy the archive to the given location")
     parser.add_argument('--report', type=str, default="report.txt", help="Location of a report file indicating any missing files. Defaults to report.txt.")
     parser.add_argument("--subdirs", type=str, nargs="*", default=[], help="List of subdirectories of archive_dir to limit the search for files to.")
+    parser.add_argument("--verbose", default=False, action="store_true", help="Display extra status information.")
     return parser
 
 
@@ -36,6 +38,9 @@ def main(args):
         dest_archive_root = Path(args.archive_dir)
         copy_to_archive=False
 
+    init_logging(args)
+
+
     metadata_archives = create_metadata_archives(dest_archive_root)
     source_archive_root = Path(args.archive_dir)
     archive = ArchiveDir(dest_archive_root, metadata_archives, copy_to_archive=copy_to_archive)
@@ -49,7 +54,7 @@ def main(args):
     messages = populate_archive(archive,source_archive_root,dirs_to_scan)
     archive.save()
 
-    print(f"Copying README to archive root.")
+    logger.info(f"Copying README to archive root.")
     script_path = Path(__file__).parent.absolute().joinpath("archive_README")
     shutil.copy2(script_path, dest_archive_root.joinpath("README"))
 
@@ -61,7 +66,7 @@ def main(args):
     write_messages(args.report, messages)
 
     for s in timing_strings:
-        print(s)
+        logger.info(s)
     return 0
 
 if __name__ == '__main__':

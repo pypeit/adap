@@ -1,18 +1,35 @@
 #!/usr/bin/env python3
 
 import os
+import io
+import sys
 import re
 from functools import partial
 from pathlib import Path
 import traceback
-
+import datetime
 from astropy.io import fits
 from astropy.table import Table
+import numpy as np
 
 from pypeit.archive import ArchiveMetadata
 from pypeit.core.collate import SourceObject
 from pypeit.specobjs import SpecObjs
 from pypeit.spectrographs.util import load_spectrograph
+
+import logging
+logger = logging.getLogger(__name__)
+
+def init_logging(args):
+    """Initialize logging to go to stdout, without buffering.
+    INFO vs DEBUG is set based on the verbose argument to the script."""
+    log_level = logging.INFO if args.verbose is False else logging.DEBUG
+    log_stream = io.TextIOWrapper(open(sys.stdout.fileno(), "wb",buffering=0),write_through=True )
+    logging.basicConfig(format="{asctime}: {message}",
+                        style='{',
+                        level=log_level,
+                        stream = log_stream)
+
 
 class Messages:
     def __init__(self, unrecognized_messages = [], missing_file_messages = [], coadded_file_messages = []):
@@ -502,11 +519,13 @@ def populate_archive(archive, source_archive_root, dirs_to_scan):
     messages = Messages()
 
     spec1d_map = {}
-    coadded_files = []
+    coadded_files = set()
 
     while len(dirs_to_scan) > 0:
         dir = dirs_to_scan.pop()
+        logger.info(f"Scanning {dir}")
         for file in dir.iterdir():
+            logger.info(f"Processing file {file}")
             if file.is_dir():
                 dirs_to_scan.append(file)
             # Check for .fits or .fits.gz
@@ -522,32 +541,38 @@ def populate_archive(archive, source_archive_root, dirs_to_scan):
                 if 'DMODCLS' in hdr:
                     if dir.name == "Science" and hdr['DMODCLS'] == 'SpecObj':
                         # Spec1d add to the archive. This will also find any
-                        # associated spec2d, .txt and .pypeit files
+                        # associated spec2d, .txt and .pypeit filesa
+                        logger.debug(f"Processing spec1d file {file}")
+
                         (txt_file, spec2d_file, pypeit_file, msgs) = find_archvie_files_from_spec1d(file)
                         if len(msgs) > 0:
                             messages.missing_file_messages.append(msgs)
-
+                        logger.debug(f"Adding files {file}, {txt_file}, {spec2d_file}, {pypeit_file}")
                         archive.add([(source_archive_root, file, txt_file, spec2d_file, pypeit_file)])
 
                         # Keep a map of spec1d files so we can find them
                         # easily when building the SourceObjects for
                         # coadded objects
+                        logger.debug("Updating map")
                         spec1d_map[file.name] = file
 
                     elif hdr['DMODCLS'] == 'OneSpec':
                         # Coadded file. We save these for the end to make
                         # sure all the spec1ds that were used for it have been
                         # added first
-
-                        coadded_files.append(file)
+                        logger.debug(f"Processing coadd1d fitse {file}")
+                        coadded_files.add(file.parent)
                     else:
+                        logger.debug(f"Checking FITS {file}")
                         if keep_in_archive(file.relative_to(source_archive_root)):
+                            logger.debug(f"Keeping FITS file {file}")
                             archive.add([(source_archive_root, file)])
                         else:
                             messages.unrecognized_messages.append(f"Unrecognized  PypeIt FITS file: {file}")
                 else:
                     messages.unrecognized_messages.append(f"Could not get DMODCLS from FITS file: {file}")
             elif keep_in_archive(file.relative_to(source_archive_root)):
+                logger.debug(f"Keeping file {file}")
                 archive.add([(source_archive_root, file)])
             else:
                 messages.unrecognized_messages.append(f"{file} is not a file to archive.")
@@ -555,51 +580,75 @@ def populate_archive(archive, source_archive_root, dirs_to_scan):
     # Go through the coadded files, use their associated collate.dat files to build SourceObjects, and
     # add those to the archive
     spec = load_spectrograph("keck_deimos")
-    for coadded_file in coadded_files:
-        source_object = None       
+    logger.info(f"Starting pass through coadd1d dirs")
+    for coadded_dir in coadded_files:
+        logger.info(f"Coadded dir {coadded_dir}")
         try:
-            dat_file = coadded_file.with_name("collate_report.dat")
+            dat_file = coadded_dir / "collate_report.dat"
+            logger.debug("Reading collate dat file")
             collate_report_table = Table.read(str(dat_file), format="ipac")
-            related_rows = collate_report_table['filename'] == coadded_file.name
-            # There will probably only be one object per spec1d file since we mosaic, but I do this
-            # just in case.
-            spec1d_grouped_table = collate_report_table[related_rows].group_by(['spec1d_filename'])
-            for spec1d_group in spec1d_grouped_table.groups:
-                spec1d_filename = spec1d_group[0]['spec1d_filename']
+
+            # Load all of the SpecObj files from the spec1ds
+            logger.debug(f"Loading all SpecObjs for dir {coadded_dir}")
+            specobjs_map = {}
+            
+            for spec1d_filename in np.unique(collate_report_table['spec1d_filename']):
                 full_spec1d_file = spec1d_map[spec1d_filename]
-                sobjs = SpecObjs.from_fitsfile(full_spec1d_file, chk_version=False)
-                for obj_name in spec1d_group['pypeit_name']:
-                    sobj = sobjs[sobjs.name_indices(obj_name)][0]
-                    if source_object is None:
-                        source_object = SourceObject(sobj, sobjs.header, full_spec1d_file, spec, 'ra/dec')
-                        source_object.coaddfile = coadded_file
-                    else:
-                        source_object.spec_obj_list.append(sobj)
-                        source_object.spec1d_header_list.append(sobjs.header)
-                        source_object.spec1d_file_list.append(full_spec1d_file)
+                logger.debug(f"{datetime.datetime.now().isoformat()}: Loading SpecObjs from file {full_spec1d_file}")
+                specobjs_map[spec1d_filename] = SpecObjs.from_fitsfile(full_spec1d_file, chk_version=False)
+        
+
+            for file in np.unique(collate_report_table['filename']):
+                coadded_file = coadded_dir / file
+                logger.debug(f"Processing file {coadded_file}")
+                source_object = None
+
+                # There will probably only be one object per spec1d file since we mosaic, but I do this
+                # just in case.
+                related_rows = collate_report_table['filename'] == file
+                logger.debug(f"Grouping collate report table")
+                spec1d_grouped_table = collate_report_table[related_rows].group_by(['spec1d_filename'])
+                for spec1d_group in spec1d_grouped_table.groups:
+                    spec1d_filename = spec1d_group[0]['spec1d_filename']
+                    full_spec1d_file = spec1d_map[spec1d_filename]
+                    sobjs = specobjs_map[spec1d_filename]
+                    for obj_name in spec1d_group['pypeit_name']:
+                        sobj = sobjs[sobjs.name_indices(obj_name)][0]
+                        if source_object is None:                            
+                            logger.debug(f"Created SourceObject for {obj_name}")
+                            source_object = SourceObject(sobj, sobjs.header, full_spec1d_file, spec, 'ra/dec')
+                            source_object.coaddfile = coadded_file
+                        else:
+                            logger.debug(f"Adding {obj_name} to SourceObject")
+
+                            source_object.spec_obj_list.append(sobj)
+                            source_object.spec1d_header_list.append(sobjs.header)
+                            source_object.spec1d_file_list.append(full_spec1d_file)
+
+                if source_object is not None:
+                    par_file = coadded_file.parent.joinpath('collate1d.par')
+                    if not par_file.exists():
+                        messages.missing_file_messages.append(f'Could not archive matching collate1d.par file for {coadded_file}.')
+                        par_file = None
+                    
+                    coadd2d_file = None
+                    coadd2d_dir = coadded_file.parent.with_name("2D_Coadd")
+                    if coadd2d_dir.exists() and coadd2d_dir.is_dir():
+                        logger.debug("Scanning 2D_Coadds")
+                        coadd2d_files = list((coadd2d_dir / "Science_coadd").rglob("spec2d*.fits")) 
+                        if len(coadd2d_files) >= 1:
+                            if coadd2d_files[0].exists():
+                                coadd2d_file = coadd2d_files[0]
+                    if coadd2d_file is None:
+                        messages.missing_file_messages.append(f'Could not archive matching coadd2d file for {coadded_file}.')
+                    logger.debug(f"Adding source object, par file {par_file}, {coadd2d_file}")
+                    archive.add([(source_object, par_file, coadd2d_file, source_archive_root)])
+
         except Exception:
-            message = f"Could not include {coadded_file} in archive because of an exception:\n"
+            message = f"Could not include {coadded_dir} in archive because of an exception:\n"
             message += traceback.format_exc()
             messages.coadded_file_messages.append(message)
-            source_object = None
 
-        if source_object is not None:
-            par_file = coadded_file.parent.joinpath('collate1d.par')
-            if not par_file.exists():
-                messages.missing_file_messages.append(f'Could not archive matching collate1d.par file for {coadded_file}.')
-                par_file = None
-            
-            coadd2d_file = None
-            coadd2d_dir = coadded_file.parent.with_name("2D_Coadd")
-            if coadd2d_dir.exists() and coadd2d_dir.is_dir():
-                coadd2d_files = list((coadd2d_dir / "Science_coadd").rglob("spec2d*.fits")) 
-                if len(coadd2d_files) >= 1:
-                    if coadd2d_files[0].exists():
-                        coadd2d_file = coadd2d_files[0]
-            if coadd2d_file is None:
-                messages.missing_file_messages.append(f'Could not archive matching coadd2d file for {coadded_file}.')
-
-            archive.add([(source_object, par_file, coadd2d_file, source_archive_root)])
 
     return messages
 

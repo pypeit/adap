@@ -23,8 +23,10 @@ from pypeit.spectrographs.util import load_spectrograph
 
 from rclone import get_cloud_path, RClonePath
 from utils import claim_datasets, set_dataset_status
+import logging
+logger = logging.getLogger(__name__)
 
-from archive import Messages, create_metadata_archives, populate_archive, write_messages
+from archive import Messages, create_metadata_archives, populate_archive, write_messages, init_logging
     
 class RemoteArchiveDir(ArchiveDir):
 
@@ -76,6 +78,7 @@ def get_parser():
     parser.add_argument('remote_dest', type=str, default=None, choices=['s3', 'gdrive'],  help="Cloud destination to mirror changes.")
     parser.add_argument('remote_source_root', type=str, default=None, help="Cloud location of the mirrored source.")
     parser.add_argument('remote_root', type=str, help="Root path of remote archive directory")
+    parser.add_argument("--verbose", default=False, action="store_true", help="Display extra status information.")
     parser.add_argument('--report', type=str, default="report.txt", help="Location of a report file indicating any missing files. Defaults to report.txt.")
     parser.add_argument('--queue_url', type=str, default=None,  help="Host and port of a redis queue server.")
     parser.add_argument('--work_queue', type=str, default=None, help="Name of the queue to pull sub directories from.")
@@ -93,6 +96,7 @@ def main(args):
     start_time = datetime.datetime.now()
     messages = Messages()
 
+    init_logging(args)
     try:
 
         dest_archive_root = RClonePath(args.rclone_conf, args.remote_dest, args.remote_root)
@@ -115,9 +119,9 @@ def main(args):
 
             if len(dirs_to_scan) == 0:
                 if not done_with_queue:
-                    print("Attempting to claim datasets")
+                    logger.info("Attempting to claim datasets")
                     claimed_datasets = claim_datasets(args, os.environ["POD_NAME"], True, args.queue_batch)
-                    print(f"Found: {claimed_datasets}")
+                    logger.info(f"Found: {claimed_datasets}")
                     download_datasets(args, claimed_datasets)
                     dirs_to_scan = [Path(source_archive_root, x) for x in claimed_datasets]
                     if len(dirs_to_scan) < args.queue_batch:
@@ -126,7 +130,7 @@ def main(args):
             if len(dirs_to_scan) > 0:
                 dir = dirs_to_scan.pop()
                 dataset = str(dir.relative_to(source_archive_root))
-                print(f"Scanning {dir}")
+                logger.info(f"Scanning {dir}")
                 set_dataset_status(args, dataset, "IN_PROGRESS")
                 messages += populate_archive(archive,source_archive_root,[dir])
                 set_dataset_status(args, dataset, "COMPLETE")
@@ -149,7 +153,7 @@ def main(args):
     write_messages(args.report, messages, all_extra_messages)
 
     for s in all_extra_messages:
-        print(s)
+        logging.info(s)
 
     return exit_status
 
