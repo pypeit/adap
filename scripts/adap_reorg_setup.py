@@ -42,9 +42,7 @@ from pypeit.par.pypeitpar import PypeItPar
 from pypeit.pypeitsetup import PypeItSetup
 from pypeit.core.framematch import FrameTypeBitMask
 
-
-from utils import RClonePath
-    
+   
 # How the destination config path is grouped. Each element is a directory represented by a subarray. The subarray is the
 # keys used to build the directory name. The keys are stored as a tuple with the name and numpy dtype
 _config_path_grouping = [("decker","<U")], [("dispname","<U"), ("dispangle", "float64"), ("filter1", "<U")]
@@ -168,17 +166,6 @@ def create_date_groups(args, all_date_groups, cfg_group_key, cfg_group):
     all_date_groups[cfg_group_key] = [x for x in date_groups if x is not None]
 
 
-def download_files(args, files):
-    args.local_out.mkdir(parents=True,exist_ok=True)
-    local_files = []
-    for file in files:
-        try:
-            file.download(args.local_out)
-            local_files.append(args.local_out / file.name)
-        except Exception as e:
-            write_to_report(args,f"Failed to download {file}", exc_info=True)
-    return local_files
-
 def group_files(args, spectrograph, local_files):
     all_groups = dict()
     for config_group in group_by_config(args, spectrograph, local_files):
@@ -225,10 +212,7 @@ def read_grouping_metadata(args, spectrograph, local_file):
 def get_files(args):
     """Find all of the source fits files, whether in S3 or local."""
     for source_dir in args.source_dirs:
-        if args.source != "local":
-            source_path = RClonePath(args.source, source_dir)
-        else:
-            source_path = Path(source_dir)
+        source_path = Path(source_dir)
         for file in source_path.rglob("*.fits"):
             yield file
         for file in source_path.rglob("*.fits.gz"):
@@ -238,29 +222,18 @@ def transfer_file(args, file, dest):
 
     try:
         source_path = Path(file)
-        if args.dest == "local":
-            dest.mkdir(parents=True,exist_ok=True)
-            dest_file = dest / source_path.name
-            if args.source == "local":
-                # Copying local to local, we can either symlink, copy or move
-                if args.symlink:
-                    if dest_file.exists() and dest_file.is_symlink():
-                        # Remove old links
-                        dest_file.unlink()
-                    dest_file.symlink_to(source_path, target_is_directory=False)
-                elif args.move_files:
-                    shutil.move(source_path,dest_file)
-                else:
-                    shutil.copy2(source_path, dest_file)        
-            else:
-                # Remote file to local destination, remove temporary file
-                shutil.move(source_path, dest_file)
+        dest.mkdir(parents=True,exist_ok=True)
+        dest_file = dest / source_path.name
+        # Copying local to local, we can either symlink, copy or move
+        if args.symlink:
+            if dest_file.exists() and dest_file.is_symlink():
+                # Remove old links
+                dest_file.unlink()
+            dest_file.symlink_to(source_path, target_is_directory=False)
+        elif args.move_files:
+            shutil.move(source_path,dest_file)
         else:
-            # Upload to Remote destination
-            dest.upload(source_path)
-            # Remove source if they are temporary files, or if "move_files" was given
-            if args.source !="local" or args.move_files:
-                source_path.unlink()
+            shutil.copy2(source_path, dest_file)        
     except Exception as e:
         write_to_report(args,f"Failed to transfer file {args.source} {file} to {args.dest} {dest}.", exc_info=True)
 
@@ -277,13 +250,10 @@ class ReorgSetup(scriptbase.ScriptBase):
 
         parser.add_argument('out_dir', type=str, help="Output directory where the organized directry tree of files will be created.")
         parser.add_argument('source_dirs', type=str, nargs='+', help="One or more source directories containing raw data files.")
-        parser.add_argument('--source', type=str, default="local", choices=["local","s3", "gdrive"], help='The source cloud where the are stored, or "local" for a files on the local system.')
-        parser.add_argument('--dest', type=str, default="local", choices=["local","s3", "gdrive"], help='The cloud the files will be are copied to, or "local" for the local system.')
         parser.add_argument('--date_window', type=float, default=3.0, help="How long a time range to use when grouping files. Measured in days. Defaults to 3 days.")
         parser.add_argument('--move_files', default=False, action="store_true", help="Whether or not to move the files from their original location instead of copying. Defaults to false.")
         parser.add_argument('--spectrograph_name', type=str, default='keck_deimos', help="The name of the spectrograph that created the raw data. Defaults to keck_deimos.")
         parser.add_argument('--symlink', default=False, action="store_true", help="Use symlinks instead of copying files. Both the source and destination must be on the local machine.")
-        parser.add_argument('--local_out', type=Path, default=Path("adap_setup_tmp"), help="A temporary directory used when working with files onthe cloud. Defaults to 'adap_setup_tmp'.")
         parser.add_argument('--report', type=str, default="reorg_report_file.txt", help="Name of the report file to create detailing any issues that occurred when running this script. Defaults to 'reorg_report_file.txt'.")
 
         return parser
@@ -299,18 +269,11 @@ class ReorgSetup(scriptbase.ScriptBase):
         # Get the Path/RClonePath objects for the source files
         files = get_files(args)         
 
-        if args.source != "local":
-            # Download remote files to a temporary directory
-            local_files = download_files(args, files)
-        else:
-            local_files = files
+        local_files = files
 
         # Get the destination root, either local or remote
-        if args.dest != "local":
-            dest_root = RClonePath(args.dest, args.out_dir)
-        else:
-            dest_root = Path(args.out_dir)
-            dest_root.mkdir(exist_ok=True, parents=True)
+        dest_root = Path(args.out_dir)
+        dest_root.mkdir(exist_ok=True, parents=True)
 
         # Group the files in DateGroups, indexed by a string representing the
         # combined metadata values needed for to group by configuration

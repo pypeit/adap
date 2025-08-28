@@ -11,7 +11,9 @@ import numpy as np
 import gspread
 from gspread.utils import ValueInputOption
 
-MAX_SCORECARD_COL = 'AA'
+import gspread_utils
+
+MAX_SCORECARD_COL = 'AB'
 def split_to_csv_tabs(t, outpath):
     """Split the score card table into smaller CSVs that will go into tabs in the Google sheet.
        The datasets are split based on the first letter of the mask name, according to ranges 
@@ -249,10 +251,7 @@ def main():
 
     print (f"Accessing {args.spreadsheet} in G-Drive")
     # This relies on the service json in ~/.config/gspread
-    account = retry_gspread_call(lambda: gspread.service_account())
-
-    # Get the spreadsheet from Google sheets
-    spreadsheet = retry_gspread_call(lambda: account.open(args.spreadsheet))
+    spreadsheet = gspread_utils.open_spreadsheet(args.spreadsheet)[0]
 
 
     for sheet in sheets:

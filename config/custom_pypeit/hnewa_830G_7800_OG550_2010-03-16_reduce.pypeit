@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/hnewa/830G_7800_OG550/2010-03-16/complete/raw
-              filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20100316.11829.fits |                  arc,tilt |  57.99999999999999 |               45.0 |        |     830G |  hnewa |     1,1 |  55271.13689 | 1.41291034 |     1.0 | 7800.06494141 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2010-03-16 | 03:17:09.93 |      39 |     0 |      -1 |     -1
-DE.20100316.11907.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |     830G |  hnewa |     1,1 | 55271.137725 | 1.41291034 |     8.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2010-03-16 | 03:18:27.88 |      40 |     0 |      -1 |     -1
-DE.20100316.11985.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |     830G |  hnewa |     1,1 | 55271.138647 | 1.41291034 |     8.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2010-03-16 | 03:19:45.28 |      41 |     0 |      -1 |     -1
-DE.20100316.12062.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |     830G |  hnewa |     1,1 |  55271.13958 | 1.41291034 |     8.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2010-03-16 | 03:21:02.53 |      42 |     0 |      -1 |     -1
-DE.20100316.28906.fits |                   science |  189.4227083333333 | 62.235305555555556 |  hnewa |     830G |  hnewa |     1,1 | 55271.334506 | 1.72633589 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2010-03-16 | 08:01:46.89 |      76 |     0 |       1 |      2
-DE.20100316.30186.fits |                   science |         189.423625 | 62.235305555555556 |  hnewa |     830G |  hnewa |     1,1 | 55271.349264 | 1.64117629 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2010-03-16 | 08:23:06.99 |      77 |     0 |       2 |      3
-DE.20100316.31742.fits |                   science | 189.42183333333332 | 62.235305555555556 |  hnewa |     830G |  hnewa |     1,1 | 55271.367273 | 1.55608609 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2010-03-16 | 08:49:02.24 |      78 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20100316.11829.fits |                  arc,tilt |  57.99999999999999 |               45.0 |        |     830G |  hnewa |     1,1 |  55271.13689 | 1.41291034 |     1.0 | 7800.06494141 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2010-03-16 | 03:17:09.93 |      39 |     0 |    None |       0 |      -1 |     -1
+DE.20100316.11907.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |     830G |  hnewa |     1,1 | 55271.137725 | 1.41291034 |     8.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2010-03-16 | 03:18:27.88 |      40 |     0 |    None |       0 |      -1 |     -1
+DE.20100316.11985.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |     830G |  hnewa |     1,1 | 55271.138647 | 1.41291034 |     8.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2010-03-16 | 03:19:45.28 |      41 |     0 |    None |       0 |      -1 |     -1
+DE.20100316.12062.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |     830G |  hnewa |     1,1 |  55271.13958 | 1.41291034 |     8.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2010-03-16 | 03:21:02.53 |      42 |     0 |    None |       0 |      -1 |     -1
+DE.20100316.28906.fits |                   science |  189.4227083333333 | 62.235305555555556 |  hnewa |     830G |  hnewa |     1,1 | 55271.334506 | 1.72633589 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2010-03-16 | 08:01:46.89 |      76 |     0 |       A |       0 |       1 |      2
+DE.20100316.30186.fits |                   science |         189.423625 | 62.235305555555556 |  hnewa |     830G |  hnewa |     1,1 | 55271.349264 | 1.64117629 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2010-03-16 | 08:23:06.99 |      77 |     0 |       B |    -1.5 |       2 |      3
+DE.20100316.31742.fits |                   science | 189.42183333333332 | 62.235305555555556 |  hnewa |     830G |  hnewa |     1,1 | 55271.367273 | 1.55608609 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2010-03-16 | 08:49:02.24 |      78 |     0 |       C |     1.5 |       3 |      2
 data end
 

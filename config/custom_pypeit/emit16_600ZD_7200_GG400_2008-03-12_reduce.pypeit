@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/emit16/600ZD_7200_GG400/2008-03-12/complete/raw
-              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20080312.08386.fits |                  arc,tilt |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit16 |     1,1 | 54537.097063 | 1.41291034 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2008-03-12 | 02:19:46.55 |      43 |     0 |      -1 |     -1
-DE.20080312.08458.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit16 |     1,1 | 54537.097813 | 1.41291034 |     6.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2008-03-12 | 02:20:58.60 |      44 |     0 |      -1 |     -1
-DE.20080312.08539.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit16 |     1,1 | 54537.098769 | 1.41291034 |     6.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2008-03-12 | 02:22:19.21 |      45 |     0 |      -1 |     -1
-DE.20080312.08609.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit16 |     1,1 | 54537.099561 | 1.41291034 |     6.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2008-03-12 | 02:23:29.71 |      46 |     0 |      -1 |     -1
-DE.20080312.41869.fits |                   science | 189.44070833333333 | 62.205083333333334 |       emit16 |    600ZD | emit16 |     1,1 | 54537.484539 | 1.34907222 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2008-03-12 | 11:37:49.39 |      93 |     0 |       1 |      2
-DE.20080312.43147.fits |                   science | 189.44158333333334 |  62.20547222222223 |       emit16 |    600ZD | emit16 |     1,1 | 54537.499306 | 1.35228462 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2008-03-12 | 11:59:07.10 |      94 |     0 |       2 |      3
-DE.20080312.44421.fits |                   science | 189.43987499999997 |  62.20469444444445 |       emit16 |    600ZD | emit16 |     1,1 | 54537.514066 | 1.36245961 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2008-03-12 | 12:20:21.74 |      95 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20080312.08386.fits |                  arc,tilt |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit16 |     1,1 | 54537.097063 | 1.41291034 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2008-03-12 | 02:19:46.55 |      43 |     0 |    None |       0 |      -1 |     -1
+DE.20080312.08458.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit16 |     1,1 | 54537.097813 | 1.41291034 |     6.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2008-03-12 | 02:20:58.60 |      44 |     0 |    None |       0 |      -1 |     -1
+DE.20080312.08539.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit16 |     1,1 | 54537.098769 | 1.41291034 |     6.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2008-03-12 | 02:22:19.21 |      45 |     0 |    None |       0 |      -1 |     -1
+DE.20080312.08609.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | Laser L4 Svc |    600ZD | emit16 |     1,1 | 54537.099561 | 1.41291034 |     6.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2008-03-12 | 02:23:29.71 |      46 |     0 |    None |       0 |      -1 |     -1
+DE.20080312.41869.fits |                   science | 189.44070833333333 | 62.205083333333334 |       emit16 |    600ZD | emit16 |     1,1 | 54537.484539 | 1.34907222 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2008-03-12 | 11:37:49.39 |      93 |     0 |       A |       0 |       1 |      2
+DE.20080312.43147.fits |                   science | 189.44158333333334 |  62.20547222222223 |       emit16 |    600ZD | emit16 |     1,1 | 54537.499306 | 1.35228462 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2008-03-12 | 11:59:07.10 |      94 |     0 |       B |     2.0 |       2 |      3
+DE.20080312.44421.fits |                   science | 189.43987499999997 |  62.20469444444445 |       emit16 |    600ZD | emit16 |     1,1 | 54537.514066 | 1.36245961 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2008-03-12 | 12:20:21.74 |      95 |     0 |       C |    -2.0 |       3 |      2
 data end
 

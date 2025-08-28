@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/act81/600ZD_7200_GG400/2007-04-20/complete/raw
-              filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20070420.16421.fits |                  arc,tilt |  57.99999999999999 |               45.0 |        |    600ZD |  act81 |     1,1 | 54210.189979 | 1.41291034 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2007-04-20 | 04:33:41.24 |      55 |     0 |      -1 |     -1
-DE.20070420.16509.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  act81 |     1,1 | 54210.191027 | 1.41291034 |     3.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-04-20 | 04:35:09.80 |      56 |     0 |      -1 |     -1
-DE.20070420.16578.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  act81 |     1,1 | 54210.191716 | 1.41291034 |     3.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-04-20 | 04:36:18.95 |      57 |     0 |      -1 |     -1
-DE.20070420.16642.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  act81 |     1,1 | 54210.192545 | 1.41291034 |     3.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-04-20 | 04:37:22.50 |      58 |     0 |      -1 |     -1
-DE.20070420.41584.fits |                   science |  189.2275833333333 |  62.18861111111111 |  act81 |    600ZD |  act81 |     1,1 | 54210.481213 | 1.52669346 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-04-20 | 11:33:04.43 |      87 |     0 |       1 |      2
-DE.20070420.42882.fits |                   science | 189.22845833333332 | 62.188694444444444 |  act81 |    600ZD |  act81 |     1,1 | 54210.496287 | 1.59051665 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-04-20 | 11:54:42.70 |      88 |     0 |       2 |      3
-DE.20070420.44171.fits |                   science | 189.22666666666663 |  62.18855555555555 |  act81 |    600ZD |  act81 |     1,1 | 54210.511188 | 1.66705287 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-04-20 | 12:16:11.80 |      89 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20070420.16421.fits |                  arc,tilt |  57.99999999999999 |               45.0 |        |    600ZD |  act81 |     1,1 | 54210.189979 | 1.41291034 |     1.0 | 7199.98974609 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2007-04-20 | 04:33:41.24 |      55 |     0 |    None |       0 |      -1 |     -1
+DE.20070420.16509.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  act81 |     1,1 | 54210.191027 | 1.41291034 |     3.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-04-20 | 04:35:09.80 |      56 |     0 |    None |       0 |      -1 |     -1
+DE.20070420.16578.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  act81 |     1,1 | 54210.191716 | 1.41291034 |     3.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-04-20 | 04:36:18.95 |      57 |     0 |    None |       0 |      -1 |     -1
+DE.20070420.16642.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 |        |    600ZD |  act81 |     1,1 | 54210.192545 | 1.41291034 |     3.0 | 7199.98974609 | SINGLE:B |   GG400 |          Qz | 2007-04-20 | 04:37:22.50 |      58 |     0 |    None |       0 |      -1 |     -1
+DE.20070420.41584.fits |                   science |  189.2275833333333 |  62.18861111111111 |  act81 |    600ZD |  act81 |     1,1 | 54210.481213 | 1.52669346 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-04-20 | 11:33:04.43 |      87 |     0 |       A |       0 |       1 |      2
+DE.20070420.42882.fits |                   science | 189.22845833333332 | 62.188694444444444 |  act81 |    600ZD |  act81 |     1,1 | 54210.496287 | 1.59051665 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-04-20 | 11:54:42.70 |      88 |     0 |       B |     1.5 |       2 |      3
+DE.20070420.44171.fits |                   science | 189.22666666666663 |  62.18855555555555 |  act81 |    600ZD |  act81 |     1,1 | 54210.511188 | 1.66705287 |  1200.0 | 7199.98974609 | SINGLE:B |   GG400 |         Off | 2007-04-20 | 12:16:11.80 |      89 |     0 |       C |    -1.6 |       3 |      2
 data end
 

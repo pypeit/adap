@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/cuv_c/600ZD_6800_GG400/2016-11-02/complete/raw
-              filename |                 frametype |                 ra |                 dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20161102.11706.fits |                  arc,tilt |  57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_c |     1,1 | 57694.135422 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2016-11-02 | 03:15:06.78 |      36 |     0 |      -1 |     -1
-DE.20161102.11783.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_c |     1,1 | 57694.136322 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-02 | 03:16:23.48 |      37 |     0 |      -1 |     -1
-DE.20161102.11858.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_c |     1,1 | 57694.137178 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-02 | 03:17:38.98 |      38 |     0 |      -1 |     -1
-DE.20161102.11934.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_c |     1,1 | 57694.138065 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-02 | 03:18:54.23 |      39 |     0 |      -1 |     -1
-DE.20161102.38988.fits |                   science | 53.090958333333326 | -27.751333333333335 |      cuv_c |    600ZD |  cuv_c |     1,1 | 57694.451193 | 1.48426491 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-02 | 10:49:48.51 |      94 |     0 |       1 |      2
-DE.20161102.40276.fits |                   science |  53.09045833333333 | -27.751638888888888 |      cuv_c |    600ZD |  cuv_c |     1,1 | 57694.466088 | 1.47960649 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-02 | 11:11:16.86 |      95 |     0 |       2 |      3
-DE.20161102.41566.fits |                   science |  53.09149999999999 | -27.751055555555556 |      cuv_c |    600ZD |  cuv_c |     1,1 | 57694.481016 | 1.49105452 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-02 | 11:32:46.11 |      96 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                 dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20161102.11706.fits |                  arc,tilt |  57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_c |     1,1 | 57694.135422 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2016-11-02 | 03:15:06.78 |      36 |     0 |    None |       0 |      -1 |     -1
+DE.20161102.11783.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_c |     1,1 | 57694.136322 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-02 | 03:16:23.48 |      37 |     0 |    None |       0 |      -1 |     -1
+DE.20161102.11858.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_c |     1,1 | 57694.137178 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-02 | 03:17:38.98 |      38 |     0 |    None |       0 |      -1 |     -1
+DE.20161102.11934.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | DOME PHLAT |    600ZD |  cuv_c |     1,1 | 57694.138065 | 1.41291034 |     6.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-02 | 03:18:54.23 |      39 |     0 |    None |       0 |      -1 |     -1
+DE.20161102.38988.fits |                   science | 53.090958333333326 | -27.751333333333335 |      cuv_c |    600ZD |  cuv_c |     1,1 | 57694.451193 | 1.48426491 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-02 | 10:49:48.51 |      94 |     0 |       A |       0 |       1 |      2
+DE.20161102.40276.fits |                   science |  53.09045833333333 | -27.751638888888888 |      cuv_c |    600ZD |  cuv_c |     1,1 | 57694.466088 | 1.47960649 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-02 | 11:11:16.86 |      95 |     0 |       B |    -1.9 |       2 |      3
+DE.20161102.41566.fits |                   science |  53.09149999999999 | -27.751055555555556 |      cuv_c |    600ZD |  cuv_c |     1,1 | 57694.481016 | 1.49105452 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-02 | 11:32:46.11 |      96 |     0 |       C |     2.0 |       3 |      2
 data end
 

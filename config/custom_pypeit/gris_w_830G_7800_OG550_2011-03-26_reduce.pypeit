@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/gris_w/830G_7800_OG550/2011-03-26/complete/raw
-              filename |                 frametype |                 ra |                dec |  target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20110326.15350.fits |                  arc,tilt |  57.99999999999999 |               45.0 | unknown |     830G | gris_w |     1,1 | 55646.177631 | 1.41291034 |     1.0 | 7800.06494141 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2011-03-26 | 04:15:50.39 |      45 |     0 |      -1 |     -1
-DE.20110326.15427.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | gris_w |     1,1 | 55646.178471 | 1.41291034 |     5.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2011-03-26 | 04:17:07.74 |      46 |     0 |      -1 |     -1
-DE.20110326.15502.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | gris_w |     1,1 | 55646.179345 | 1.41291034 |     5.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2011-03-26 | 04:18:22.74 |      47 |     0 |      -1 |     -1
-DE.20110326.15579.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | gris_w |     1,1 |  55646.18023 | 1.41291034 |     5.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2011-03-26 | 04:19:39.04 |      48 |     0 |      -1 |     -1
-DE.20110326.39269.fits |                   science | 189.27508333333333 | 62.190861111111104 |  gris_w |     830G | gris_w |     1,1 |  55646.45444 | 1.35123419 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2011-03-26 | 10:54:29.97 |      87 |     0 |       1 |      2
-DE.20110326.40546.fits |                   science |          189.27575 |  62.19113888888889 |  gris_w |     830G | gris_w |     1,1 |  55646.46917 | 1.35773214 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2011-03-26 | 11:15:46.12 |      88 |     0 |       2 |      3
-DE.20110326.41813.fits |                   science |         189.274375 |  62.19061111111111 |  gris_w |     830G | gris_w |     1,1 | 55646.483855 | 1.37120665 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2011-03-26 | 11:36:53.82 |      89 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec |  target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20110326.15350.fits |                  arc,tilt |  57.99999999999999 |               45.0 | unknown |     830G | gris_w |     1,1 | 55646.177631 | 1.41291034 |     1.0 | 7800.06494141 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2011-03-26 | 04:15:50.39 |      45 |     0 |    None |       0 |      -1 |     -1
+DE.20110326.15427.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | gris_w |     1,1 | 55646.178471 | 1.41291034 |     5.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2011-03-26 | 04:17:07.74 |      46 |     0 |    None |       0 |      -1 |     -1
+DE.20110326.15502.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | gris_w |     1,1 | 55646.179345 | 1.41291034 |     5.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2011-03-26 | 04:18:22.74 |      47 |     0 |    None |       0 |      -1 |     -1
+DE.20110326.15579.fits | pixelflat,illumflat,trace |  57.99999999999999 |               45.0 | unknown |     830G | gris_w |     1,1 |  55646.18023 | 1.41291034 |     5.0 | 7800.06494141 | SINGLE:B |   OG550 |          Qz | 2011-03-26 | 04:19:39.04 |      48 |     0 |    None |       0 |      -1 |     -1
+DE.20110326.39269.fits |                   science | 189.27508333333333 | 62.190861111111104 |  gris_w |     830G | gris_w |     1,1 |  55646.45444 | 1.35123419 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2011-03-26 | 10:54:29.97 |      87 |     0 |       A |       0 |       1 |      2
+DE.20110326.40546.fits |                   science |          189.27575 |  62.19113888888889 |  gris_w |     830G | gris_w |     1,1 |  55646.46917 | 1.35773214 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2011-03-26 | 11:15:46.12 |      88 |     0 |       B |    -1.5 |       2 |      3
+DE.20110326.41813.fits |                   science |         189.274375 |  62.19061111111111 |  gris_w |     830G | gris_w |     1,1 | 55646.483855 | 1.37120665 |  1200.0 | 7800.06494141 | SINGLE:B |   OG550 |         Off | 2011-03-26 | 11:36:53.82 |      89 |     0 |       C |     1.5 |       3 |      2
 data end
 

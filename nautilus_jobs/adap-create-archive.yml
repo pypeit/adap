@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: adap-archive-from-queue
+spec:
+  parallelism: 4
+  completions: 4
+  completionMode: Indexed
+  backoffLimitPerIndex: 0
+  maxFailedIndexes: 4
+  template:
+    spec:
+      containers:
+      - name: archive-worker
+        args:
+        - source /home/pypeitusr/pypeit_env/bin/activate; pip install redis boto3 google-api-python-client gspread;
+          cd /home/pypeitusr/PypeIt; git fetch; git checkout b8455e6593aeb6a2d55bdd2d2ad3f62c5fbe4733; export OMP_NUM_THREADS=2;
+          pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
+          cd /tmp; mkdir adap_root; cd adap_root;
+          git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2019;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2019/ scripts/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2019/ config/ --recursive;
+          python scripts/remote_archive.py /tmp/adap_root gdrive backups KOAarchive --report archive_${POD_NAME}_report.txt --rclone_conf config/rclone.conf --queue_url redis://10.244.9.55:6379 --work_queue adap_2019_archive --queue_batch 1
+        command:
+        - /bin/bash
+        - -c
+        image: gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:develop
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: '1'
+            ephemeral-storage: 150Gi
+            memory: 4Gi
+          requests:
+            cpu: '1'
+            ephemeral-storage: 150Gi
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /home/pypeitusr/.config/gspread/service_account.json
+          name: gcloud-service-account
+          subPath: credentials
+        - mountPath: /tmp
+          name: ephemeral
+        - mountPath: /home/pypeitusr/.aws/credentials
+          name: prp-s3-credentials
+          subPath: credentials
+        env:
+           - name: POD_NAME
+             valueFrom:
+                fieldRef:
+                   fieldPath: metadata.name
+           - name: ENDPOINT_URL
+             value: http://rook-ceph-rgw-nautiluss3.rook
+           - name: S3_ENDPOINT
+             value: rook-ceph-rgw-nautiluss3.rook
+           - name: DEBIAN_FRONTEND
+             value: noninteractive
+           - name: QT_QPA_PLATFORM
+             value: offscreen
+      restartPolicy: Never
+      volumes:
+      - name: gcloud-service-account
+        secret:
+          secretName: adap-scorecard-gcloud
+      - name: prp-s3-credentials
+        secret:
+          secretName: prp-s3-credentials            
+      - emptyDir: {}
+        name: ephemeral

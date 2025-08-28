@@ -1,0 +1,58 @@
+# Auto-generated Coadd2D input file using PypeIt version: 1.17.2.dev92+gb8455e659
+# UTC 2025-04-11T22:36:51.330+00:00
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+    redux_path = /tmp/adap_root/uds_e/830G_9000_OG550/2D_Coadd
+    scidir = Science
+    qadir = QA
+    detnum = "1,5", "2,6", "3,7", "4,8"
+[calibrations]
+    calib_dir = Calibrations
+    [[wavelengths]]
+        refframe = observed
+[coadd2d]
+    offsets = maskdef_offsets
+    weights = auto
+    spat_toler = 20
+    spec_samp_fact = 1.0
+    spat_samp_fact = 1.0
+    exclude_slits = MSC04:1916,
+[flexure]
+    spec_method = skip
+[reduce]
+    [[findobj]]
+        skip_skysub = True
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+        use_dither_offset = True
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
+
+spec2d read
+ path /tmp/adap_root/uds_e/830G_9000_OG550/2011-10-27_2011-10-30/complete/reduce/keck_deimos_A/Science
+                                                             filename
+spec2d_DE.20111030.24970-uds_e_center_DEIMOS_20111030T065600.701.fits
+spec2d_DE.20111030.26260-uds_e_center_DEIMOS_20111030T071739.811.fits
+spec2d_DE.20111030.27555-uds_e_center_DEIMOS_20111030T073901.382.fits
+spec2d_DE.20111030.29148-uds_e_center_DEIMOS_20111030T080542.115.fits
+spec2d_DE.20111030.30449-uds_e_center_DEIMOS_20111030T082717.597.fits
+spec2d_DE.20111030.31728-uds_e_center_DEIMOS_20111030T084847.549.fits
+spec2d_DE.20111030.33107-uds_e_center_DEIMOS_20111030T091144.074.fits
+spec2d_DE.20111030.34390-uds_e_center_DEIMOS_20111030T093302.880.fits
+#spec2d_DE.20111030.36956-uds_e_center_DEIMOS_20111030T101537.037.fits
+#spec2d_DE.20111030.38341-uds_e_center_DEIMOS_20111030T103856.544.fits
+#spec2d_DE.20111030.39647-uds_e_center_DEIMOS_20111030T110042.826.fits
+#spec2d_DE.20111030.40970-uds_e_center_DEIMOS_20111030T112245.350.fits
+#spec2d_DE.20111030.42482-uds_e_center_DEIMOS_20111030T114757.350.fits
+#spec2d_DE.20111030.43772-uds_e_center_DEIMOS_20111030T120922.205.fits
+#spec2d_DE.20111030.45307-uds_e_center_DEIMOS_20111030T123501.939.fits
+#spec2d_DE.20111030.46571-uds_e_center_DEIMOS_20111030T125607.440.fits
+spec2d end
+

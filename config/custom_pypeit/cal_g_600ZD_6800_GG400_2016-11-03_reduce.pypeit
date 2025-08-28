@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/cal_g/600ZD_6800_GG400/2016-11-03/complete/raw
-              filename |                 frametype |                 ra |                 dec |  target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20161103.10504.fits |                  arc,tilt |  57.99999999999999 |                45.0 | unknown |    600ZD |  cal_g |     1,1 | 57695.121504 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2016-11-03 | 02:55:04.21 |      35 |     0 |      -1 |     -1
-DE.20161103.10581.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | unknown |    600ZD |  cal_g |     1,1 | 57695.122397 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-03 | 02:56:21.91 |      36 |     0 |      -1 |     -1
-DE.20161103.10654.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | unknown |    600ZD |  cal_g |     1,1 | 57695.123228 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-03 | 02:57:34.01 |      37 |     0 |      -1 |     -1
-DE.20161103.10726.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | unknown |    600ZD |  cal_g |     1,1 | 57695.124084 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-03 | 02:58:46.91 |      38 |     0 |      -1 |     -1
-DE.20161103.38596.fits |                   science |  53.11095833333332 | -27.736083333333333 |   cal_g |    600ZD |  cal_g |     1,1 | 57695.446663 | 1.48530299 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-03 | 10:43:16.89 |      89 |     0 |       1 |      2
-DE.20161103.39873.fits |                   science | 53.110583333333324 | -27.735861111111113 |   cal_g |    600ZD |  cal_g |     1,1 | 57695.461428 | 1.47891276 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-03 | 11:04:33.79 |      90 |     0 |       2 |      3
-DE.20161103.41152.fits |                   science | 53.111374999999995 | -27.736305555555557 |   cal_g |    600ZD |  cal_g |     1,1 | 57695.476238 | 1.48840538 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-03 | 11:25:52.59 |      91 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                 dec |  target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20161103.10504.fits |                  arc,tilt |  57.99999999999999 |                45.0 | unknown |    600ZD |  cal_g |     1,1 | 57695.121504 | 1.41291034 |     1.0 | 6800.00634766 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2016-11-03 | 02:55:04.21 |      35 |     0 |    None |       0 |      -1 |     -1
+DE.20161103.10581.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | unknown |    600ZD |  cal_g |     1,1 | 57695.122397 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-03 | 02:56:21.91 |      36 |     0 |    None |       0 |      -1 |     -1
+DE.20161103.10654.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | unknown |    600ZD |  cal_g |     1,1 | 57695.123228 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-03 | 02:57:34.01 |      37 |     0 |    None |       0 |      -1 |     -1
+DE.20161103.10726.fits | pixelflat,illumflat,trace |  57.99999999999999 |                45.0 | unknown |    600ZD |  cal_g |     1,1 | 57695.124084 | 1.41291034 |     4.0 | 6800.00634766 | SINGLE:B |   GG400 |          Qz | 2016-11-03 | 02:58:46.91 |      38 |     0 |    None |       0 |      -1 |     -1
+DE.20161103.38596.fits |                   science |  53.11095833333332 | -27.736083333333333 |   cal_g |    600ZD |  cal_g |     1,1 | 57695.446663 | 1.48530299 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-03 | 10:43:16.89 |      89 |     0 |       A |       0 |       1 |      2
+DE.20161103.39873.fits |                   science | 53.110583333333324 | -27.735861111111113 |   cal_g |    600ZD |  cal_g |     1,1 | 57695.461428 | 1.47891276 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-03 | 11:04:33.79 |      90 |     0 |       B |    -1.4 |       2 |      3
+DE.20161103.41152.fits |                   science | 53.111374999999995 | -27.736305555555557 |   cal_g |    600ZD |  cal_g |     1,1 | 57695.476238 | 1.48840538 |  1200.0 | 6800.00634766 | SINGLE:B |   GG400 |         Off | 2016-11-03 | 11:25:52.59 |      91 |     0 |       C |     1.5 |       3 |      2
 data end
 

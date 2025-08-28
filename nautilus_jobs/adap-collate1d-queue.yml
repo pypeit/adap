@@ -4,20 +4,20 @@ metadata:
   name: adap-run-coadd1d-on-queue
 spec:
   backoffLimit: 0
-  parallelism: 9
+  parallelism: 5
   template:
     spec:
       containers:
       - name: collate1d-worker
         args:
         - source /home/pypeitusr/pypeit_env/bin/activate; pip install redis boto3 google-api-python-client gspread;
-          cd /home/pypeitusr/PypeIt; git fetch; git checkout order_sync; git pull --ff-only; export OMP_NUM_THREADS=2;
+          cd /home/pypeitusr/PypeIt; git fetch; git checkout b8455e6593aeb6a2d55bdd2d2ad3f62c5fbe4733; export OMP_NUM_THREADS=2;
           pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           cd /tmp; mkdir adap_root; cd adap_root;
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2019;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2019/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2019/ config/ --recursive;
-          python scripts/collate1d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status@D" redis://10.244.216.9:6379 adap_2019_coadd s3
+          python scripts/collate1d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status@D" redis://10.244.117.130:6379 adap_2019_coadd s3
         command:
         - /bin/bash
         - -c
@@ -54,8 +54,6 @@ spec:
              value: noninteractive
            - name: QT_QPA_PLATFORM
              value: offscreen
-      nodeSelector:
-        nautilus.io/disktype: nvme
       restartPolicy: Never
       volumes:
       - name: gcloud-service-account

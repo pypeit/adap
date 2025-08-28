@@ -1,10 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: adap-reduce-from-queue
+  name: adap2019-reduce-from-queue
 spec:
   backoffLimit: 2
-  parallelism: 12
+  parallelism: 10
   template:
     spec:
       securityContext:
@@ -14,14 +14,14 @@ spec:
       - name: reduce-worker
         args:
         - source /home/pypeitusr/pypeit_env/bin/activate; pip install redis boto3 google-api-python-client gspread;  
-          cd /home/pypeitusr/PypeIt; git fetch; git checkout order_sync; git pull;
+          cd /home/pypeitusr/PypeIt; git fetch; git checkout b8455e6593aeb6a2d55bdd2d2ad3f62c5fbe4733; 
           pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           echo $PYPEIT_COMMMIT; 
           cd /tmp; mkdir adap_root; cd adap_root;
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2019;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2019/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2019/ config/ --recursive;
-          python scripts/reduce_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root --scorecard_max_age 7 Scorecard/WorkQueue redis://10.244.216.9:6379 adap_2019 s3 -- -o;
+          python scripts/reduce_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root --scorecard_max_age 7 Scorecard/WorkQueue redis://10.244.102.107:6379 adap_2019 s3 -- -o;
           echo $PYPEIT_COMMMIT >> reduce_from_queue.log; du -sh /tmp >> reduce_from_queue.log; tail -2 reduce_from_queue.log; 
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress reduce_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log
         command:
@@ -32,11 +32,11 @@ spec:
         resources:
           limits:
             cpu: '1.5'
-            ephemeral-storage: 150Gi
+            ephemeral-storage: 50Gi
             memory: 38Gi
           requests:
             cpu: '1.5'
-            ephemeral-storage: 150Gi
+            ephemeral-storage: 50Gi
             memory: 32Gi
         volumeMounts:
         - mountPath: /home/pypeitusr/.config/gspread/service_account.json
@@ -60,8 +60,6 @@ spec:
              value: noninteractive
            - name: QT_QPA_PLATFORM
              value: offscreen
-      nodeSelector:
-        nautilus.io/disktype: nvme
       restartPolicy: Never
       volumes:
       - name: gcloud-service-account

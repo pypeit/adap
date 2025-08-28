@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/uv_f/600ZD_7200_GG400/2018-06-11/complete/raw
-              filename |                 frametype |                 ra |                dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20180611.10563.fits |                  arc,tilt |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_f |     1,1 | 58280.122176 | 1.41297914 |     1.0 | 7199.98925781 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2018-06-11 | 02:56:03.18 |      26 |     0 |      -1 |     -1
-DE.20180611.10649.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_f |     1,1 | 58280.123186 | 1.41297914 |     4.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2018-06-11 | 02:57:29.88 |      27 |     0 |      -1 |     -1
-DE.20180611.10722.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_f |     1,1 |  58280.12403 | 1.41297914 |     4.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2018-06-11 | 02:58:42.30 |      28 |     0 |      -1 |     -1
-DE.20180611.10794.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_f |     1,1 |  58280.12485 | 1.41297914 |     4.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2018-06-11 | 02:59:54.72 |      29 |     0 |      -1 |     -1
-DE.20180611.30679.fits |                   science | 189.19687499999998 |  62.25313888888889 |       uv_f |    600ZD |   uv_f |     1,1 | 58280.355006 | 1.60113547 |   900.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2018-06-11 | 08:31:19.11 |      70 |     0 |       1 |      2
-DE.20180611.31648.fits |                   science | 189.19616666666664 | 62.252916666666664 |       uv_f |    600ZD |   uv_f |     1,1 | 58280.366221 | 1.65863788 |   900.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2018-06-11 | 08:47:28.62 |      71 |     0 |       2 |      3
-DE.20180611.32621.fits |                   science |         189.197625 |  62.25338888888889 |       uv_f |    600ZD |   uv_f |     1,1 | 58280.377477 | 1.72522731 |   900.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2018-06-11 | 09:03:41.19 |      72 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec |     target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20180611.10563.fits |                  arc,tilt |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_f |     1,1 | 58280.122176 | 1.41297914 |     1.0 | 7199.98925781 | SINGLE:B |   GG400 | Kr Xe Ar Ne | 2018-06-11 | 02:56:03.18 |      26 |     0 |    None |       0 |      -1 |     -1
+DE.20180611.10649.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_f |     1,1 | 58280.123186 | 1.41297914 |     4.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2018-06-11 | 02:57:29.88 |      27 |     0 |    None |       0 |      -1 |     -1
+DE.20180611.10722.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_f |     1,1 |  58280.12403 | 1.41297914 |     4.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2018-06-11 | 02:58:42.30 |      28 |     0 |    None |       0 |      -1 |     -1
+DE.20180611.10794.fits | pixelflat,illumflat,trace |  58.02958333333333 | 44.997194444444446 | DOME PHLAT |    600ZD |   uv_f |     1,1 |  58280.12485 | 1.41297914 |     4.0 | 7199.98925781 | SINGLE:B |   GG400 |          Qz | 2018-06-11 | 02:59:54.72 |      29 |     0 |    None |       0 |      -1 |     -1
+DE.20180611.30679.fits |                   science | 189.19687499999998 |  62.25313888888889 |       uv_f |    600ZD |   uv_f |     1,1 | 58280.355006 | 1.60113547 |   900.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2018-06-11 | 08:31:19.11 |      70 |     0 |       A |       0 |       1 |      2
+DE.20180611.31648.fits |                   science | 189.19616666666664 | 62.252916666666664 |       uv_f |    600ZD |   uv_f |     1,1 | 58280.366221 | 1.65863788 |   900.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2018-06-11 | 08:47:28.62 |      71 |     0 |       B |     1.4 |       2 |      3
+DE.20180611.32621.fits |                   science |         189.197625 |  62.25338888888889 |       uv_f |    600ZD |   uv_f |     1,1 | 58280.377477 | 1.72522731 |   900.0 | 7199.98925781 | SINGLE:B |   GG400 |         Off | 2018-06-11 | 09:03:41.19 |      72 |     0 |       C |    -1.5 |       3 |      2
 data end
 

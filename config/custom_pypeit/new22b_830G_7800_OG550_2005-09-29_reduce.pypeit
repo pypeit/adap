@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,13 +43,13 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/new22b/830G_7800_OG550/2005-09-29/complete/raw
-              filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-DE.20050929.10444.fits |                  arc,tilt | 359.99999999999994 |               45.0 |        |     830G | new22b |     1,1 | 53642.120806 | 1.41291034 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2005-09-29 | 02:54:04.30 |      26 |     0 |      -1 |     -1
-DE.20050929.10522.fits | pixelflat,illumflat,trace | 359.99999999999994 |               45.0 |        |     830G | new22b |     1,1 | 53642.121717 | 1.41291034 |     8.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-09-29 | 02:55:22.15 |      27 |     0 |      -1 |     -1
-DE.20050929.10599.fits | pixelflat,illumflat,trace | 359.99999999999994 |               45.0 |        |     830G | new22b |     1,1 | 53642.122587 | 1.41291034 |     8.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-09-29 | 02:56:39.25 |      28 |     0 |      -1 |     -1
-DE.20050929.10676.fits | pixelflat,illumflat,trace | 359.99999999999994 |               45.0 |        |     830G | new22b |     1,1 | 53642.123473 | 1.41291034 |     8.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-09-29 | 02:57:56.26 |      29 |     0 |      -1 |     -1
-DE.20050929.23399.fits |                   science | 334.51462499999997 | 0.7836666666666666 | new22b |     830G | new22b |     1,1 | 53642.270746 | 1.16126563 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-09-29 | 06:29:59.70 |      79 |     0 |       1 |      2
-DE.20050929.24702.fits |                   science | 334.51504166666666 | 0.7836388888888889 | new22b |     830G | new22b |     1,1 | 53642.285817 | 1.11843854 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-09-29 | 06:51:42.62 |      80 |     0 |       2 |      3
-DE.20050929.25985.fits |                   science | 334.51420833333333 | 0.7836666666666666 | new22b |     830G | new22b |     1,1 | 53642.300672 |  1.0883882 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-09-29 | 07:13:05.64 |      81 |     0 |       3 |      2
+              filename |                 frametype |                 ra |                dec | target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+DE.20050929.10444.fits |                  arc,tilt | 359.99999999999994 |               45.0 |        |     830G | new22b |     1,1 | 53642.120806 | 1.41291034 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2005-09-29 | 02:54:04.30 |      26 |     0 |    None |       0 |      -1 |     -1
+DE.20050929.10522.fits | pixelflat,illumflat,trace | 359.99999999999994 |               45.0 |        |     830G | new22b |     1,1 | 53642.121717 | 1.41291034 |     8.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-09-29 | 02:55:22.15 |      27 |     0 |    None |       0 |      -1 |     -1
+DE.20050929.10599.fits | pixelflat,illumflat,trace | 359.99999999999994 |               45.0 |        |     830G | new22b |     1,1 | 53642.122587 | 1.41291034 |     8.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-09-29 | 02:56:39.25 |      28 |     0 |    None |       0 |      -1 |     -1
+DE.20050929.10676.fits | pixelflat,illumflat,trace | 359.99999999999994 |               45.0 |        |     830G | new22b |     1,1 | 53642.123473 | 1.41291034 |     8.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2005-09-29 | 02:57:56.26 |      29 |     0 |    None |       0 |      -1 |     -1
+DE.20050929.23399.fits |                   science | 334.51462499999997 | 0.7836666666666666 | new22b |     830G | new22b |     1,1 | 53642.270746 | 1.16126563 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-09-29 | 06:29:59.70 |      79 |     0 |       A |       0 |       1 |      2
+DE.20050929.24702.fits |                   science | 334.51504166666666 | 0.7836388888888889 | new22b |     830G | new22b |     1,1 | 53642.285817 | 1.11843854 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-09-29 | 06:51:42.62 |      80 |     0 |       B |     1.5 |       2 |      3
+DE.20050929.25985.fits |                   science | 334.51420833333333 | 0.7836666666666666 | new22b |     830G | new22b |     1,1 | 53642.300672 |  1.0883882 |  1200.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2005-09-29 | 07:13:05.64 |      81 |     0 |       C |    -1.5 |       3 |      2
 data end
 

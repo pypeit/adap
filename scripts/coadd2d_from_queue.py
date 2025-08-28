@@ -70,6 +70,18 @@ def get_detectors(spec2d_file, bad_slits):
     
     return detectors, bad_slits
 
+def get_custom_2dcoadd(args, observing_config):
+    """Look for and return any custom coadd2d configs for this observing_config"""
+    custom_file_prefix = str(observing_config).replace("/", "_")
+    custom_file_root = Path(args.adap_root_dir, "adap", "config", "custom_coadd2d")
+    custom_files = list(custom_file_root.glob(f"{custom_file_prefix}*"))
+    if len(custom_files) == 0:
+        return None
+    elif len(custom_files) == 1:
+        return custom_files[0]
+    else:
+        raise ValueError(f"Found multiple custom coadd2d configs for {observing_config}")
+
 def update_coadd2d_params(args, coadd2d_filepath, reduce_params):
 
     # Read in the coadd2d file and update it's params
@@ -96,6 +108,32 @@ def update_coadd2d_params(args, coadd2d_filepath, reduce_params):
     # Rewrite the file with the new params
     coadd2d_file.write(coadd2d_filepath)
 
+def update_path_root_dir(args, observing_config, file_path):
+    indx = str(file_path).find(observing_config)
+    if indx == -1:
+        raise ValueError(f"Cannot find observing config in {file_path}")
+    return str(Path(args.adap_root_dir, file_path[indx:]))
+
+def update_coadd2d_paths(args, custom_coadd2d_file, observing_config, coadd2d_output):
+
+    # Get the file_paths and redux_path from the coadd2d file, and update it to the correct root dir
+    coadd2d_file = Coadd2DFile.from_file(custom_coadd2d_file, preserve_comments=True)
+    
+    updated_paths = [update_path_root_dir(args, observing_config,file_path) for file_path in coadd2d_file.file_paths]
+
+    updated_redux_path = update_path_root_dir(args, observing_config, coadd2d_file.config['rdx']['redux_path'])
+    coadd2d_file.config['rdx']['redux_path'] = updated_redux_path
+
+    # Generate a filename similar to what pypeit_setup_coadd2d does
+    output_filename = f"{coadd2d_file.config['rdx']['spectrograph']}_{observing_config.split('/')[0]}.coadd2d"
+    output_path = coadd2d_output / output_filename
+
+    # Update the raw data directory in the pypeit file
+    coadd2d_file.file_paths = updated_paths
+    coadd2d_file.write(output_path)
+    return output_path
+
+
 def coadd2d_task(args, observing_config):
 
     root_path = Path(args.adap_root_dir)
@@ -119,15 +157,94 @@ def coadd2d_task(args, observing_config):
             if not args.test or not local_path.exists():
                 reduce_path.download(local_path)
 
-        #Get the bad slits for pypeit_setup_coadd2d
-        bad_slit_files = list(source_loc.rglob("*_bad_slits.csv"))
-        for bad_slit_file in bad_slit_files:
-            # Download the reduce path from s3
-            relative_path = bad_slit_file.path.relative_to(source_loc.path)
-            local_path = local_config_path / relative_path
-            if not args.test or not local_path.exists():
-                bad_slit_file.download(local_path.parent)
+        logger.info("Creating 2D_Coadd dir")
+        coadd2d_output.mkdir(exist_ok=True)    
 
+        os.chdir(coadd2d_output)
+
+        custom_2dcoadd_file = get_custom_2dcoadd(args, observing_config)
+
+        if custom_2dcoadd_file is not None:
+            # Update the paths in the customm coadd2d file
+            # and copy it to the output path
+            coadd2d_file = update_coadd2d_paths(args, custom_2dcoadd_file, observing_config, coadd2d_output)
+        else:
+
+            # There was no custom coadd2d config. 
+            # Use pypeit_setup_coadd2d to generate the coadd2d file
+
+            #Get the bad slits for pypeit_setup_coadd2d
+            bad_slit_files = list(source_loc.rglob("*_bad_slits.csv"))
+            for bad_slit_file in bad_slit_files:
+                # Download the reduce path from s3
+                relative_path = bad_slit_file.path.relative_to(source_loc.path)
+                local_path = local_config_path / relative_path
+                if not args.test or not local_path.exists():
+                    bad_slit_file.download(local_path.parent)
+
+
+            # Build coadd2d setup command
+            setup_2d_command = ["pypeit_setup_coadd2d",  "--spat_toler", "20"]
+
+            # Find the science diretories
+            sci_dirs = []
+            for sci_dir in local_config_path.rglob("Science"):
+                if sci_dir.is_dir():
+                    sci_dirs.append(str(sci_dir))
+            setup_2d_command += ["-d"] + sci_dirs
+
+            # Find the unique set of bad slits for all of the datasets in this config
+            bad_slits = set()
+            for bad_slit_file in local_config_path.rglob("*_bad_slits.csv"):
+                logger.info(f"Loading bad slits from {bad_slit_file}")
+                t = Table.read(str(bad_slit_file), format='csv')
+                for slit_id in t['slit_id']:
+                    bad_slits.add(slit_id)
+
+            # Find the first spec2d and get the list of detectors from it. The bad_slits are used
+            # to filter out detectors that have no good slits, and any bad slits for skipped detectors
+            # are filtered out of bad_slits
+            spec2d_file = list(local_config_path.rglob("spec2d*.fits"))[0]        
+            detectors, bad_slits = get_detectors(spec2d_file, bad_slits)
+            if len(detectors) > 0:
+                setup_2d_command += ["--det"] + detectors
+
+            # Filter out bad slits for detectors that aren't going to be passed to pypeit_setup_coadd2d
+            if len(bad_slits) > 0:
+                setup_2d_command += ["--exclude_slits"] + list(bad_slits)
+
+            # Run setup
+            logger.info(f"Running coadd2d setup on {observing_config}")
+            try:
+                run_script(setup_2d_command, save_output="pypeit_setup_coadd2d.log")
+            finally:
+                # Always try to cleanup log
+                if Path("pypeit_setup_coadd2d.log").exists():
+                    # Remove ansi escape code and unwanted log messages from log
+                    filter_output("pypeit_setup_coadd2d.log", "pypeit_setup_coadd2d.log.txt")
+
+            # The resulting output files need to have the reduce parameters from reduction
+            # added to it
+            reduce_params = get_reduce_params(observing_config)
+
+            # Find the generated coadd2d files
+            coadd2d_files = list(coadd2d_output.glob("keck_deimos*.coadd2d"))
+
+            if len(coadd2d_files) == 0:
+                raise ValueError("Could not find generated coadd2d file")
+            elif len(coadd2d_files) > 1:
+                raise ValueError("Found too many coadd2d files.")
+            else:
+                coadd2d_file = coadd2d_files[0]
+                logger.info(f"Updating coadd2d file {coadd2d_file.name}")
+                update_coadd2d_params(args, coadd2d_file, reduce_params)
+
+        logger.info(f"Running coadd2d file {coadd2d_file.name}")
+        try:
+            run_script(["pypeit_coadd_2dspec", str(coadd2d_file)], save_output=f"{coadd2d_file.stem}.log")
+        finally:
+            if Path(f"{coadd2d_file.stem}.log").exists():
+                filter_output(f"{coadd2d_file.stem}.log", f"{coadd2d_file.stem}.log.txt")
 
         # Remove prior results
         try:
@@ -136,67 +253,6 @@ def coadd2d_task(args, observing_config):
             # This could be failing due to the directory not existing so we ignore this.
             logger.warning(f"Failed to remove prior results in {dest_loc}")
             pass
-
-
-        logger.info("Creating 2D_Coadd dir")
-        coadd2d_output.mkdir(exist_ok=True)    
-
-        os.chdir(coadd2d_output)
-
-        # Build coadd2d setup command
-        setup_2d_command = ["pypeit_setup_coadd2d",  "--spat_toler", "20"]
-
-        # Find the science diretories
-        sci_dirs = []
-        for sci_dir in local_config_path.rglob("Science"):
-            if sci_dir.is_dir():
-                sci_dirs.append(str(sci_dir))
-        setup_2d_command += ["-d"] + sci_dirs
-
-        # Find the unique set of bad slits for all of the datasets in this config
-        bad_slits = set()
-        for bad_slit_file in local_config_path.rglob("*_bad_slits.csv"):
-            logger.info(f"Loading bad slits from {bad_slit_file}")
-            t = Table.read(str(bad_slit_file), format='csv')
-            for slit_id in t['slit_id']:
-                bad_slits.add(slit_id)
-
-        # Find the first spec2d and get the list of detectors from it. The bad_slits are used
-        # to filter out detectors that have no good slits, and any bad slits for skipped detectors
-        # are filtered out of bad_slits
-        spec2d_file = list(local_config_path.rglob("spec2d*.fits"))[0]        
-        detectors, bad_slits = get_detectors(spec2d_file, bad_slits)
-        if len(detectors) > 0:
-            setup_2d_command += ["--det"] + detectors
-
-        # Filter out bad slits for detectors that aren't going to be passed to pypeit_setup_coadd2d
-        if len(bad_slits) > 0:
-            setup_2d_command += ["--exclude_slits"] + list(bad_slits)
-
-        # Run setup
-        logger.info(f"Running coadd2d setup on {observing_config}")
-        try:
-            run_script(setup_2d_command, save_output="pypeit_setup_coadd2d.log")
-        finally:
-            # Always try to cleanup log
-            if Path("pypeit_setup_coadd2d.log").exists():
-                # Remove ansi escape code and unwanted log messages from log
-                filter_output("pypeit_setup_coadd2d.log", "pypeit_setup_coadd2d.log.txt")
-
-        # The resulting output files need to have the reduce parameters from reduction
-        # added to it
-        reduce_params = get_reduce_params(observing_config)
-
-        # Run the generated coadd2d files
-        for coadd2d_file in coadd2d_output.glob("keck_deimos*.coadd2d"):
-            logger.info(f"Updating coadd2d file {coadd2d_file.name}")
-            update_coadd2d_params(args, coadd2d_file, reduce_params)
-            logger.info(f"Running coadd2d file {coadd2d_file.name}")
-            try:
-                run_script(["pypeit_coadd_2dspec", coadd2d_file.name], save_output=f"{coadd2d_file.stem}.log")
-            finally:
-                if Path(f"{coadd2d_file.stem}.log").exists():
-                    filter_output(f"{coadd2d_file.stem}.log", f"{coadd2d_file.stem}.log.txt")
 
     finally:
         

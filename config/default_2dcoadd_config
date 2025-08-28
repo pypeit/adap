@@ -1,0 +1,21 @@
+# to be added to the parameter file generated automatically
+
+[coadd2d]
+    offsets = maskdef_offsets
+    weights = auto
+    spat_toler = 20
+[reduce]
+    [[findobj]]
+        snr_thresh = 5
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+spec2d read
+filename
+spec2d end
+
+

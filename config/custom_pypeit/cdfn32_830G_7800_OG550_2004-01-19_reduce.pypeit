@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,16 +43,16 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/cdfn32/830G_7800_OG550/2004-01-19/complete/raw
-               filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
- DE.20040119.11839.fits |                  arc,tilt |               67.0 |               45.0 | HORIZON STOW |     830G | cdfn32 |     1,1 |  53023.13695 | 1.41291034 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2004-01-19 | 03:17:19.39 |      34 |     0 |      -1 |     -1
- DE.20040119.11917.fits | pixelflat,illumflat,trace |               67.0 |               45.0 | HORIZON STOW |     830G | cdfn32 |     1,1 | 53023.137859 | 1.41291034 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-19 | 03:18:37.75 |      35 |     0 |      -1 |     -1
- DE.20040119.11997.fits | pixelflat,illumflat,trace |               67.0 |               45.0 | HORIZON STOW |     830G | cdfn32 |     1,1 | 53023.138786 | 1.41291034 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-19 | 03:19:57.15 |      36 |     0 |      -1 |     -1
- DE.20040119.12076.fits | pixelflat,illumflat,trace |               67.0 |               45.0 | HORIZON STOW |     830G | cdfn32 |     1,1 | 53023.139681 | 1.41291034 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-19 | 03:21:16.20 |      37 |     0 |      -1 |     -1
- DE.20040119.52918.fits |                   science | 189.25374999999997 |  62.22986111111111 |       cdfn32 |     830G | cdfn32 |     1,1 | 53023.612408 | 1.35476646 |  1400.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 14:41:58.69 |      95 |     0 |       1 |      2
- DE.20040119.54392.fits |                   science |         189.254375 |  62.23016666666667 |       cdfn32 |     830G | cdfn32 |     1,1 | 53023.629464 |  1.3502674 |  1400.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 15:06:32.02 |      96 |     0 |       2 |      3
- DE.20040119.55866.fits |                   science |  189.2530833333333 |  62.22958333333334 |       cdfn32 |     830G | cdfn32 |     1,1 |  53023.64654 | 1.35501169 |  1400.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 15:31:06.94 |      97 |     0 |       3 |      2
-#DE.20040119.57741.fits |                   science | 200.91374999999996 | 36.118916666666664 |         hz44 |     830G | cdfn32 |     1,1 |  53023.66825 | 1.04192175 |     5.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 16:02:21.67 |      99 |     0 |       4 |     -1
-#DE.20040119.57852.fits |                   science | 200.91374999999996 | 36.118916666666664 |         hz44 |     830G | cdfn32 |     1,1 | 53023.669529 | 1.04224105 |    40.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 16:04:12.27 |     100 |     0 |       5 |     -1
-#DE.20040119.57976.fits |                   science | 200.91374999999996 | 36.118916666666664 |         hz44 |     830G | cdfn32 |     1,1 | 53023.670949 | 1.04266096 |   120.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 16:06:16.67 |     101 |     0 |       6 |     -1
+               filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |  lampstat01 |    dateobs |         utc | frameno | calib | dithpos |  dithoff | comb_id | bkg_id
+ DE.20040119.11839.fits |                  arc,tilt |               67.0 |               45.0 | HORIZON STOW |     830G | cdfn32 |     1,1 |  53023.13695 | 1.41291034 |     1.0 | 7800.06445312 | SINGLE:B |   OG550 | Kr Xe Ar Ne | 2004-01-19 | 03:17:19.39 |      34 |     0 |    None |        0 |      -1 |     -1
+ DE.20040119.11917.fits | pixelflat,illumflat,trace |               67.0 |               45.0 | HORIZON STOW |     830G | cdfn32 |     1,1 | 53023.137859 | 1.41291034 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-19 | 03:18:37.75 |      35 |     0 |    None |        0 |      -1 |     -1
+ DE.20040119.11997.fits | pixelflat,illumflat,trace |               67.0 |               45.0 | HORIZON STOW |     830G | cdfn32 |     1,1 | 53023.138786 | 1.41291034 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-19 | 03:19:57.15 |      36 |     0 |    None |        0 |      -1 |     -1
+ DE.20040119.12076.fits | pixelflat,illumflat,trace |               67.0 |               45.0 | HORIZON STOW |     830G | cdfn32 |     1,1 | 53023.139681 | 1.41291034 |     9.0 | 7800.06445312 | SINGLE:B |   OG550 |          Qz | 2004-01-19 | 03:21:16.20 |      37 |     0 |    None |        0 |      -1 |     -1
+ DE.20040119.52918.fits |                   science | 189.25374999999997 |  62.22986111111111 |       cdfn32 |     830G | cdfn32 |     1,1 | 53023.612408 | 1.35476646 |  1400.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 14:41:58.69 |      95 |     0 |       A |        0 |       1 |      2
+ DE.20040119.54392.fits |                   science |         189.254375 |  62.23016666666667 |       cdfn32 |     830G | cdfn32 |     1,1 | 53023.629464 |  1.3502674 |  1400.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 15:06:32.02 |      96 |     0 |       B |      1.5 |       2 |      3
+ DE.20040119.55866.fits |                   science |  189.2530833333333 |  62.22958333333334 |       cdfn32 |     830G | cdfn32 |     1,1 |  53023.64654 | 1.35501169 |  1400.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 15:31:06.94 |      97 |     0 |       C |     -1.5 |       3 |      2
+#DE.20040119.57741.fits |                   science | 200.91374999999996 | 36.118916666666664 |         hz44 |     830G | cdfn32 |     1,1 |  53023.66825 | 1.04192175 |     5.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 16:02:21.67 |      99 |     0 |       A | -39843.5 |       4 |     -1
+#DE.20040119.57852.fits |                   science | 200.91374999999996 | 36.118916666666664 |         hz44 |     830G | cdfn32 |     1,1 | 53023.669529 | 1.04224105 |    40.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 16:04:12.27 |     100 |     0 |       A | -39842.9 |       5 |     -1
+#DE.20040119.57976.fits |                   science | 200.91374999999996 | 36.118916666666664 |         hz44 |     830G | cdfn32 |     1,1 | 53023.670949 | 1.04266096 |   120.0 | 7800.06445312 | SINGLE:B |   OG550 |         Off | 2004-01-19 | 16:06:16.67 |     101 |     0 |       A | -39843.0 |       6 |     -1
 data end
 

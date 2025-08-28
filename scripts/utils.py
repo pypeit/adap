@@ -93,27 +93,51 @@ def update_gsheet_status(args, dataset, status, pod):
     else:
         logger.error(args, f"Could not update {dataset}, spreadsheet is empty!")
 
-def claim_dataset(args, my_pod, blocking=False):
+def pop_queue(args, redis_server, blocking, num_to_claim, direction="RIGHT"):
+    datasets = []
+    if blocking:
+        datasets = redis_server.blmpop(args.queue_timeout, 1, args.work_queue + "_q", direction=direction, count=num_to_claim)
+        # The blocking version of rpop returns the queuename and the dataset
+        datasets = datasets[1] if datasets is not None else []
+    else:
+        datasets = redis_server.lmpop(1, [args.work_queue + "_q"], direction, num_to_claim)
+        datasets = datasets[1] if datasets is not None else []
 
-    dataset = None
+    return datasets
+
+def claim_dataset(args, my_pod, blocking=False):
+    datasets = claim_datasets(args, my_pod, blocking, 1)
+    return None if len(datasets) == 0 else datasets[1]
+
+def claim_datasets(args, my_pod, blocking=False, num_to_claim=1):
+
+    datasets = []
 
     redis_server = redis.Redis.from_url(args.queue_url,decode_responses=True)
     redis_server.ping()
 
-    if blocking:
-        dataset = redis_server.brpop(args.work_queue + "_q", timeout = args.queue_timeout)
-        # The blocking version of rpop returns the queuename and the dataset
-        dataset = dataset[1] if dataset is not None else None
-    else:
-        dataset = redis_server.rpop(args.work_queue + "_q")
+    datasets = pop_queue(args, redis_server, blocking, num_to_claim, direction="RIGHT")
 
-    if dataset is not None and dataset != "init":
-        logger.info(f"Claimed dataset {dataset} for pod {my_pod}")
+
+    if len(datasets) > 0 and datasets[0] != "init" and hasattr(args, "gsheet"):
+        logger.info(f"Claimed dataset {datasets} for pod {my_pod}")
         with lock_workqueue(redis_server, args):
-            update_gsheet_status(args, dataset, "In Progress", my_pod)
+            for dataset in datasets:
+                update_gsheet_status(args, dataset, "In Progress", my_pod)
 
+    return datasets
 
-    return dataset
+def set_dataset_status(args, dataset, status):
+    status_key = args.work_queue + "_status"
+    redis_server = redis.Redis.from_url(args.queue_url,decode_responses=True)
+    redis_server.ping()
+
+    redis_server.hset(status_key, dataset, status)
+
+    if "POD_NAME" in os.environ:
+        pod_key = args.work_queue + "_pods"
+        redis_server.hset(pod_key, dataset, os.environ["POD_NAME"])
+
 
 def run_script(command, return_output=False, save_output=None, log_output=False):
     logger.debug(f"Running: '{' '.join(command)}'")
@@ -263,14 +287,14 @@ def get_reduce_params(dataset_prefix):
 
     # Look for custom files of the dataset
     dataset_prefix_pattern = dataset_prefix.replace("/", "_") + "*"
-    custom_files = list(config_path.glob(dataset_prefix_pattern))
+    custom_files = list(config_path.rglob(dataset_prefix_pattern))
 
-    if len(custom_files) > 1:
-        raise ValueError(f"Can't find reduce parameters for {dataset_prefix} because there was more than one custom parameter match")
-    elif len(custom_files) == 0:
+    if len(custom_files) == 0:
         # Just use the default
         param_file = config_path / "default_pypeit_config"
     else:
+        if len(custom_files) > 1:
+            logger.warning(f"Found multiple custom configurations for {dataset_prefix}. Using the first one.")
         param_file = custom_files[0]
 
     if param_file.suffix == ".pypeit":

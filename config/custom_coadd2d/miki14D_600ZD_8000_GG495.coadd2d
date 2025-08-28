@@ -1,0 +1,47 @@
+# Auto-generated Coadd2D input file using PypeIt version: 1.17.2.dev92+gb8455e659
+# UTC 2025-04-11T22:33:05.391+00:00
+
+# User-defined execution parameters
+[rdx]
+    spectrograph = keck_deimos
+    redux_path = /tmp/adap_root/miki14D/600ZD_8000_GG495/2D_Coadd
+    scidir = Science
+    qadir = QA
+    detnum = "1,5", "2,6", "3,7", "4,8"
+[calibrations]
+    calib_dir = Calibrations
+    [[wavelengths]]
+        refframe = observed
+[coadd2d]
+    offsets = maskdef_offsets
+    weights = auto
+    spat_toler = 20
+    spec_samp_fact = 1.0
+    spat_samp_fact = 1.0
+    exclude_slits = MSC01:1844, MSC01:1257, MSC01:2047
+[flexure]
+    spec_method = skip
+[reduce]
+    [[findobj]]
+        skip_skysub = True
+        snr_thresh = 20
+    [[slitmask]]
+        obj_toler = 0.5
+    [[extraction]]
+        model_full_slit = True
+        use_2dmodel_mask = False
+        boxcar_radius = 1.0
+
+spec2d read
+ path /tmp/adap_root/miki14D/600ZD_8000_GG495/2013-04-03/complete/reduce/keck_deimos_A/Science
+                                                        filename
+spec2d_DE.20130403.42973-miki14D_DEIMOS_20130403T115613.530.fits
+spec2d_DE.20130403.44258-miki14D_DEIMOS_20130403T121733.562.fits
+spec2d_DE.20130403.45676-miki14D_DEIMOS_20130403T124110.349.fits
+spec2d_DE.20130403.46953-miki14D_DEIMOS_20130403T130224.058.fits
+spec2d_DE.20130403.48224-miki14D_DEIMOS_20130403T132335.261.fits
+spec2d_DE.20130403.49583-miki14D_DEIMOS_20130403T134620.726.fits
+spec2d_DE.20130403.50852-miki14D_DEIMOS_20130403T140727.178.fits
+spec2d_DE.20130403.52129-miki14D_DEIMOS_20130403T142843.910.fits
+spec2d_DE.20130403.53557-miki14D_DEIMOS_20130403T145231.584.fits
+spec2d end

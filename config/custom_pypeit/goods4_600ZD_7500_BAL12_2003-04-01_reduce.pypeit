@@ -15,10 +15,13 @@
         snr_thresh = 5
     [[slitmask]]
         obj_toler = 0.5
+        use_dither_offset = True
     [[extraction]]
         model_full_slit = True
         use_2dmodel_mask = False
         boxcar_radius = 1.0
+    [[skysub]]
+        bspline_spacing = 1.5
 
 [flexure]
     spec_method = slitcen
@@ -40,18 +43,18 @@ setup end
 # Data block 
 data read
  path /tmp/adap_root/goods4/600ZD_7500_BAL12/2003-04-01/complete/raw
-               filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |     lampstat01 |    dateobs |         utc | frameno | calib | comb_id | bkg_id
-#DE.20030401.15349.fits |                  arc,tilt |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.177547 | 1.41291034 |   100.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Xe | 2003-04-01 | 04:15:49.60 |      44 |     0 |      -1 |     -1
- DE.20030401.12729.fits |                  arc,tilt |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 |  52730.14723 | 1.41291034 |     2.0 | 7500.02246094 | SINGLE:B |   BAL12 | Xe Hg Ne Cd Zn | 2003-04-01 | 03:32:09.08 |      25 |     0 |      -1 |     -1
-#DE.20030401.12808.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 |  52730.14816 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:33:28.43 |      26 |     0 |      -1 |     -1
-#DE.20030401.12890.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.149085 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:34:50.39 |      27 |     0 |      -1 |     -1
- DE.20030401.12968.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.150022 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:36:08.84 |      28 |     0 |      -1 |     -1
- DE.20030401.13043.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.150878 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:37:23.99 |      29 |     0 |      -1 |     -1
- DE.20030401.13121.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.151771 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:38:41.59 |      30 |     0 |      -1 |     -1
- DE.20030401.41400.fits |                   science | 189.18729166666662 |  62.24202777777778 |       goods4 |    600ZD | goods4 |     1,1 | 52730.479084 | 1.38899481 |  1800.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 11:30:00.88 |      76 |     0 |       1 |      2
- DE.20030401.43284.fits |                   science | 189.18724999999998 | 62.241416666666666 |       goods4 |    600ZD | goods4 |     1,1 | 52730.500885 | 1.43217598 |  1800.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 12:01:24.54 |      77 |     0 |       2 |      3
- DE.20030401.45157.fits |                   science |  189.1873333333333 |  62.24263888888889 |       goods4 |    600ZD | goods4 |     1,1 | 52730.522568 | 1.49426629 |  1800.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 12:32:37.95 |      78 |     0 |       3 |      2
- DE.20030401.47039.fits |                   science | 189.18724999999998 |  62.24172222222222 |       goods4 |    600ZD | goods4 |     1,1 | 52730.544329 |  1.5790672 |  1800.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 13:03:59.66 |      79 |     0 |       4 |      3
- DE.20030401.48935.fits |                   science |  189.1873333333333 | 62.242333333333335 |       goods4 |    600ZD | goods4 |     1,1 | 52730.566286 | 1.69279132 |  1140.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 13:35:35.46 |      80 |     0 |       5 |     -1
+               filename |                 frametype |                 ra |                dec |       target | dispname | decker | binning |          mjd |    airmass | exptime |     dispangle |      amp | filter1 |     lampstat01 |    dateobs |         utc | frameno | calib | dithpos | dithoff | comb_id | bkg_id
+#DE.20030401.15349.fits |                  arc,tilt |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.177547 | 1.41291034 |   100.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Xe | 2003-04-01 | 04:15:49.60 |      44 |     0 |    None |       0 |      -1 |     -1
+ DE.20030401.12729.fits |                  arc,tilt |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 |  52730.14723 | 1.41291034 |     2.0 | 7500.02246094 | SINGLE:B |   BAL12 | Xe Hg Ne Cd Zn | 2003-04-01 | 03:32:09.08 |      25 |     0 |    None |       0 |      -1 |     -1
+#DE.20030401.12808.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 |  52730.14816 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:33:28.43 |      26 |     0 |    None |       0 |      -1 |     -1
+#DE.20030401.12890.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.149085 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:34:50.39 |      27 |     0 |    None |       0 |      -1 |     -1
+ DE.20030401.12968.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.150022 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:36:08.84 |      28 |     0 |    None |       0 |      -1 |     -1
+ DE.20030401.13043.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.150878 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:37:23.99 |      29 |     0 |    None |       0 |      -1 |     -1
+ DE.20030401.13121.fits | pixelflat,illumflat,trace |  89.99999999999999 |               45.0 | HORIZON STOW |    600ZD | goods4 |     1,1 | 52730.151771 | 1.41291034 |     7.0 | 7500.02246094 | SINGLE:B |   BAL12 |             Qz | 2003-04-01 | 03:38:41.59 |      30 |     0 |    None |       0 |      -1 |     -1
+ DE.20030401.41400.fits |                   science | 189.18729166666662 |  62.24202777777778 |       goods4 |    600ZD | goods4 |     1,1 | 52730.479084 | 1.38899481 |  1800.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 11:30:00.88 |      76 |     0 |       A |       0 |       1 |      2
+ DE.20030401.43284.fits |                   science | 189.18724999999998 | 62.241416666666666 |       goods4 |    600ZD | goods4 |     1,1 | 52730.500885 | 1.43217598 |  1800.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 12:01:24.54 |      77 |     0 |       B |     2.2 |       2 |      3
+ DE.20030401.45157.fits |                   science |  189.1873333333333 |  62.24263888888889 |       goods4 |    600ZD | goods4 |     1,1 | 52730.522568 | 1.49426629 |  1800.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 12:32:37.95 |      78 |     0 |       C |    -2.2 |       3 |      2
+ DE.20030401.47039.fits |                   science | 189.18724999999998 |  62.24172222222222 |       goods4 |    600ZD | goods4 |     1,1 | 52730.544329 |  1.5790672 |  1800.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 13:03:59.66 |      79 |     0 |       A |     1.1 |       4 |      3
+ DE.20030401.48935.fits |                   science |  189.1873333333333 | 62.242333333333335 |       goods4 |    600ZD | goods4 |     1,1 | 52730.566286 | 1.69279132 |  1140.0 | 7500.02246094 | SINGLE:B |   BAL12 |            Off | 2003-04-01 | 13:35:35.46 |      80 |     0 |       B |    -1.1 |       5 |     -1
 data end
 
