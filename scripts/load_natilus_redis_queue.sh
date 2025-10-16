@@ -23,7 +23,9 @@ if [[ $# > 0 ]]
 then
     entries=$*
 else
-    readarray entries
+    while read value; do
+        entries+=($value)
+    done
 fi
 
 

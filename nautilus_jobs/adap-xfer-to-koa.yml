@@ -1,0 +1,80 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: adap-xfer-koa
+spec:
+  parallelism: 1
+  completions: 1
+  completionMode: Indexed
+  backoffLimitPerIndex: 0
+  maxFailedIndexes: 1
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: 
+                  - pas.losa.net.internet2.edu
+      containers:
+      - name: xfer-worker
+        args:
+        - source /home/pypeitusr/pypeit_env/bin/activate;
+          pip install gspread;
+          export RSYNC_PASSWORD=`cat ~/.config/koa_rsync`;
+          cd /tmp; mkdir adap_root;
+          cd /home/pypeitusr/adap; git pull --ff-only;          
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2019/ scripts/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2019/ config/ --recursive;
+          python scripts/s3_to_koa_xfer.py s3:pypeit/adap/KOAarchive/ rsync://dreichwein@koadtn.ipac.caltech.edu:56184/INBOX/ /tmp/adap_root --logfile adap_koa_xfer_${POD_NAME}.log  --rclone_conf config/rclone.conf --queue_url redis://10.244.56.135:6379 --work_queue adap_2019_archive --queue_batch 1;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress adap_koa_xfer_${POD_NAME}.log s3://pypeit/adap/results/
+
+        command:
+        - /bin/bash
+        - -c
+        image: gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/koa_xfer:latest
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: 1
+            ephemeral-storage: 150Gi
+            memory: 4Gi
+          requests:
+            cpu: 1
+            ephemeral-storage: 150Gi
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /tmp
+          name: ephemeral
+        - mountPath: /home/pypeitusr/.aws/credentials
+          name: prp-s3-credentials
+          subPath: credentials
+        - mountPath: /home/pypeitusr/.config/koa_rsync
+          name: koa-rsync
+          subPath: pw
+        env:
+           - name: POD_NAME
+             valueFrom:
+                fieldRef:
+                   fieldPath: metadata.name
+           - name: ENDPOINT_URL
+             value: http://rook-ceph-rgw-nautiluss3.rook
+           - name: S3_ENDPOINT
+             value: rook-ceph-rgw-nautiluss3.rook
+           - name: DEBIAN_FRONTEND
+             value: noninteractive
+           - name: QT_QPA_PLATFORM
+             value: offscreen
+      restartPolicy: Never
+      volumes:
+      - name: prp-s3-credentials
+        secret:
+          secretName: prp-s3-credentials
+      - name: koa-rsync
+        secret:
+          secretName: koa-rsync
+      - emptyDir: {}
+        name: ephemeral
