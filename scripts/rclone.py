@@ -7,7 +7,7 @@ from utils import run_script
 
 logger = logging.getLogger(__name__)
 
-def get_cloud_path(args, source, adap="adap_2020"):
+def get_cloud_path(args, source, adap="adap_2023"):
     """Return the correct cloud enabled RClonePath for a given cloud provider.
     Args:
         args: The arguments to the script as returned by argparse
