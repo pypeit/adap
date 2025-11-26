@@ -37,7 +37,7 @@ def stage_task(args, observing_config):
     config_path = Path(observing_config)
     local_config_path = root_path / observing_config
     dest_loc = None
-    s3_pypeit_root = RClonePath(args.rclone_conf, "s3", "pypeit", "adap_2020")
+    s3_pypeit_root = RClonePath(args.rclone_conf, "s3", "pypeit", "adap_2023")
     try:
         if args.dest == "gdrive":
             dest_loc = RClonePath(args.rclone_conf, "gdrive", "backups", observing_config)
