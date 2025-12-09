@@ -270,7 +270,13 @@ trimming_functions = {"keck_deimos": trim_keck_deimos,
                       "keck_esi": trim_keck_esi,
                       "keck_hires": trim_keck_hires,
                       "keck_mosfire": trim_keck_mosfire,
-                      "keck_lris_red_orig": trim_keck_lris}
+                      "keck_lris_red_orig": trim_keck_lris,
+                      "keck_lris_red": trim_keck_lris,
+                      "keck_lris_red_orig": trim_keck_lris,
+                      "keck_lris_red_mark4": trim_keck_lris,
+                      "keck_lris_blue": trim_keck_lris,
+                      "keck_lris_blue_orig": trim_keck_lris,
+                      }
 
 setup_args = {"keck_mosfire": {"write_bkg_pairs": True}}
 
@@ -291,7 +297,7 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
 
 
     # Create a PypeItSetup object for the raw files, excluding any files if needed
-    raw_path = lcl_path.resolve() / "raw"
+    raw_path = lcl_path.resolve()
     file_list = [str(raw_file) for raw_file in raw_path.glob('*.fits')]
     file_list += [str(raw_file) for raw_file in raw_path.glob('*.fits.gz')]
     ps = pypeitsetup.PypeItSetup(file_list=file_list, 
@@ -347,7 +353,7 @@ def update_custom_pypeit(complete_path, spectrograph_name, reduce_dir, pypeit_fi
     (complete_path / reduce_dir / dir_name).mkdir(parents=True, exist_ok=True)
 
     # Update the raw data directory in the pypeit file
-    pypeit_file.file_paths = [str(complete_path / "raw")]
+    pypeit_file.file_paths = [str(complete_path)]
     pypeit_file.write(complete_path / reduce_dir / dir_name / f"{dir_name}.pypeit")
 
 def update_pixelflat(spectrograph, dataset, config_lines):
@@ -409,14 +415,14 @@ def main():
         else:
             default_config_lines = read_lines(default_config_file)
 
-        complete_path = Path(args.adap_root_dir) / dataset / "complete"
+        dataset_path = Path(args.adap_root_dir) / dataset
 
         # Sanity check things
-        if not complete_path.is_dir() or len(complete_path.parents) < 4:
-            msgs.warn(f"Either non existant or invalid complete path {complete_path}")
+        if not dataset_path.is_dir():
+            msgs.warn(f"Either non existant or invalid dataset path {dataset_path}")
             return 1
 
-        msgs.info(f"Processing path {complete_path}.")
+        msgs.info(f"Processing path {dataset_path}.")
 
         tailored_config_files = config_path.rglob(f"{dataset.replace('/', '_')}_*")
         reduce_configs= []
@@ -440,11 +446,11 @@ def main():
 
         for reduce_config in reduce_configs:
             if isinstance(reduce_config[1], PypeItFile):
-                msgs.info(f"Updating custom pypeit file for {complete_path/reduce_config[0]}")
-                update_custom_pypeit(complete_path, args.spectrograph, reduce_config[0], reduce_config[1])
+                msgs.info(f"Updating custom pypeit file for {dataset_path/reduce_config[0]}")
+                update_custom_pypeit(dataset_path, args.spectrograph, reduce_config[0], reduce_config[1])
             else:
-                msgs.info(f"Creating setup for {complete_path/reduce_config[0]}")
-                make_trimmed_setup(args.spectrograph, complete_path, raw_files_to_exclude, reduce_config[0], reduce_config[1])
+                msgs.info(f"Creating setup for {dataset_path/reduce_config[0]}")
+                make_trimmed_setup(args.spectrograph, dataset_path, raw_files_to_exclude, reduce_config[0], reduce_config[1])
 
 
 if __name__ == '__main__':

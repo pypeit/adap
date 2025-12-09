@@ -4,10 +4,11 @@ import argparse
 import os
 import sys
 from pathlib import Path
+from datetime import datetime
 import subprocess as sp
 import shutil
 import psutil
-import metadata_info
+from extended_spec_mixins import get_lris_spec_name
 
 from utils import run_task_on_queue, init_logging, run_script
 from rclone import get_cloud_path
@@ -94,7 +95,7 @@ def cleanup_old_results(args, dataset, reduce_dir):
     logger.info(f"Cleaning up old results...")
 
 
-    source_reduce_dir = get_cloud_path(args, "s3") / Path(dataset, "complete", reduce_dir)
+    source_reduce_dir = get_cloud_path(args, "s3") / Path(dataset, reduce_dir)
     
     for file in source_reduce_dir.ls(recursive=True):
         try:
@@ -107,7 +108,7 @@ def cleanup_old_results(args, dataset, reduce_dir):
 
 def download_dataset(args, dataset):
     # Download data 
-    relative_path = Path(dataset, "complete", "raw")
+    relative_path = Path(dataset)
 
     source_loc = get_cloud_path(args, args.source) / relative_path
     local_path = args.adap_root_dir / relative_path 
@@ -117,8 +118,8 @@ def download_dataset(args, dataset):
     logger.info(f"Downloaded {count} raw files for {dataset}.")
 
 def upload_results(args, dataset):
-    dataset_local_path = args.adap_root_dir / dataset / "complete"
-    dataset_remote_path = get_cloud_path(args, "s3") / dataset / "complete"
+    dataset_local_path = args.adap_root_dir / dataset
+    dataset_remote_path = get_cloud_path(args, "s3") / dataset
     dataset_reduce_paths = list(dataset_local_path.glob("reduce*"))
     failed = False
     if len(dataset_reduce_paths) == 0:
@@ -141,7 +142,7 @@ def backup_log(args, dataset):
     # Upload the log for this run
 
     log_sourcefile = Path(args.logfile)
-    log_dest = get_cloud_path(args, "s3") / Path(dataset, "complete", "reduce")
+    log_dest = get_cloud_path(args, "s3") / Path(dataset, "reduce")
 
     logger.info(f"Uploading log to {log_dest}.")
     try:
@@ -152,11 +153,9 @@ def backup_log(args, dataset):
 
 def backup_results_to_gdrive(args, dataset):
     # Upload the results for this run to Google Drive
-    dataset_local_path = Path(args.adap_root_dir) / dataset / "complete"
-    dataset_gdrive_path = get_cloud_path(args,"gdrive") / dataset / "complete"
+    dataset_local_path = Path(args.adap_root_dir) / dataset
+    dataset_gdrive_path = get_cloud_path(args,"gdrive") / dataset
     dataset_backup_paths = [p.name for p in dataset_local_path.glob("reduce*")]
-    if args.backup_raw:
-        dataset_backup_paths.append("raw")
 
     if len(dataset_backup_paths) == 0:
         logger.error(f"No results to backup to Google Drive.")
@@ -190,18 +189,31 @@ def reduce_dataset_task(args, dataset):
 
     max_mem = 0
     status = 'COMPLETE'
-    spec = metadata_info.dataset_to_spec(dataset)
-    scripts_dir = args.adap_root_dir / "adap" / "scripts"
+    dataset_path = Path(dataset)
     try:
-        count = download_dataset(args, dataset)
-        if count == 0:
-            logger.error(f"No files found to download for {dataset}.")    
-            status = 'FAILED'
+        target, date_str, raw_dir = dataset_path.parts
+        obs_date = datetime.strptime(date_str, "%Y%m%d").date()
+        if raw_dir == "raw_b":
+            instrument = "LRISBLUE"
         else:
-            run_script(["python",  str(scripts_dir / "trimming_setup.py"), "--adap_root_dir", str(args.adap_root_dir), spec, dataset])
+            instrument = "LRIS"
+        spec = get_lris_spec_name(obs_date = obs_date, instrument=instrument)
     except Exception as e:
-        logger.error(f"Failed during prepwork for {dataset}.",exc_info=True)
+        logger.error(f"Failed parsing dataset name {dataset}.", exc_info=True)
         status = 'FAILED'
+
+    if status != 'FAILED':
+        scripts_dir = args.adap_root_dir / "adap" / "scripts"
+        try:
+            count = download_dataset(args, dataset)
+            if count == 0:
+                logger.error(f"No files found to download for {dataset}.")    
+                status = 'FAILED'
+            else:
+                run_script(["python",  str(scripts_dir / "trimming_setup.py"), "--adap_root_dir", str(args.adap_root_dir), spec, dataset])
+        except Exception as e:
+            logger.error(f"Failed during prepwork for {dataset}.",exc_info=True)
+            status = 'FAILED'
 
 
     if status != 'FAILED':
@@ -223,7 +235,7 @@ def reduce_dataset_task(args, dataset):
 
                 run_script(["bash", str(scripts_dir / "tar_qa.sh"), str(pypeit_file.parent)])
 
-            scorecard_cmd = ["python", str(scripts_dir / "scorecard.py"), spec, str(args.adap_root_dir), str(args.adap_root_dir / dataset / "complete" / "reduce" / f"scorecard.csv"), "--status", status, "--mem", str(max_mem)]
+            scorecard_cmd = ["python", str(scripts_dir / "scorecard.py"), spec, str(args.adap_root_dir), str(args.adap_root_dir / dataset / "reduce" / f"scorecard.csv"), "--status", status, "--mem", str(max_mem)]
             if 'PYPEIT_COMMIT' in os.environ:
                 scorecard_cmd += ["--commit", os.environ['PYPEIT_COMMIT']]
 
@@ -250,7 +262,7 @@ def reduce_dataset_task(args, dataset):
 
         # Update the scorecard results
         try:
-            run_script(["python", str(scripts_dir / "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], str(args.adap_root_dir / dataset / "complete" / "reduce" / "scorecard.csv"), str(args.scorecard_max_age)])
+            run_script(["python", str(scripts_dir / "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], str(args.adap_root_dir / dataset / "reduce" / "scorecard.csv"), str(args.scorecard_max_age)])
         except Exception as e:
             logger.error(f"Failed to update scorecard results for {dataset}.",exc_info=True)
         
@@ -267,7 +279,6 @@ def main():
     parser.add_argument('--queue_timeout', type = int,default=120, help="Number of seconds to wait for the work queue to initialize.")
     parser.add_argument("--logfile", type=str, default="reduce_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=Path, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
-    parser.add_argument("--backup_raw", default=False, action="store_true", help="Whether to also backup the raw data to google drive.")
     parser.add_argument("--scorecard_max_age", type=int, default=7, help="Max age of items in the scorecard's latest spreadsheet")
     parser.add_argument("--endpoint_url", type=str, default = os.getenv("ENDPOINT_URL", default="https://s3-west.nrp-nautilus.io"), help="The URL used to access S3. Defaults $ENDPOINT_URL, or the PRP Nautilus external URL.")
     parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")

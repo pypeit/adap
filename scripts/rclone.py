@@ -7,7 +7,7 @@ from utils import run_script
 
 logger = logging.getLogger(__name__)
 
-def get_cloud_path(args, source, adap="adap_2020"):
+def get_cloud_path(args, source, adap="adap_2023"):
     """Return the correct cloud enabled RClonePath for a given cloud provider.
     Args:
         args: The arguments to the script as returned by argparse
@@ -16,7 +16,7 @@ def get_cloud_path(args, source, adap="adap_2020"):
     Return: An RClonePath for the cloud provider.
     """
     if source == "gdrive":
-        source_loc = RClonePath(args.rclone_conf, "gdrive", "backups")
+        source_loc = RClonePath(args.rclone_conf, "gdrive", "DATA")
     else:
         source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", adap, "raw_data_reorg")
     return source_loc
