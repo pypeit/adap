@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: adap2020-reduce-from-queue
+  name: adap2023-reduce-from-queue
 spec:
   backoffLimit: 2
   parallelism: 1

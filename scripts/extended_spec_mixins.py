@@ -323,8 +323,8 @@ def get_lris_spec_name(obs_date, koaid=None, instrument=None):
 
 class ADAP_LRISExtendedSpectrograph(ADAPSpectrographMixin):
 
-    blue_grouping = [[("qsolist_obj_name", "<U")], [("spec_name", "<U"), ("dispname","<U"),("decker","<U"), ("dichroic", "<U"), ("amp", "int"), ("binning", "<U")]]
-    red_grouping = [[("qsolist_obj_name", "<U")], [("spec_name", "<U"), ("dispname","<U"),("decker","<U"), ("dichroic", "<U"), ("dispangle","float64"),("cenwave","float64"),("amp", "int"), ("binning", "<U")]]
+    blue_grouping = [[("list_obj_name", "<U")], ["utdate","<U"], [("spec_name", "<U")]]
+    red_grouping = [[("list_obj_name", "<U")], ["utdate","<U"], [("spec_name", "<U")]]
     def __init__(self, matching_files):
         super().__init__(instr_name = 'LRIS', matching_files = matching_files)
         

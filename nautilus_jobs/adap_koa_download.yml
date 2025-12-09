@@ -12,12 +12,12 @@ spec:
         args:
         - apt-get -y update; pip install awscli astropy pykoa; 
           cd /tmp;  mkdir adap_root; cd adap_root;
-          git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2020;
+          git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap_2020/koa_to_download/ /tmp/koa_to_download/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap_2023/koa_to_download/ /tmp/koa_to_download/ --recursive;
           mkdir /tmp/RAW_DATA;
           python scripts/koa_download.py /tmp/RAW_DATA/ /tmp/koa_to_download/*;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/RAW_DATA/ s3://pypeit/adap_2020/RAW_DATA/std_star/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/RAW_DATA/ s3://pypeit/adap_2023/RAW_DATA/ --recursive;
         command:
         - /bin/bash
         - -c
