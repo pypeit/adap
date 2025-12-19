@@ -297,7 +297,7 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
 
 
     # Create a PypeItSetup object for the raw files, excluding any files if needed
-    raw_path = lcl_path.resolve()
+    raw_path = lcl_path.resolve() / "raw"
     file_list = [str(raw_file) for raw_file in raw_path.glob('*.fits')]
     file_list += [str(raw_file) for raw_file in raw_path.glob('*.fits.gz')]
     ps = pypeitsetup.PypeItSetup(file_list=file_list, 
@@ -353,7 +353,7 @@ def update_custom_pypeit(complete_path, spectrograph_name, reduce_dir, pypeit_fi
     (complete_path / reduce_dir / dir_name).mkdir(parents=True, exist_ok=True)
 
     # Update the raw data directory in the pypeit file
-    pypeit_file.file_paths = [str(complete_path)]
+    pypeit_file.file_paths = [str(complete_path / "raw")]
     pypeit_file.write(complete_path / reduce_dir / dir_name / f"{dir_name}.pypeit")
 
 def update_pixelflat(spectrograph, dataset, config_lines):

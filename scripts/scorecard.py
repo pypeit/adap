@@ -66,7 +66,7 @@ def get_expected_det(par, args):
     default_par = spec.default_pypeit_par()
 
     if default_par['rdx']['detnum'] is None or not isinstance(default_par['rdx']['detnum'], list):
-        expected_det = 1
+        expected_det = spec.ndet
     else:
         expected_det = len(default_par['rdx']['detnum'])
 

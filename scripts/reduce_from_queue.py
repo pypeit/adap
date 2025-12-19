@@ -19,9 +19,10 @@ logger = logging.getLogger(__name__)
 
 def clear_log(args):
     try:
-        os.remove(args.logfile)
+        logfile = args.adap_root_dir / args.logfile
+        os.remove(logfile)
     except FileNotFoundError as e:
-        print(f"{args.logfile} not found")
+        print(f"{logfile} not found")
 
 
 def run_pypeit_onfile(args, file):
@@ -108,7 +109,7 @@ def cleanup_old_results(args, dataset, reduce_dir):
 
 def download_dataset(args, dataset):
     # Download data 
-    relative_path = Path(dataset)
+    relative_path = Path(dataset, "raw")
 
     source_loc = get_cloud_path(args, args.source) / relative_path
     local_path = args.adap_root_dir / relative_path 
@@ -117,23 +118,18 @@ def download_dataset(args, dataset):
     count = len(list(local_path.glob("*")))
     logger.info(f"Downloaded {count} raw files for {dataset}.")
 
-def upload_results(args, dataset):
-    dataset_local_path = args.adap_root_dir / dataset
-    dataset_remote_path = get_cloud_path(args, "s3") / dataset
-    dataset_reduce_paths = list(dataset_local_path.glob("reduce*"))
+def upload_results(args, dest, dataset):
+    local_reduce_path = args.adap_root_dir / dataset / "reduce"
+    remote_reduce_path = get_cloud_path(args, dest) / dataset / "reduce"
     failed = False
-    if len(dataset_reduce_paths) == 0:
-        logger.error("No reduce results to upload.")
-    else:
-        for reduce_path in dataset_reduce_paths:
-            dest_path = dataset_remote_path / reduce_path.name
-            logger.info(f"Uploading results in {reduce_path} to {dataset_remote_path}...")
 
-            try:
-                dest_path.upload(reduce_path)
-            except Exception as e:
-                logger.error(f"Failed to upload {reduce_path}",exc_info=True)
-                failed = True
+    logger.info(f"Uploading results in {local_reduce_path} to {remote_reduce_path}...")
+
+    try:
+        remote_reduce_path.upload(local_reduce_path)
+    except Exception as e:
+        logger.error(f"Failed to upload {local_reduce_path}",exc_info=True)
+        failed = True
 
     if failed:
         raise RuntimeError("Failed to upload results.")
@@ -141,8 +137,8 @@ def upload_results(args, dataset):
 def backup_log(args, dataset):
     # Upload the log for this run
 
-    log_sourcefile = Path(args.logfile)
-    log_dest = get_cloud_path(args, "s3") / Path(dataset, "reduce")
+    log_sourcefile = args.adap_root_dir / args.logfile
+    log_dest = get_cloud_path(args, "s3") / Path(dataset, "reduce", args.logfile)
 
     logger.info(f"Uploading log to {log_dest}.")
     try:
@@ -150,21 +146,6 @@ def backup_log(args, dataset):
     except Exception as e:
         logger.error(f"Failed to upload log to {log_dest}", exc_info=True)
 
-
-def backup_results_to_gdrive(args, dataset):
-    # Upload the results for this run to Google Drive
-    dataset_local_path = Path(args.adap_root_dir) / dataset
-    dataset_gdrive_path = get_cloud_path(args,"gdrive") / dataset
-    dataset_backup_paths = [p.name for p in dataset_local_path.glob("reduce*")]
-
-    if len(dataset_backup_paths) == 0:
-        logger.error(f"No results to backup to Google Drive.")
-    else:
-        logger.info(f"Backing up results to Google Drive.")
-        for source in dataset_backup_paths:
-            source_path = dataset_local_path / source
-            dest_path = dataset_gdrive_path / source
-            dest_path.upload(source_path)
 
 def cleanup(args, dataset):
     """Clean up after running a job and uploading its results"""
@@ -191,9 +172,9 @@ def reduce_dataset_task(args, dataset):
     status = 'COMPLETE'
     dataset_path = Path(dataset)
     try:
-        target, date_str, raw_dir = dataset_path.parts
+        target, date_str, color_dir = dataset_path.parts
         obs_date = datetime.strptime(date_str, "%Y%m%d").date()
-        if raw_dir == "raw_b":
+        if color_dir == "blue":
             instrument = "LRISBLUE"
         else:
             instrument = "LRIS"
@@ -229,7 +210,7 @@ def reduce_dataset_task(args, dataset):
                 #run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "useful_warnings.py"), str(logfile), "--req_warn_file", os.path.join(args.adap_root_dir, "adap", "config", "required_warnings.txt")])
 
                 # Cleanup results from an old run
-                cleanup_old_results(args, dataset, pypeit_file.parent.parent.name)
+                cleanup_old_results(args, dataset, "reduce")
 
                 backup_log(args, dataset)
 
@@ -247,16 +228,16 @@ def reduce_dataset_task(args, dataset):
 
         # Try to upload any results regardless of status
         try:            
-            upload_results(args, dataset)
+            upload_results(args, "s3", dataset)
         except Exception as e:
-            logger.error(f"Failed uploading results for {dataset}.",exc_info=True)
+            logger.error(f"Failed uploading results for {dataset} to s3.",exc_info=True)
             status = 'FAILED'
 
         # Try to backup results to gdrive
         try:            
-            backup_results_to_gdrive(args, dataset)
+            upload_results(args, "gdrive", dataset)
         except Exception as e:
-            logger.error(f"Failed backup up results for {dataset}.", exc_info=True)
+            logger.error(f"Failed copying results for {dataset} to gdrive.", exc_info=True)
             if status != 'FAILED':
                 status = "WARNING"
 

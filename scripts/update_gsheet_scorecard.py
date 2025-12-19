@@ -171,12 +171,8 @@ def update_gsheet_worksheet(args, spreadsheet, worksheet_name, csv_array):
 def dataset_sheet_filter(sheet, data):
     if sheet == 'Failed':
         return data[data['status'] == 'FAILED']
-    elif sheet == 'latest':
-        return data
     else:
-        instrument_filter = [dataset.split('/')[0] == sheet for dataset in data['dataset']]
-        return data[instrument_filter]
-
+        return data
 
 def main():
     parser = argparse.ArgumentParser(description='Update the ADAPs Google scorecard spreadsheet for completed pypeit reductions.')
@@ -186,8 +182,7 @@ def main():
     args = parser.parse_args()
 
 
-    #sheets = ['latest', 'Failed', 'DEIMOS', 'ESI', 'HIRES', 'LRIS', 'MOSFIRE', 'NIRES', 'NIRSPEC']
-    sheets = ['HIRES']
+    sheets = ['latest', 'Failed','LRIS', ]
 
     print (f"Reading {args.scorecard}")
     csv_rows = []
