@@ -117,7 +117,7 @@ def build_final_arc_table(query, instr, night):
     final_table.write(final_arc_table_name, format='ascii.ipac', overwrite=True)
 
     return final_arc_table_name
-    
+
 def build_final_table(night, query):
     """
     Build the final table
@@ -136,10 +136,15 @@ def build_final_table(night, query):
         if instr == "LRIS":
             mtch &= query.date_results['graname'] == night.graname
             mtch &= query.date_results['binning'] == night.red_binning
+            mtch &= query.date_results['argon'] == 'on'
+            mtch &= query.date_results['neon'] == 'on'
+            mtch &= query.date_results['mercury'] == 'on'
         else:
             mtch &= query.date_results['grisname'] == night.grisname
             mtch &= query.date_results['binning'] == night.blue_binning
-
+            mtch &= query.date_results['cadmium'] == 'on'
+            mtch &= query.date_results['zinc'] == 'on'
+ 
         arcs = mtch & (query.date_results['koaimtyp'] == 'arclamp')
         science = mtch & (query.date_results['koaimtyp'] == 'object')
         n_arc = len(query.date_results['koaid'][arcs])
