@@ -113,16 +113,7 @@ def build_final_arc_table(query, instr, night):
     if len(query.date_results['koaid'][mtch]) == 0:
         return None
 
-    delta = numpy.abs(query.date_results['dec'][mtch] - float(query.target.dec))
-    delta_min_ind = (delta <= (delta.min()+1))
-    arcs = numpy.zeros_like(mtch, dtype=bool)
-    arcs[mtch] = delta_min_ind
-    n_arc = len(query.date_results['koaid'][arcs])
-
-    if n_arc == 0:
-        return None
-
-    final_table = query.date_results[arcs]
+    final_table = query.date_results[mtch]
     final_table.write(final_arc_table_name, format='ascii.ipac', overwrite=True)
 
     return final_arc_table_name
