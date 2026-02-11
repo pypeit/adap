@@ -64,7 +64,7 @@ def main():
         for name in names:
             print(f'Found target name: {name}')
 
-        Download.fill_dates(query, target, test=args.test, nodownload=args.nodownload)
+        DownloadUtils.fill_dates(query, target, test=args.test, nodownload=args.nodownload)
 
 if __name__ == "__main__":
     main()
