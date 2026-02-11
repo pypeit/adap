@@ -117,7 +117,7 @@ def build_final_arc_table(query, instr, night):
     final_table.write(final_arc_table_name, format='ascii.ipac', overwrite=True)
 
     return final_arc_table_name
-
+    
 def build_final_table(night, query):
     """
     Build the final table
