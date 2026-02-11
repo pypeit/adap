@@ -18,7 +18,8 @@ class Query():
         self.query_keys = 'koaid, object, instrume, koaimtyp, frameno, ra, dec,  \
             to_char(date_obs,\'YYYY-MM-DD\') as date_obs, elaptime, binning, \
             airmass, dichname, graname, grisname, slitname, trapdoor, \
-            progid, proginst,  progpi, progtitl, semester, ofname, filehand '
+            progid, proginst,  progpi, progtitl, semester, ofname, filehand, \
+            argon, cadmium, mercury, neon, zinc '
         if os.path.exists(self.outdir) is False:
             os.makedirs(self.outdir)
 
