@@ -113,7 +113,16 @@ def build_final_arc_table(query, instr, night):
     if len(query.date_results['koaid'][mtch]) == 0:
         return None
 
-    final_table = query.date_results[mtch]
+    delta = numpy.abs(query.date_results['dec'][mtch] - float(query.target.dec))
+    delta_min_ind = (delta <= (delta.min()+1))
+    arcs = numpy.zeros_like(mtch, dtype=bool)
+    arcs[mtch] = delta_min_ind
+    n_arc = len(query.date_results['koaid'][arcs])
+
+    if n_arc == 0:
+        return None
+
+    final_table = query.date_results[arcs]
     final_table.write(final_arc_table_name, format='ascii.ipac', overwrite=True)
 
     return final_arc_table_name
@@ -134,18 +143,18 @@ def build_final_table(night, query):
         mtch = query.date_results['instrume'] == instr
         mtch &= query.date_results['dichname'] == night.dichname
         if instr == "LRIS":
+            lamps = (query.date_results['neon'] == 'on') | \
+                (query.date_results['argon'] == 'on') | (query.date_results['mercury'] == 'on')
             mtch &= query.date_results['graname'] == night.graname
             mtch &= query.date_results['binning'] == night.red_binning
-            mtch &= query.date_results['argon'] == 'on'
-            mtch &= query.date_results['neon'] == 'on'
-            mtch &= query.date_results['mercury'] == 'on'
         else:
+            lamps = (query.date_results['cadmium'] == 'on') | \
+                (query.date_results['zinc'] == 'on')
             mtch &= query.date_results['grisname'] == night.grisname
             mtch &= query.date_results['binning'] == night.blue_binning
-            mtch &= query.date_results['cadmium'] == 'on'
-            mtch &= query.date_results['zinc'] == 'on'
- 
-        arcs = mtch & (query.date_results['koaimtyp'] == 'arclamp')
+
+
+        arcs = mtch & (query.date_results['koaimtyp'] == 'arclamp') & lamps
         science = mtch & (query.date_results['koaimtyp'] == 'object')
         n_arc = len(query.date_results['koaid'][arcs])
 
