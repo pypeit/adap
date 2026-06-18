@@ -1,6 +1,6 @@
 import sys
 import argparse
-from pykoa.koa import Koa 
+from pykoa.koa import Koa
 from pathlib import Path
 
 

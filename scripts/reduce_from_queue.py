@@ -27,7 +27,7 @@ def clear_log(args):
 
 def run_pypeit_onfile(args, file):
     """
-    Run PypeIt on one pypeit file. It makes sure to change the currenct directory to that
+    Run PypeIt on one pypeit file. It makes sure to change the current directory to that
     containing the passed in pypeit file.
 
     Args:
@@ -40,7 +40,7 @@ def run_pypeit_onfile(args, file):
         str : The status of the pypeit run. Either "COMPLETED" or "FAILED".
         int : The maximum memory used by PypeIt.
     """
-       
+
     pypeit_dir = file.parent
     stdout = pypeit_dir.joinpath("run_pypeit_stdout.txt")
     with open(stdout, "w") as stdout_file:
@@ -50,7 +50,7 @@ def run_pypeit_onfile(args, file):
         child_env['OMP_NUM_THREADS'] = '1'
 
         logger.info(f"Starting PypeIt run on {file}")
-    
+
         # Run PypeIt on the pypeit file, using the additional arguments from our command line,
         # with stdout and stderr going to a text file, from the directory of the pypeit file, with
         # the environment set to be single threaded
@@ -59,7 +59,7 @@ def run_pypeit_onfile(args, file):
 
         returncode = None
         process = psutil.Process(cp.pid)
-        
+
         max_mem = 0
 
         while returncode is None:
@@ -97,14 +97,14 @@ def cleanup_old_results(args, dataset, reduce_dir):
 
 
     source_reduce_dir = get_cloud_path(args, "s3") / Path(dataset, reduce_dir)
-    
+
     for file in source_reduce_dir.ls(recursive=True):
         try:
             file.unlink()
         except Exception as e:
             # If the delete fails, continue to next item
             logger.error(f"Failed to remove: {file}",exc_info=True)
-                
+
 
 
 def download_dataset(args, dataset):
@@ -117,6 +117,7 @@ def download_dataset(args, dataset):
     source_loc.download(local_path)
     count = len(list(local_path.glob("*")))
     logger.info(f"Downloaded {count} raw files for {dataset}.")
+    return count
 
 def upload_results(args, dest, dataset):
     local_reduce_path = args.adap_root_dir / dataset / "reduce"
@@ -153,7 +154,7 @@ def cleanup(args, dataset):
     try:
         # Clear the log so it doesn't grow forever. upload_results will have uploaded it to S3
         clear_log(args)
-        
+
         if args.local is None:
             shutil.rmtree(Path(args.adap_root_dir) / dataset)
         else:
@@ -246,7 +247,7 @@ def reduce_dataset_task(args, dataset):
             run_script(["python", str(scripts_dir / "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], str(args.adap_root_dir / dataset / "reduce" / "scorecard.csv"), str(args.scorecard_max_age)])
         except Exception as e:
             logger.error(f"Failed to update scorecard results for {dataset}.",exc_info=True)
-        
+
     # Cleanup before moving to the next dataset
     cleanup(args, dataset)
     return status
@@ -279,4 +280,3 @@ def main():
 
 if __name__ == '__main__':    
     sys.exit(main())
-

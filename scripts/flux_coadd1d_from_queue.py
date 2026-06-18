@@ -81,7 +81,7 @@ def run_flux_coadd1d_task(args, dataset_prefix):
         if len(reduce_paths) == 0:
             logger.error(f"No reduce paths found for {dataset_prefix}")
             return "FAILED"
-        
+
         # Download the reduced data
         local_reduce_paths = []
         for reduce_path in reduce_paths:
@@ -90,12 +90,12 @@ def run_flux_coadd1d_task(args, dataset_prefix):
             logger.info(f"Downloading data to {local_path}")
             reduce_path.download(local_path)
             local_reduce_paths.append(local_path)
-    
+
             # Try to create backups of any spec1ds
             logger.info(f"Looking for spec1ds that need to be backed up")
             science_relative_path = Path(dataset_prefix, relative_path ,"Science")
             local_science_path = root_path / science_relative_path
-        
+
             spec1ds_to_backup = local_science_path.glob("spec1d_*.fits")
             for spec1d in spec1ds_to_backup:
                 backup_name = "orig_" + spec1d.name
@@ -110,7 +110,7 @@ def run_flux_coadd1d_task(args, dataset_prefix):
                         except Exception as e:
                             logger.errpr(f"Failed to backup {spec1d.name}",exc_info=True)
                             return "FAILED"
-                            
+
         # Create 1D_Coadd directory to flux/coadd from
         relative_coadd_path = Path(dataset_prefix, "1D_Coadd")
         local_coadd_dir = root_path / relative_coadd_path
@@ -212,7 +212,7 @@ def run_flux_coadd1d_task(args, dataset_prefix):
         else:
             logger.info(f"Cleaning up local copy of {dataset_prefix}")
             shutil.rmtree(str(root_path / dataset_prefix))
-    
+
     return status
 
 
@@ -244,4 +244,3 @@ def main():
 
 if __name__ == '__main__':    
     sys.exit(main())
-
