@@ -4,7 +4,6 @@ import numpy as np
 from pypeit.spectrographs.keck_deimos import KeckDEIMOSSpectrograph
 from pypeit.spectrographs.keck_hires import KECKHIRESSpectrograph
 from pypeit.spectrographs.keck_esi import KeckESISpectrograph
-from pypeit.spectrographs.keck_lris import KeckLRISSpectrograph
 from pypeit.spectrographs.keck_lris import KeckLRISBOrigSpectrograph
 from pypeit.spectrographs.keck_lris import KeckLRISBSpectrograph
 from pypeit.spectrographs.keck_lris import KeckLRISRSpectrograph
@@ -27,7 +26,7 @@ class ADAPSpectrographMixin:
         else:
             self.file_to_object_map = None
         super().__init__()
-        
+
 
     @classmethod
     def load_extended_spectrograph(cls,spec_name=None,instr_name=None,matching_files=None):
@@ -63,16 +62,16 @@ class ADAPSpectrographMixin:
 
     def koa_columns(self):
         return instr_columns[self.instrument_name]
-    
+
     def config_key_koa_columns(self):
         return config_key_columns[self.instrument_name]
-    
+
     def exclude_koa_types(self):
         return exclude_koa_types[self.instrument_name]
-    
+
     def exclude_pypeit_types(self):
         return exclude_pypeit_types[self.instrument_name]
-    
+
     def exclude_metadata(self, metadata):
         """Finds metadata that should be excluded from ADAP processing for this spectrograph 
         and returns why it is being excluded
@@ -86,7 +85,7 @@ class ADAPSpectrographMixin:
         """
         # By default exclude nothing        
         return [],[]
-    
+
     def is_metadata_complete(self,metadata, standard_as_science=False):
         """Returns whether a grouped set of files are sufficient to reduce with PypeIt.
          
@@ -99,14 +98,14 @@ class ADAPSpectrographMixin:
             str : A summary line for logging.            
         """
         raise NotImplementedError("is_metadata_complete not implemented for " + self.__class__.__name__)
-    
+
     def config_path_grouping(self):
         return config_path_grouping.get(self.instrument_name,None)
 
     def extra_group_keys(self):
         # Return extra keys needed for grouping that aren't in the configuration keys
         return []
-    
+
     def add_extra_metadata(self, metadata):
         """Add any extra metadata columns needed by adap_reorg_setup.py for this instrument.
          
@@ -130,7 +129,7 @@ class ADAPSpectrographMixin:
             True if they are the same, False if not.
         """
         config_ind_frames = self.config_independent_frames()
-        
+
         for key in config_key_columns[self.instrument_name]:
             if isinstance(config1[key], (float, np.floating)):
                 pypeit_key = koa_key_to_pypeit_key[key]
@@ -208,7 +207,7 @@ class ADAP_HIRESExtendedSpectrograph(ADAPSpectrographMixin, KECKHIRESSpectrograp
     def extra_group_keys(self):
         # Return extra keys needed for grouping that aren't in the configuration keys
         return ['decker', 'qsolist_obj_name']
-    
+
     def koa_config_compare(self, config1, config2):
         """Compare the PypeIt configuration between two items using the koa attribute names.
         The items can be rows returned from koa, or a dict with the correct keys.
@@ -228,7 +227,7 @@ class ADAP_HIRESExtendedSpectrograph(ADAPSpectrographMixin, KECKHIRESSpectrograp
                                  'xdangl': 'xdangle',
                                  'binning': 'binning'}
         return super()._koa_config_compare(koa_key_to_pypeit_key, config1, config2)
-    
+
 
 class ADAP_ESIExtendedSpectrograph(ADAPSpectrographMixin, KeckESISpectrograph):
 
@@ -296,17 +295,17 @@ class ADAP_ESIExtendedSpectrograph(ADAPSpectrographMixin, KeckESISpectrograph):
 def get_lris_spec_name(obs_date, koaid=None, instrument=None):
     if koaid is None and instrument is None:
         raise ValueError("Need koaid or instrument to identify Keck LRIS spectrograph subclass.")
+    is_blue = False
     if instrument is not None:
         if instrument == "LRISBLUE":
             is_blue=True
-        else:
-            is_blue=False
+
     elif koaid is not None:
         if koaid.startswith("LB"):
             is_blue = True
         else:
             is_blue = False
-    
+
     if is_blue:
         if obs_date <= date(2009,4,30):
             return "keck_lris_blue_orig"
@@ -327,7 +326,7 @@ class ADAP_LRISExtendedSpectrograph(ADAPSpectrographMixin):
     red_grouping = [[("list_obj_name", "<U")], ["utdate","<U"], [("spec_name", "<U")]]
     def __init__(self, matching_files):
         super().__init__(instr_name = 'LRIS', matching_files = matching_files)
-        
+
     def is_metadata_complete(self, metadata,standard_as_science=False):
         """Determine if a PypeItMetadata object has enough data to be reduced.
         For LRIS minimum requirements for this are a science frame, a flat frame, and
@@ -359,7 +358,7 @@ class ADAP_LRISExtendedSpectrograph(ADAPSpectrographMixin):
         # Return extra keys needed for grouping that aren't in the configuration keys
         return ['qsolist_obj_name', 'spec_name']
 
-    
+
     def config_independent_frames(self):
         # We don't include 'dateobs' like the parent class because
         # adap_reorg_setup uses a date window to group files
@@ -394,7 +393,7 @@ class ADAP_LRISExtendedSpectrograph(ADAPSpectrographMixin):
 class ADAP_LRISBlueOrigExtendedSpectrograph(ADAP_LRISExtendedSpectrograph,KeckLRISBOrigSpectrograph):
     def config_path_grouping(self):
         return self.blue_grouping
-    
+
 class ADAP_LRISBlueExtendedSpectrograph(ADAP_LRISExtendedSpectrograph,KeckLRISBSpectrograph):
     def config_path_grouping(self):
         return self.blue_grouping
@@ -402,7 +401,7 @@ class ADAP_LRISBlueExtendedSpectrograph(ADAP_LRISExtendedSpectrograph,KeckLRISBS
 class ADAP_LRISRedExtendedSpectrograph(ADAP_LRISExtendedSpectrograph,KeckLRISRSpectrograph):
     def config_path_grouping(self):
         return self.red_grouping
-    
+
 class ADAP_LRISRedMark4ExtendedSpectrograph(ADAP_LRISExtendedSpectrograph,KeckLRISRMark4Spectrograph):
     def config_path_grouping(self):
         return self.red_grouping
@@ -442,7 +441,7 @@ class ADAP_MOSFIRESpectrograph(ADAPSpectrographMixin, KeckMOSFIRESpectrograph):
     def extra_group_keys(self):
         # Return extra keys needed for grouping that aren't in the configuration keys
         return ['qsolist_obj_name']
-    
+
     def koa_config_compare(self, config1, config2):
         """Compare the PypeIt configuration between two items using the koa attribute names.
         The items can be rows returned from koa, or a dict with the correct keys.
@@ -458,5 +457,5 @@ class ADAP_MOSFIRESpectrograph(ADAPSpectrographMixin, KeckMOSFIRESpectrograph):
         #['', 'slitlength', 'slitwid', 'dispname', 'filter1']
         koa_key_to_pypeit_key = {'maskname': 'decker_secondary',
                                  'filter':   'filter1'}
-        
+
         return super()._koa_config_compare(koa_key_to_pypeit_key, config1, config2)
