@@ -94,7 +94,7 @@ class RunPypeItParallel(scriptbase.ScriptBase):
                 except Exception as e:
                     msg = f"Failed to start process for {next_file}: {e}"
                     log_message(args,msg)
-                
+
             # Check workers to see if they've finished
             still_in_progress = []
             while len(in_progress_files) > 0:
