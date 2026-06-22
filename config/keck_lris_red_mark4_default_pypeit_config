@@ -1,6 +1,5 @@
 [rdx]
-    spectrograph = keck_lris_red
-    detnum = [2]
+    spectrograph = keck_lris_red_mark4
 [baseprocess]
     use_biasimage = False
 [calibrations]

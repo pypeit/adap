@@ -1,2 +1,20 @@
 [rdx]
     spectrograph = keck_lris_blue
+    detnum = [2]
+[baseprocess]
+    use_biasimage = False
+[calibrations]
+    [[standardframe]]
+        exprng = 1,121
+    [[slitedges]]
+        edge_thresh = 50.0
+	bound_detector = True
+[scienceframe]
+    exprng = 121, None
+[reduce]
+    [[skysub]]
+        local_maskwidth = 4.0
+    [[extraction]]
+        boxcar_radius = 2.5
+    [[findobj]]
+        find_fwhm = 15.0
