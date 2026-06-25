@@ -164,9 +164,9 @@ def trim_criteria(metadata, sort_fields, max, initial_files, all_criteria):
         else:
             # Too many files were trimmed, remove a criteria and try again
             all_criteria.pop()
-    
+
     remaining_num = orig_num - np.sum(trimmed_files)
-    
+
     if remaining_num < max:
         # We can't do any trimming, 
         trimmed_files = np.zeros_like(initial_files, dtype=bool)

@@ -112,7 +112,7 @@ def download_dataset(args, dataset):
     relative_path = Path(dataset, "raw")
 
     source_loc = get_cloud_path(args, args.source) / relative_path
-    local_path = args.adap_root_dir / relative_path 
+    local_path = args.adap_root_dir / relative_path
 
     source_loc.download(local_path)
     count = len(list(local_path.glob("*")))
