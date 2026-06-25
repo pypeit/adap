@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Given a set of source directories in S3 or local storage that contain raw
-DEIMOS FITs file, organize them into a heirarchy and run setup on them.
-The resulting heirarchy will look like:
+DEIMOS FITs file, organize them into a hierarchy and run setup on them.
+The resulting hierarchy will look like:
 
 <slit mask name>/
     <Grating_Dispangle_Filter>/
@@ -22,13 +22,13 @@ Example Usage:
 To organize a local RAW_DATA1 and RAW_DATA2 directory to raw_organized:
     adap_reorg_setup.py raw_organized RAW_DATA1 RAW_DATA2
 
-Requres: rclone to access a cloud resource.
+Requires: rclone to access a cloud resource.
 
 """
 import traceback
 import os
 import shutil
-import datetime 
+import datetime
 from pathlib import Path
 
 from astropy.table import Table, Column, vstack
@@ -78,7 +78,7 @@ def create_groups(args, metadata):
         calib_files_for_group = np.logical_and(calib_files, metadata.find_configuration(group[0]['setup']))
         group.table = vstack([group.table, metadata[calib_files_for_group]])
         group.table.add_column([str(group_path)] * len(group.table), name="group_path")
-            
+
 
     return groups
 
@@ -116,27 +116,27 @@ def create_setup_date_groups(args, metadata, files_to_consider, date_groups=[]):
 
         # Find an existing date group for this file
         group = None
-        for dg_indx in range(len(date_groups)):
-            if date_groups[dg_indx] is None:
+        for dg_indx, dg in enumerate(date_groups):
+            if dg is None:
                 # Skip groups that were set to None by merging
                 continue
 
             # Find the date window for this group and see if the current date
             # fits into it
-            if date_groups[dg_indx].is_date_in_window(row_date):
+            if dg.is_date_in_window(row_date):
                 if group is None:
                     # The first group that matched this file
-                    date_groups[dg_indx].add_metadata_row(row, row_date)
+                    dg.add_metadata_row(row, row_date)
                     group = dg_indx
                 else:
                     # The new date belongs to two groups, so those groups should be merged
-                    
+
                     # Merge new group into prior group
-                    date_groups[group].merge(date_groups[dg_indx])
-                                                                    
+                    date_groups[group].merge(dg)
+
                     # Remove the old group, but because we're iterating through the list
                     # just set it to None
-                    date_groups[dg_indx] = None                      
+                    date_groups[dg_indx] = None
 
         if group is None:
             # No match was found, start a new group
@@ -173,11 +173,11 @@ def get_all_metadata(args, extended_spec, matching_files, local_files):
 
     for unknown_file in metadata[unknown_files]['filename']:
         write_to_report(args, f"Excluding {unknown_file} because it has an unknown frame type")
-    
+
     metadata.remove_rows(unknown_files)
 
     # Exclude unwanted frametypes
-    
+
     if len(extended_spec.exclude_pypeit_types()) > 0:
         excluded_types = FrameTypeBitMask().flagged(metadata['framebit'],extended_spec.exclude_pypeit_types())
         excluded_by_type_rows = np.where(excluded_types)
@@ -250,17 +250,17 @@ def get_config_dir_path(args, metadata):
         grouping_strings = []
         for part in grouping:
             key=part[0]
-            type = part[1]
+            data_type = part[1]
             if key not in metadata_row.colnames:
                 value = "Unknown"
             else:
-                value = metadata_row[key]                
+                value = metadata_row[key]
                 if key=='binning':
                     # The comma causes some issues in the directory name, so replace with an x
                     value = value.replace(",", "x")
-                elif type == 'float64' and value is not None:
-                    # Use the spectrograph rtol value to figure out how to round to get a nice string value for the
-                    # directory name
+                elif data_type == 'float64' and value is not None:
+                    # Use the spectrograph rtol value to figure out how to round 
+                    #  to get a nice string value for the directory name
                     rtol = extended_spec.meta[key].get('rtol', None)
                     if rtol is not None:
                         value = round(value,int(np.abs(np.log10(rtol))))
@@ -282,7 +282,7 @@ def get_config_dir_path(args, metadata):
                     value = "xd" + value
             grouping_strings.append(value)
         config_path = config_path / "_".join(grouping_strings)
-        
+
     return config_path
 
 
@@ -339,7 +339,7 @@ def group_files(args, extended_spec, matching_files, local_files):
     print(f"Have metadata for {len(all_metadata)} files.")
     # Group them into configurations, which may involve adap specific keys not in the spectrographs
     # configuration_keys
-    print(f"Creating groups...")
+    print("Creating groups...")
     groups = create_groups(args, all_metadata)
     print(f"Created {len(groups)} groups. Now dividing into date groups...")
 
@@ -396,7 +396,7 @@ class ReorgSetup(scriptbase.ScriptBase):
             local_files = download_files(args, files)
         else:
             local_files = files
-       
+
         # Get the destination root, either local or remote
         if args.dest != "local":
             dest_root = RClonePath(args.dest, args.out_dir)
@@ -420,7 +420,7 @@ class ReorgSetup(scriptbase.ScriptBase):
         for date_group in all_groups:
             dataset_path = Path(date_group.metadata['group_path'][0], date_group.get_dir_name())
             pypeit_metadata = PypeItMetaData(extended_spec, par=extended_spec.default_pypeit_par(), data=date_group.metadata)
-            
+
             print(f"Checking completeness of {dataset_path} date group {date_group.get_dir_name()}...")
             is_complete, file_counts = extended_spec.is_metadata_complete(pypeit_metadata,args.standard)
             complete_str = "complete" if  is_complete else "incomplete"
@@ -440,7 +440,7 @@ class ReorgSetup(scriptbase.ScriptBase):
         end_time = datetime.datetime.now()
         total_time = end_time - start_time
         print(f"Total runtime: {total_time}")
-            
+
         return 0
 
 if __name__ == '__main__':
