@@ -27,7 +27,7 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:develop
+        image: gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/Dockerfile:adap_2023-lris-reduce-from-queue
         imagePullPolicy: Always
         resources:
           limits:
