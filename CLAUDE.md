@@ -2,15 +2,7 @@
 
 ## Init
 
-The files in this project run the PypeIt software package in a cloud instance.
-- the data are stored in AWS.
-- kubernetes manages the data processing.
-- the cloud provider is called nautilus, and the yaml files that control jobs there are in nautilus_jobs
-- data access often uses rclone to move files from one host to another (say from the AWS to the cloud computing.)
-- config files contain information for PypeIt as well as rclone
-- data are downloaded using a serious of scripts in the download_lib directory
-- PypeIt is in ~/src/PypeIt
-- PypeIt development, which includes cloud tests, are in ~/src/PypeIt-development-suite/
+
 
 Generate a CLAUDE.md file to guide adapting the adap suite. This suite is made to run PypeIt in the nautilus cloud. 
 - yaml files for the kubernetes instances are in nautilus_jobs
