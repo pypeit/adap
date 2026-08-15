@@ -1,3 +1,12 @@
+# Search KOA for each target in the target list and download the matching
+# science, arc, and flat frames, organized by download_lib into
+# <target>/<YYYYMMDD>/LRIS/raw_r and <target>/<YYYYMMDD>/LRISBLUE/raw_b.
+#
+# The upload destination is the root reduce_from_queue.py reads from, see
+# get_cloud_path in scripts/rclone.py.
+#
+# The target list is a text file with one "<name> <ra> <dec>" per line, ra/dec
+# in degrees. Blank lines and lines starting with "#" are ignored.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -7,21 +16,27 @@ spec:
   parallelism: 1
   template:
     spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - name: download-worker
         args:
-        - apt-get -y update; pip install awscli astropy pykoa; 
-          cd /tmp;  mkdir adap_root; cd adap_root;
+        - source /home/pypeitusr/pypeit_env/bin/activate; pip install awscli pykoa;
+          cd /home/pypeitusr/PypeIt; git fetch; git checkout develop; git pull;
+          pip install -e '.[dev]';
+          cd /tmp; mkdir adap_root; cd adap_root;
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap_2023/koa_to_download/ /tmp/koa_to_download/ --recursive;
-          mkdir /tmp/RAW_DATA;
-          python scripts/koa_download.py /tmp/RAW_DATA/ /tmp/koa_to_download/*;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/RAW_DATA/ s3://pypeit/adap_2023/RAW_DATA/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap_2023/koa_to_download/targets.txt /tmp/targets.txt;
+          mkdir -p /tmp/RAW_DATA;
+          python scripts/download_lib/download.py /tmp/targets.txt --outdir /tmp/RAW_DATA 2>&1 | tee /tmp/koa_download.log;
+          du -sh /tmp/RAW_DATA >> /tmp/koa_download.log;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/RAW_DATA/ s3://pypeit/adap_2023/raw_data_reorg/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/koa_download.log s3://pypeit/adap/results/${POD_NAME}.log
         command:
         - /bin/bash
         - -c
-        image: docker.io/library/python:3.12
+        image: gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:develop
         imagePullPolicy: Always
         resources:
           limits:
@@ -33,12 +48,9 @@ spec:
             ephemeral-storage: 64Gi
             memory: 8Gi
         volumeMounts:
-        - mountPath: /root/.config/gspread/service_account.json
-          name: gcloud-service-account
-          subPath: credentials
         - mountPath: /tmp
           name: ephemeral
-        - mountPath: /root/.aws/credentials
+        - mountPath: /home/pypeitusr/.aws/credentials
           name: prp-s3-credentials
           subPath: credentials
         env:
@@ -58,11 +70,8 @@ spec:
         nautilus.io/disktype: nvme
       restartPolicy: Never
       volumes:
-      - name: gcloud-service-account
-        secret:
-          secretName: adap-scorecard-gcloud
       - name: prp-s3-credentials
         secret:
-          secretName: prp-s3-credentials            
+          secretName: prp-s3-credentials
       - emptyDir: {}
         name: ephemeral

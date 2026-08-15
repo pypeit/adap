@@ -293,11 +293,11 @@ def update_metadata(metadata, spectrograph):
         framebits = [metadata.type_bitmask.turn_on(framebit,'scattlight') if metadata.type_bitmask.flagged(framebit, 'pixelflat') else framebit for framebit in metadata.table['framebit']]
         metadata.set_frame_types(framebits)
 
-def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir, config_lines):
+def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir, config_lines, raw_dir):
 
 
     # Create a PypeItSetup object for the raw files, excluding any files if needed
-    raw_path = lcl_path.resolve() / "raw"
+    raw_path = lcl_path.resolve() / raw_dir
     file_list = [str(raw_file) for raw_file in raw_path.glob('*.fits')]
     file_list += [str(raw_file) for raw_file in raw_path.glob('*.fits.gz')]
     ps = pypeitsetup.PypeItSetup(file_list=file_list, 
@@ -347,13 +347,13 @@ def read_lines(file):
         lines = [line.rstrip() for line in f]
     return lines
     
-def update_custom_pypeit(complete_path, spectrograph_name, reduce_dir, pypeit_file):
+def update_custom_pypeit(complete_path, spectrograph_name, reduce_dir, pypeit_file, raw_dir):
     # Create the destination directory
     dir_name = f"{spectrograph_name}_A"
     (complete_path / reduce_dir / dir_name).mkdir(parents=True, exist_ok=True)
 
     # Update the raw data directory in the pypeit file
-    pypeit_file.file_paths = [str(complete_path / "raw")]
+    pypeit_file.file_paths = [str(complete_path / raw_dir)]
     pypeit_file.write(complete_path / reduce_dir / dir_name / f"{dir_name}.pypeit")
 
 def update_pixelflat(spectrograph, dataset, config_lines):
@@ -390,6 +390,7 @@ def main():
     parser.add_argument("spectrograph", type=str, )
     parser.add_argument("datasets", type=str, nargs='+', help="dataset(s) to run on" )
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
+    parser.add_argument("--raw_dir", type=str, default="raw", help="Name of the raw data directory within the dataset. For example 'raw_b' or 'raw_r'.")
 
     args = parser.parse_args()
 
@@ -447,10 +448,10 @@ def main():
         for reduce_config in reduce_configs:
             if isinstance(reduce_config[1], PypeItFile):
                 msgs.info(f"Updating custom pypeit file for {dataset_path/reduce_config[0]}")
-                update_custom_pypeit(dataset_path, args.spectrograph, reduce_config[0], reduce_config[1])
+                update_custom_pypeit(dataset_path, args.spectrograph, reduce_config[0], reduce_config[1], args.raw_dir)
             else:
                 msgs.info(f"Creating setup for {dataset_path/reduce_config[0]}")
-                make_trimmed_setup(args.spectrograph, dataset_path, raw_files_to_exclude, reduce_config[0], reduce_config[1])
+                make_trimmed_setup(args.spectrograph, dataset_path, raw_files_to_exclude, reduce_config[0], reduce_config[1], args.raw_dir)
 
 
 if __name__ == '__main__':

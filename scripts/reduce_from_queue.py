@@ -107,9 +107,9 @@ def cleanup_old_results(args, dataset, reduce_dir):
 
 
 
-def download_dataset(args, dataset):
-    # Download data 
-    relative_path = Path(dataset, "raw")
+def download_dataset(args, dataset, raw_dir):
+    # Download data
+    relative_path = Path(dataset, raw_dir)
 
     source_loc = get_cloud_path(args, args.source) / relative_path
     local_path = args.adap_root_dir / relative_path
@@ -173,12 +173,12 @@ def reduce_dataset_task(args, dataset):
     status = 'COMPLETE'
     dataset_path = Path(dataset)
     try:
-        target, date_str, color_dir = dataset_path.parts
+        target, date_str, instrument = dataset_path.parts
         obs_date = datetime.strptime(date_str, "%Y%m%d").date()
-        if color_dir == "blue":
-            instrument = "LRISBLUE"
-        else:
-            instrument = "LRIS"
+        if instrument not in ("LRIS", "LRISBLUE"):
+            raise ValueError(f"Unrecognized instrument directory '{instrument}' in dataset {dataset}")
+        # download_lib puts the raw files in a per instrument subdirectory
+        raw_dir = "raw_b" if instrument == "LRISBLUE" else "raw_r"
         spec = get_lris_spec_name(obs_date = obs_date, instrument=instrument)
     except Exception as e:
         logger.error(f"Failed parsing dataset name {dataset}.", exc_info=True)
@@ -187,12 +187,12 @@ def reduce_dataset_task(args, dataset):
     if status != 'FAILED':
         scripts_dir = args.adap_root_dir / "adap" / "scripts"
         try:
-            count = download_dataset(args, dataset)
+            count = download_dataset(args, dataset, raw_dir)
             if count == 0:
-                logger.error(f"No files found to download for {dataset}.")    
+                logger.error(f"No files found to download for {dataset}.")
                 status = 'FAILED'
             else:
-                run_script(["python",  str(scripts_dir / "trimming_setup.py"), "--adap_root_dir", str(args.adap_root_dir), spec, dataset])
+                run_script(["python",  str(scripts_dir / "trimming_setup.py"), "--adap_root_dir", str(args.adap_root_dir), "--raw_dir", raw_dir, spec, dataset])
         except Exception as e:
             logger.error(f"Failed during prepwork for {dataset}.",exc_info=True)
             status = 'FAILED'

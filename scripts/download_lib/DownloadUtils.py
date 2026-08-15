@@ -34,12 +34,10 @@ def file_cleanup(query, cdate) -> None:
     Clean up the files
     """
 
-    raw_b = os.path.join(query.outdir,cdate,'raw_b')
-    raw_r = os.path.join(query.outdir,cdate,'raw_r')
-    lb = os.path.join(query.outdir,cdate,'LRISBLUE')
-    lr = os.path.join(query.outdir,cdate,'LRIS')
+    raw_b = os.path.join(query.outdir,cdate,'LRISBLUE','raw_b')
+    raw_r = os.path.join(query.outdir,cdate,'LRIS','raw_r')
 
-    for d in (raw_b, raw_r, lb, lr):
+    for d in (raw_b, raw_r):
         if os.path.exists(d) is False:
             os.makedirs(d)
 
@@ -221,10 +219,10 @@ def fill_dates(query, target, test=False, nodownload=False):
 
             for final_table_name in final_table_names:
                 if "LRISBLUE" in final_table_name:
-                    raw = 'raw_b'
+                    instr, raw = 'LRISBLUE', 'raw_b'
                 else:
-                    raw = 'raw_r'
-                query.download_dir = os.path.join(query.outdir,fn_date,raw)
+                    instr, raw = 'LRIS', 'raw_r'
+                query.download_dir = os.path.join(query.outdir,fn_date,instr,raw)
                 if nodownload is False:
                     query.download(final_table_name)
             file_cleanup(query, fn_date)
