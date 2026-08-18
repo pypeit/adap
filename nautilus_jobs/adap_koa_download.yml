@@ -23,7 +23,7 @@ spec:
       - name: download-worker
         args:
         - source /home/pypeitusr/pypeit_env/bin/activate; pip install awscli pykoa;
-          cd /home/pypeitusr/PypeIt; git fetch; git checkout develop; git pull;
+          cd /home/pypeitusr/PypeIt; git fetch; git checkout lris_adap; git pull;
           pip install -e '.[dev]';
           cd /tmp; mkdir adap_root; cd adap_root;
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;

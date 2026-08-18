@@ -11,7 +11,7 @@ spec:
       - name: reduce-worker
         args:
         - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil;  cd PypeIt; git fetch;
-          git checkout 1.13.0;
+          git checkout lris_adap;
           pip install -e '.[dev,bottleneck]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           cd /tmp; 
           echo "${DATASET},IN QUEUE" > work_queue.csv;

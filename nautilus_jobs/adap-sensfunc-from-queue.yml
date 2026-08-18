@@ -15,7 +15,7 @@ spec:
         args:
         - source /home/pypeitusr/pypeit_env/bin/activate; apt-get -y update;  pip install redis awscli gspread boto3 google-api-python-client psutil;  
           cd /home/pypeitusr/PypeIt; git fetch; 
-          git checkout develop; git pull --ff-only; 
+          git checkout lris_adap; git pull --ff-only; 
           pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           echo $PYPEIT_COMMIT; cd /tmp; mkdir adap_root; cd adap_root;
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
