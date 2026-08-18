@@ -10,11 +10,12 @@ spec:
       containers:
       - name: sync-worker
         args:
-        - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil; 
+        - apt-get -y update; apt-get install -y rclone; pip install awscli redis boto3 google-api-python-client psutil; 
           cd /tmp; mkdir adap_root; cd adap_root;
-          pip install gspread==5.6.2; git clone https://github.com/pypeit/adap.git; cd adap; git checkout utils_test;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
-          python scripts/sync_backup_from_queue.py --adap_root_dir /tmp/adap_root --rclone_conf /tmp/adap_root/adap/config/rclone.conf Scorecard/WorkQueue /work_queue/work_queue.csv;
+          pip install gspread==5.6.2; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
+          python scripts/sync_backup_from_queue.py --adap_root_dir /tmp/adap_root --rclone_conf /tmp/adap_root/adap/config/rclone.conf Scorecard/WorkQueue redis://REPLACE_WITH_REDIS_POD_IP:6379 adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress sync_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log
         command:
         - /bin/bash

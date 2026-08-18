@@ -224,8 +224,10 @@ def coadd2d_task(args, observing_config):
 def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
-    parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
+    parser.add_argument('queue_url', type=str, help="URL of the redis server hosting the work queue.")
+    parser.add_argument('work_queue', type=str, help="Name of the work queue on the redis server.")
     parser.add_argument('source', type=str, help="Where to pull data, either 's3' or 'gdrive'.")
+    parser.add_argument('--queue_timeout', type = int,default=120, help="Number of seconds to wait for the work queue to initialize.")
     parser.add_argument("--logfile", type=str, default="coadd2d_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")
