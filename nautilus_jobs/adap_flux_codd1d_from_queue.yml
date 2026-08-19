@@ -13,12 +13,12 @@ spec:
       containers:
       - name: flux-worker
         args:
-        - source /home/pypeitusr/pypeit_env/bin/activate; pip install redis boto3 google-api-python-client gspread;  
+        - source /home/pypeitusr/pypeit_env/bin/activate;
           cd /home/pypeitusr/PypeIt; git fetch; git checkout lris_adap; git pull;
-          pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
+          pip install --no-build-isolation -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           echo $PYPEIT_COMMMIT; 
           cd /tmp; mkdir adap_root; cd adap_root;
-          pip install gspread; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
+          git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
           python scripts/flux_coadd1d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue redis://10.244.145.213:6379 adap_2023 s3;
@@ -26,7 +26,7 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:develop
+        image: gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023
         imagePullPolicy: Always
         resources:
           limits:

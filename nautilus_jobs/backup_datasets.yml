@@ -6,9 +6,12 @@ spec:
   backoffLimit: 0
   template:
     spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - args:
-        - apt-get update;  apt-get -y install rclone; apt-get -y install awscli;
+        - source /home/pypeitusr/pypeit_env/bin/activate;
           cd /tmp; 
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/backup_list.txt .;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/backup_datasets.sh .; 
@@ -17,7 +20,7 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
+        image: gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023
         imagePullPolicy: Always
         name: container
         resources:
@@ -30,12 +33,12 @@ spec:
             memory: 1Gi
             ephemeral-storage: 128Gi
         volumeMounts:
-        - mountPath: /root/.config/gspread/service_account.json
+        - mountPath: /home/pypeitusr/.config/gspread/service_account.json
           name: gcloud-service-account
           subPath: credentials
         - mountPath: /tmp
           name: ephemeral
-        - mountPath: /root/.aws/credentials
+        - mountPath: /home/pypeitusr/.aws/credentials
           name: prp-s3-credentials
           subPath: credentials
         env:

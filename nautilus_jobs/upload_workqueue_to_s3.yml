@@ -6,16 +6,20 @@ spec:
   backoffLimit: 0
   template:
     spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - args:
-        - pip install --upgrade pip setuptools wheel; pip install awscli;  aws --endpoint $ENDPOINT_URL s3 cp --no-progress /work_queue/work_queue_2023.csv s3://pypeit/adap/results/work_queue_2023.csv
+        - source /home/pypeitusr/pypeit_env/bin/activate;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /work_queue/work_queue_2023.csv s3://pypeit/adap/results/work_queue_2023.csv
         command:
         - /bin/bash
         - -c
         env:
         - name: ENDPOINT_URL
           value: http://rook-ceph-rgw-nautiluss3.rook
-        image: docker.io/library/python:3.12
+        image: gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023
         imagePullPolicy: Always
         name: container
         resources:
@@ -26,7 +30,7 @@ spec:
             cpu: '1'
             memory: 1Gi
         volumeMounts:
-        - mountPath: /root/.aws/credentials
+        - mountPath: /home/pypeitusr/.aws/credentials
           name: prp-s3-credentials
           subPath: credentials
         - mountPath: /work_queue

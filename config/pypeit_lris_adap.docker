@@ -1,14 +1,20 @@
-# Container for the nautilus_jobs that run as uid 1001, e.g.
-# adap-reduce-one.yml, adap-reduce-lris-from-queue.yml, adap-sensfunc-from-queue.yml,
-# adap_flux_codd1d_from_queue.yml and adap_koa_download.yml. Those jobs expect a
+# The one container for every job in nautilus_jobs, the redis server in
+# workqueue_deployment.yml excepted. Those jobs all run as uid 1001 and expect a
 # venv at /home/pypeitusr/pypeit_env, a PypeIt clone at /home/pypeitusr/PypeIt,
-# rclone on the PATH, and credentials mounted under /home/pypeitusr.
-# The jobs still using /root and apt-get (adap-coadd2d-queue.yml,
-# adap-run-scorecard-on-queue.yml, adap-stage-raw-queue.yml,
-# adap-sync-backups-from-queue.yml) are not compatible with this image.
+# rclone, git and aws on the PATH, and credentials mounted under /home/pypeitusr.
+# Everything the adap scripts import is installed here, so the jobs do no pip
+# installs of their own beyond reinstalling PypeIt after they update its checkout.
+#
+# That reinstall must use --no-build-isolation, as the install below does, or pip
+# builds against an unpatched vcs_versioning and hits the bug patched here.
+#
+# Push as:
+#   docker push gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023
 #
 # The awscli download below is x86_64 only, so build for the nautilus nodes:
-#   docker build --platform linux/amd64 -t pypeit_lris_adap -f config/pypeit_lris_adap.docker .
+#   docker build --platform linux/amd64 \
+#     -t gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023 \
+#     -f config/pypeit_lris_adap.docker .
 
 FROM ubuntu:24.04
 
@@ -66,6 +72,7 @@ RUN pypeit_env/bin/pip install \
     redis \
     boto3 \
     google-api-python-client \
-    gspread
+    gspread \
+    pykoa
 
 WORKDIR /home/pypeitusr/adap

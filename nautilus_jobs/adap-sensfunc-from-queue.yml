@@ -13,10 +13,10 @@ spec:
       containers:
       - name: sensfunc-worker
         args:
-        - source /home/pypeitusr/pypeit_env/bin/activate; apt-get -y update;  pip install redis awscli gspread boto3 google-api-python-client psutil;  
+        - source /home/pypeitusr/pypeit_env/bin/activate;
           cd /home/pypeitusr/PypeIt; git fetch; 
           git checkout lris_adap; git pull --ff-only; 
-          pip install -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
+          pip install --no-build-isolation -e '.[dev]'; export PYPEIT_COMMIT=`git log -n 1 | head -n 1 | cut -c 8-47`; 
           echo $PYPEIT_COMMIT; cd /tmp; mkdir adap_root; cd adap_root;
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
@@ -25,7 +25,7 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:develop
+        image: gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023
         imagePullPolicy: Always
         resources:
           limits:

@@ -7,18 +7,21 @@ spec:
   parallelism: 5
   template:
     spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - name: stage-worker
         args:
-        - apt-get -y update; apt-get install -y rclone; pip install awscli boto3 google-api-python-client psutil pykoa;  
+        - source /home/pypeitusr/pypeit_env/bin/activate;
           cd /tmp; mkdir adap_root; cd adap_root;
-          pip install gspread; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
+          git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/ scripts/ --recursive;
           python scripts/stage_raw_data_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue@B" /work_queue/work_queue.csv s3
         command:
         - /bin/bash
         - -c
-        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
+        image: gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023
         imagePullPolicy: Always
         resources:
           limits:
@@ -30,14 +33,14 @@ spec:
             ephemeral-storage: 40Gi
             memory: 8Gi
         volumeMounts:
-        - mountPath: /root/.config/gspread/service_account.json
+        - mountPath: /home/pypeitusr/.config/gspread/service_account.json
           name: gcloud-service-account
           subPath: credentials
         - mountPath: /work_queue
           name: work-queue
         - mountPath: /tmp
           name: ephemeral
-        - mountPath: /root/.aws/credentials
+        - mountPath: /home/pypeitusr/.aws/credentials
           name: prp-s3-credentials
           subPath: credentials
         env:

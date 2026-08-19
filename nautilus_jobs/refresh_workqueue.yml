@@ -6,15 +6,19 @@ spec:
   backoffLimit: 0
   template:
     spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - args:
-        - apt-get update;  pip install gspread; apt-get install -y git; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
+        - source /home/pypeitusr/pypeit_env/bin/activate;
+          cd /tmp; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           python scripts/download_work_queue_from_gs.py --refresh "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue" /work_queue/work_queue_2023.csv;
-          chown 1001:1001 /work_queue/work_queue_2023.csv; ls -l /work_queue;
+          ls -l /work_queue;
         command:
         - /bin/bash
         - -c
-        image: docker.io/library/python:3.12
+        image: gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023
         imagePullPolicy: Always
         name: container
         resources:
@@ -25,12 +29,12 @@ spec:
             cpu: '1'
             memory: 1Gi
         volumeMounts:
-        - mountPath: /root/.config/gspread/service_account.json
+        - mountPath: /home/pypeitusr/.config/gspread/service_account.json
           name: gcloud-service-account
           subPath: credentials
         - mountPath: /work_queue
           name: work-queue
-        - mountPath: /root/.aws/credentials
+        - mountPath: /home/pypeitusr/.aws/credentials
           name: prp-s3-credentials
           subPath: credentials
       nodeSelector:

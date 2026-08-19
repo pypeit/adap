@@ -22,9 +22,9 @@ spec:
       containers:
       - name: download-worker
         args:
-        - source /home/pypeitusr/pypeit_env/bin/activate; pip install awscli pykoa;
+        - source /home/pypeitusr/pypeit_env/bin/activate;
           cd /home/pypeitusr/PypeIt; git fetch; git checkout lris_adap; git pull;
-          pip install -e '.[dev]';
+          pip install --no-build-isolation -e '.[dev]';
           cd /tmp; mkdir adap_root; cd adap_root;
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap_2023/koa_to_download/targets.txt /tmp/targets.txt;
@@ -36,7 +36,7 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: gitlab-registry.nrp-nautilus.io/dustyreichwein/pypeitcontainers/pypeit:develop
+        image: gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023
         imagePullPolicy: Always
         resources:
           limits:

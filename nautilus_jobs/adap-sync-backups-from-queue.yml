@@ -7,12 +7,15 @@ spec:
   parallelism: 5
   template:
     spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - name: sync-worker
         args:
-        - apt-get -y update; apt-get install -y rclone; pip install awscli redis boto3 google-api-python-client psutil; 
+        - source /home/pypeitusr/pypeit_env/bin/activate;
           cd /tmp; mkdir adap_root; cd adap_root;
-          pip install gspread==5.6.2; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
+          git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
           python scripts/sync_backup_from_queue.py --adap_root_dir /tmp/adap_root --rclone_conf /tmp/adap_root/adap/config/rclone.conf Scorecard/WorkQueue redis://REPLACE_WITH_REDIS_POD_IP:6379 adap_2023;
@@ -20,7 +23,7 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: docker.io/profxj/pypeit_v1@sha256:a2f91f18fb33119a7f08d804dd3259118e0e934612c3868df58f434e3d980740
+        image: gitlab-registry.nrp-nautilus.io/bradh/pypeitcontainers/pypeit_lris_adap:adap_2023
         imagePullPolicy: Always
         resources:
           limits:
@@ -32,14 +35,14 @@ spec:
             ephemeral-storage: 100Gi
             memory: 8Gi
         volumeMounts:
-        - mountPath: /root/.config/gspread/service_account.json
+        - mountPath: /home/pypeitusr/.config/gspread/service_account.json
           name: gcloud-service-account
           subPath: credentials
         - mountPath: /work_queue
           name: work-queue
         - mountPath: /tmp
           name: ephemeral
-        - mountPath: /root/.aws/credentials
+        - mountPath: /home/pypeitusr/.aws/credentials
           name: prp-s3-credentials
           subPath: credentials
         env:
