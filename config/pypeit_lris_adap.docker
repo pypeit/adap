@@ -1,8 +1,24 @@
+# Container for the nautilus_jobs that run as uid 1001, e.g.
+# adap-reduce-one.yml, adap-reduce-lris-from-queue.yml, adap-sensfunc-from-queue.yml,
+# adap_flux_codd1d_from_queue.yml and adap_koa_download.yml. Those jobs expect a
+# venv at /home/pypeitusr/pypeit_env, a PypeIt clone at /home/pypeitusr/PypeIt,
+# rclone on the PATH, and credentials mounted under /home/pypeitusr.
+# The jobs still using /root and apt-get (adap-coadd2d-queue.yml,
+# adap-run-scorecard-on-queue.yml, adap-stage-raw-queue.yml,
+# adap-sync-backups-from-queue.yml) are not compatible with this image.
+#
+# The awscli download below is x86_64 only, so build for the nautilus nodes:
+#   docker build --platform linux/amd64 -t pypeit_lris_adap -f config/pypeit_lris_adap.docker .
+
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV QT_QPA_PLATFORM=offscreen
 ENV PATH="/home/pypeitusr/pypeit_env/bin:${PATH}"
+# The scripts default --google_creds and --rclone_conf to $HOME, and rclone's s3
+# remote uses env_auth, which finds ~/.aws/credentials the same way. Set HOME
+# explicitly rather than relying on it being looked up from runAsUser: 1001.
+ENV HOME=/home/pypeitusr
 
 RUN apt-get update && apt-get install -y \
     git \
