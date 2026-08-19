@@ -25,3 +25,22 @@ spec:
              memory: 100Mi
              cpu: 1
         command: ["redis-server"]
+        ports:
+        - containerPort: 6379
+---
+# Stable address for the work queue. The jobs connect to redis://adap-workqueue:6379,
+# so none of them need the redis pod's IP, which changes every time it is rescheduled.
+# A Service and a Deployment may share a name; this one selects the pod above.
+apiVersion: v1
+kind: Service
+metadata:
+  name: adap-workqueue
+  labels:
+    k8s-app: adap-workqueue
+spec:
+  selector:
+    k8s-app: adap-workqueue
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379

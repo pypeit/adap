@@ -18,7 +18,7 @@ spec:
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
-          python scripts/sync_backup_from_queue.py --adap_root_dir /tmp/adap_root --rclone_conf /tmp/adap_root/adap/config/rclone.conf Scorecard/WorkQueue redis://REPLACE_WITH_REDIS_POD_IP:6379 adap_2023;
+          python scripts/sync_backup_from_queue.py --adap_root_dir /tmp/adap_root --rclone_conf /tmp/adap_root/adap/config/rclone.conf Scorecard/WorkQueue redis://adap-workqueue:6379 adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress sync_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log
         command:
         - /bin/bash

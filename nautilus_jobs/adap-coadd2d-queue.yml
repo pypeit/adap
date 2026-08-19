@@ -21,7 +21,7 @@ spec:
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
-          python scripts/coadd2d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status" redis://REPLACE_WITH_REDIS_POD_IP:6379 adap_2023 gdrive
+          python scripts/coadd2d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status" redis://adap-workqueue:6379 adap_2023 gdrive
         command:
         - /bin/bash
         - -c

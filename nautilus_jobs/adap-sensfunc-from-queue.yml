@@ -21,7 +21,7 @@ spec:
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
-          python scripts/sensfunc_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue" redis://10.244.20.9:6379 adap_2023 s3;
+          python scripts/sensfunc_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue" redis://adap-workqueue:6379 adap_2023 s3;
         command:
         - /bin/bash
         - -c

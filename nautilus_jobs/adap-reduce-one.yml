@@ -10,6 +10,8 @@
 # reduce_from_queue.py --dataset does not touch the work queue status column of
 # the scorecard spreadsheet, but it does still upload results to S3 and gdrive
 # and update the scorecard, overwriting any previous results for the dataset.
+# The queue arguments are passed for consistency with the queue jobs and are never
+# contacted while --dataset is set; drop --dataset and this becomes a queue worker.
 #
 # The pod exits non-zero if the reduction fails, and backoffLimit is 0 so the
 # failure is not retried. The run is teed to /tmp/reduce_one.log and copied to
@@ -39,7 +41,7 @@ spec:
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
-          python scripts/reduce_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root --scorecard_max_age 7 --dataset "${DATASET}" key=15ealTQOBLB0I_BD-ZiN0lVeP1vt5P9oeGeiWOPN4bq0/WorkQueue unused unused s3 2>&1 | tee /tmp/reduce_one.log;
+          python scripts/reduce_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root --scorecard_max_age 7 --dataset "${DATASET}" key=15ealTQOBLB0I_BD-ZiN0lVeP1vt5P9oeGeiWOPN4bq0/WorkQueue redis://adap-workqueue:6379 adap_2023 s3 2>&1 | tee /tmp/reduce_one.log;
           status=${PIPESTATUS[0]};
           echo $PYPEIT_COMMIT >> /tmp/reduce_one.log; du -sh /tmp >> /tmp/reduce_one.log; tail -2 /tmp/reduce_one.log;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/reduce_one.log s3://pypeit/adap/results/${POD_NAME}.log;

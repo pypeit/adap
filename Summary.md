@@ -45,7 +45,7 @@ Config resolution is convention-over-configuration: [trimming_setup.py:411](scri
 
 ## Gotchas I'd flag
 - **The git repo is not what runs.** Every job does `git clone adap` and then `aws s3 cp s3://pypeit/adap/scripts_2023/ scripts/ --recursive`, which overwrites the checkout. S3 is the source of truth at runtime; the repo can silently drift from what's actually executing. Editing a script here has no effect until it's pushed to S3.
-- **Redis addresses are hardcoded pod IPs** (`redis://10.244.159.235:6379`, and different ones in different YAMLs). These break whenever the Redis pod is rescheduled — there's no Service in front of it.
+- **Redis is reached through a Service.** [workqueue_deployment.yml](nautilus_jobs/workqueue_deployment.yml) defines both the redis Deployment and an `adap-workqueue` Service, and every job connects to `redis://adap-workqueue:6379`. Applying the Deployment without the Service leaves the jobs unable to resolve the queue.
 - **The YAMLs disagree with each other.** PypeIt branches vary by job (`lris_adap`, `develop`, `hires_flux_coadd1d`, tag `1.13.0`), as do adap branches (`adap_2023`, `adap_2020`, `utils_test`, `main`) and Google Sheet keys. The older jobs (`coadd2d`, `scorecard`, `sync-backups`, `stage-raw`) still point at `utils_test` and a 2020-era sheet, so they're stale relative to the `adap_2023` line.
 - **`config/exclude_files.txt`** is read by [trimming_setup.py:409](scripts/trimming_setup.py#L409) but isn't in the repo — it comes from `s3://pypeit/adap/config_2023/` at runtime.
 - [config/rclone.conf](config/rclone.conf) is committed and references a service-account JSON mounted from the `adap-scorecard-gcloud` k8s secret; S3 creds come from the `prp-s3-credentials` secret. No keys are in the repo itself.
