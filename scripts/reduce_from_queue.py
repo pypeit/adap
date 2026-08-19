@@ -267,11 +267,19 @@ def main():
     parser.add_argument("--rclone_conf", type=str, default = f"{os.environ['HOME']}/.config/rclone/rclone.conf", help="rclone configuration.")
     parser.add_argument("pypeit_args", type=str, nargs="*", default=["-o"], help="Arguments to pass to run_pypeit")
     parser.add_argument("--local", type=Path, default = None, help="Run in local test config, which does not download data if it already is present and moves data to a given directory when done.")
+    parser.add_argument("--dataset", type=str, default = None, help="Reduce this single dataset instead of pulling datasets from the work queue. The queue_url and work_queue arguments are ignored, and the work queue status in the Google Sheet is not updated.")
     args = parser.parse_args()
 
     try:
         init_logging(args.adap_root_dir / args.logfile)
-        run_task_on_queue(args, reduce_dataset_task)
+        if args.dataset is not None:
+            # Single dataset mode, no work queue involved
+            status = reduce_dataset_task(args, args.dataset)
+            logger.info(f"Finished {args.dataset} with status {status}")
+            if status == "FAILED":
+                return 1
+        else:
+            run_task_on_queue(args, reduce_dataset_task)
     except:
         logger.error("Exception caught in main, exiting",exc_info=True)        
         return 1
