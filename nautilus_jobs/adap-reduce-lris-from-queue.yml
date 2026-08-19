@@ -64,7 +64,7 @@ spec:
       volumes:
       - name: gcloud-service-account
         secret:
-          secretName: adap-scorecard-gcloud
+          secretName: adap23-scorecard-gcloud
       - name: prp-s3-credentials
         secret:
           secretName: prp-s3-credentials

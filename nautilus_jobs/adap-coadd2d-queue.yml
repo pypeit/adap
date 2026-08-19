@@ -66,7 +66,7 @@ spec:
       volumes:
       - name: gcloud-service-account
         secret:
-          secretName: adap-scorecard-gcloud
+          secretName: adap23-scorecard-gcloud
       - name: work-queue
         persistentVolumeClaim:
             claimName: pypeit-adap-work-queue
