@@ -21,8 +21,9 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV QT_QPA_PLATFORM=offscreen
 ENV PATH="/home/pypeitusr/pypeit_env/bin:${PATH}"
-# The scripts default --google_creds and --rclone_conf to $HOME, and rclone's s3
-# remote uses env_auth, which finds ~/.aws/credentials the same way. Set HOME
+# gspread finds its service account under $HOME, the scripts default --rclone_conf to
+# $HOME, and rclone's s3 remote uses env_auth, which finds ~/.aws/credentials the same
+# way. Set HOME
 # explicitly rather than relying on it being looked up from runAsUser: 1001.
 ENV HOME=/home/pypeitusr
 

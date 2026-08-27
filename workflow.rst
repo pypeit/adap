@@ -359,7 +359,9 @@ Known rough edges
   through ``get_cloud_path``, which uses ``pypeit/adap_2023/raw_data_reorg``. It reads
   from a different root than the reduce stage writes to, so it needs updating before the
   2D coadds will find this campaign's data.
-* The ``--google_creds`` option that most scripts declare is never read. Google
-  authentication always comes from ``$HOME/.config/gspread/service_account.json``.
+* Google authentication always comes from
+  ``$HOME/.config/gspread/service_account.json``, gspread's built-in default. There is no
+  option to point it elsewhere, so ``$HOME`` has to be right in any container that runs
+  these scripts.
 * Redis has no password and no persistence. Anything in the namespace can read or drain
   the queue, and a restart of the pod loses it.

@@ -17,9 +17,8 @@ One credential covers both Google Sheets and Google Drive:
 **The mount path is not negotiable.** `gspread_utils.open_spreadsheet` calls
 `gspread.service_account()` with no filename, so gspread looks in its built-in
 default location, `$HOME/.config/gspread/service_account.json`, and
-`config/rclone.conf` names that same path for the Drive remote. The `--google_creds`
-argument that nine of the scripts declare is never read by anything, so it cannot
-be used to move the file. This is also why the container sets
+`config/rclone.conf` names that same path for the Drive remote. No command line option
+points it anywhere else. This is also why the container sets
 `ENV HOME=/home/pypeitusr` — see [config/pypeit_lris_adap.docker](../config/pypeit_lris_adap.docker).
 
 Create it with the key named `credentials`, which is what every job mounts with
