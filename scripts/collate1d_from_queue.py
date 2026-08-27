@@ -1,3 +1,13 @@
+"""
+DEPRECATED: written for Keck DEIMOS, not part of the adap_2023 (Keck LRIS) workflow.
+
+1D coadding on this branch is done by flux_coadd1d_from_queue.py. This script runs
+pypeit_collate_1d against config/default.collate1d, which only exists on the DEIMOS
+branches, and it still takes the pre-redis command line with no queue_url, so it
+cannot claim datasets from the current work queue. No job in nautilus_jobs runs it.
+
+See workflow.rst.
+"""
 import argparse
 import logging
 import sys
@@ -132,6 +142,8 @@ def main():
 
     try:
         init_logging(Path(args.adap_root_dir, args.logfile))
+        logger.warning("collate1d_from_queue.py is deprecated and is not part of the "
+                       "adap_2023 workflow. See workflow.rst.")
         run_task_on_queue(args, collate1d_task)
     except:
         logger.error("Exception caught in main, exiting",exc_info=True)        

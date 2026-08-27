@@ -33,7 +33,7 @@ Every stage script shares one loop, [`run_task_on_queue`](scripts/utils.py#L210)
 
 The reduce task itself ([`reduce_dataset_task`](scripts/reduce_from_queue.py#L170)): parse the dataset name → download raw via rclone → [trimming_setup.py](scripts/trimming_setup.py) generates the `.pypeit` file (selecting the *best* arcs/flats by lamp set, exposure time, elevation, MJD, rather than using everything) → `run_pypeit` as a subprocess with memory sampled every 2s via psutil → tar the QA → [scorecard.py](scripts/scorecard.py) computes quality metrics → upload results to S3 *and* gdrive → [update_gsheet_scorecard.py](scripts/update_gsheet_scorecard.py) → `rmtree` the local copy so ephemeral storage doesn't fill.
 
-**4. Post-processing**, each its own queue-driven job with the same loop: [sensfunc_from_queue.py](scripts/sensfunc_from_queue.py) → [flux_coadd1d_from_queue.py](scripts/flux_coadd1d_from_queue.py) → [coadd2d_from_queue.py](scripts/coadd2d_from_queue.py) → [collate1d_from_queue.py](scripts/collate1d_from_queue.py).
+**4. Post-processing**, each its own queue-driven job with the same loop: [sensfunc_from_queue.py](scripts/sensfunc_from_queue.py) → [flux_coadd1d_from_queue.py](scripts/flux_coadd1d_from_queue.py) → [coadd2d_from_queue.py](scripts/coadd2d_from_queue.py). ([collate1d_from_queue.py](scripts/collate1d_from_queue.py) is DEIMOS-era and deprecated on this branch.)
 
 **5. Score and back up.** [run_scorecard_on_queue.py](scripts/run_scorecard_on_queue.py) re-scores without re-reducing; [sync_backup_from_queue.py](scripts/sync_backup_from_queue.py) and [backup_datasets.sh](scripts/backup_datasets.sh) mirror S3 → Drive; [archive.py](scripts/archive.py) is the long-term archive path.
 

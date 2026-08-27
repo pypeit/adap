@@ -1,3 +1,16 @@
+"""
+DEPRECATED: not part of the adap_2023 (Keck LRIS) workflow.
+
+adap_koa_download.yml now downloads raw data straight into
+s3://pypeit/adap_2023/raw_data_reorg, so there is nothing left for this script to
+stage. Its command line was brought in line with the redis work queue so that it
+initializes if it is ever revived, but stage_task still assumes the older dataset
+layout: it looks for raw files under "<dataset>/complete/raw" and takes the first
+component of the dataset name as the instrument. Neither holds for this branch's
+"<target>/<YYYYMMDD>/<LRIS|LRISBLUE>" datasets.
+
+See workflow.rst.
+"""
 import argparse
 import logging
 import sys
@@ -113,8 +126,10 @@ def stage_task(args, observing_config):
 def main():
     parser = argparse.ArgumentParser(description='Download the ADAP work queue from Google Sheets.')
     parser.add_argument('gsheet', type=str, help="Scorecard Google Spreadsheet and Worksheet. For example: spreadsheet/worksheet")
-    parser.add_argument('work_queue', type=str, help="CSV file containing the work queue.")
+    parser.add_argument('queue_url', type=str, help="URL of the redis server hosting the work queue.")
+    parser.add_argument('work_queue', type=str, help="Work queue name.")
     parser.add_argument('dest', type=str, help="Where to place the data, either 's3' or 'gdrive'.")
+    parser.add_argument('--queue_timeout', type = int, default=120, help="Number of seconds to wait for the work queue to initialize.")
     parser.add_argument("--logfile", type=str, default="stage_raw_data_from_queue.log", help= "Log file.")
     parser.add_argument("--adap_root_dir", type=str, default=".", help="Root of the ADAP directory structure. Defaults to the current directory.")
     parser.add_argument("--google_creds", type=str, default = f"{os.environ['HOME']}/.config/gspread/service_account.json", help="Service account credentials for google drive and google sheets.")
@@ -124,6 +139,8 @@ def main():
 
     try:
         init_logging(Path(args.adap_root_dir, args.logfile))
+        logger.warning("stage_raw_data_from_queue.py is deprecated and is not part of the "
+                       "adap_2023 workflow. See workflow.rst.")
         run_task_on_queue(args, stage_task)
     except:
         logger.error("Exception caught in main, exiting",exc_info=True)        
