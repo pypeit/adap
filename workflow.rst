@@ -128,6 +128,10 @@ front:
     `scorecard.py <scripts/scorecard.py>`_ produces the rows and
     `update_gsheet_scorecard.py <scripts/update_gsheet_scorecard.py>`_ uploads them.
 
+    One spreadsheet holds both the dataset list and the results.
+    `google_sheet_setup.rst <google_sheet_setup.rst>`_ documents the tabs it needs, the
+    columns in each, and how to build one from scratch; the essentials are below.
+
     The queue itself is a tab, named ``WorkQueue`` by default, with three columns:
     ``dataset``, ``status``, and ``pod``. Fill the dataset column with the datasets to
     process; the jobs write ``status`` and ``pod`` as they run, and only rows with a
