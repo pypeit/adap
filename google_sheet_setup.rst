@@ -1,9 +1,10 @@
 Google Sheet Setup
 ==================
 
-One Google spreadsheet drives the whole pipeline. It is both the input — the list of
-datasets to process — and the output — per-dataset status and the scorecard metrics for
-every reduction. This document describes the tabs it must contain, the columns in each,
+One Google spreadsheet, named ``Scorecard``, drives the whole pipeline. It is both the
+input — the list of datasets to process — and the output — per-dataset status and the
+scorecard metrics for every reduction. Each stage of the workflow gets its own tab of that
+one spreadsheet. This document describes the tabs it must contain, the columns in each,
 and how the jobs address it.
 
 The scorecard updater is given only the *spreadsheet* part of the name the reduce job is
@@ -17,15 +18,19 @@ Every job takes the sheet as one command line argument, in this form::
 
     [key=]<spreadsheet>/<worksheet>[@<status column>]
 
+Address it **by name**, so that every stage is visibly pointed at the same spreadsheet::
+
     Scorecard/WorkQueue
     Scorecard/coadd status
-    key=15ealTQOBLB0I_BD-ZiN0lVeP1vt5P9oeGeiWOPN4bq0/WorkQueue
-    key=1TADKd3OgbA-2U80iiw2dIxIiNXoF0_z_CJ9VZ9_iek4/WorkQueue@B
 
-``key=`` takes the id out of the spreadsheet's URL, between ``/d/`` and ``/edit``. Prefer
-it: opening by name requires the service account to be able to *find* the file, which
-does not work reliably for spreadsheets on a shared drive. The parsing lives in
-``open_spreadsheet`` in `scripts/gspread_utils.py <scripts/gspread_utils.py>`_.
+Opening by name requires the service account to be able to *find* the file, so if the
+spreadsheet lives on a shared drive the service account has to be a member of that drive.
+
+The ``key=`` form is also accepted, and takes the id out of the spreadsheet's URL between
+``/d/`` and ``/edit``. It is a fallback for when a name cannot be resolved; it obscures
+which spreadsheet a job is actually using, which is how the yamls came to be split across
+three of them. The parsing lives in ``open_spreadsheet`` in
+`scripts/gspread_utils.py <scripts/gspread_utils.py>`_.
 
 The optional ``@<column>`` names the column the status is written to; it defaults to
 ``B``, and the pod name always goes in the column immediately to its right. Only single
@@ -154,8 +159,8 @@ The jobs authenticate as a Google service account, so:
 
 * Share the spreadsheet with the service account's ``client_email`` as an **Editor**. It
   writes the status, pod and scorecard columns, so read-only access is not enough.
-* If the spreadsheet lives on a shared drive, address it with ``key=`` and make sure the
-  service account is a member of that drive.
+* If the spreadsheet lives on a shared drive, make sure the service account is a member
+  of that drive, or it will not be able to resolve the name ``Scorecard``.
 * The Sheets API must be enabled in the service account's project.
 
 The credential itself, where it has to be mounted, and the Drive side of the same account
@@ -164,26 +169,12 @@ are documented in `nautilus_jobs/CREDENTIALS.md <nautilus_jobs/CREDENTIALS.md>`_
 Which job uses which sheet
 --------------------------
 
-The jobs do not currently all point at the same spreadsheet. As checked in, they are:
-
-=============================================  ===================================
-Job                                            Sheet argument
-=============================================  ===================================
-adap-reduce-lris-from-queue.yml                ``key=15ealTQOBLB0I…/WorkQueue``
-adap-reduce-from-queue.yml                     ``key=15ealTQOBLB0I…/WorkQueue``
-adap-reduce-one.yml                            ``key=15ealTQOBLB0I…/WorkQueue``
-adap-sensfunc-from-queue.yml                   ``key=1TADKd3OgbA…/WorkQueue``
-adap_flux_codd1d_from_queue.yml                ``key=1TADKd3OgbA…/WorkQueue``
-init_workqueue.yml, refresh_workqueue.yml      ``key=1TADKd3OgbA…/WorkQueue``
-adap-run-scorecard-on-queue.yml                ``Scorecard/WorkQueue``
-adap-sync-backups-from-queue.yml               ``Scorecard/WorkQueue``
-adap-coadd2d-queue.yml                         ``Scorecard/coadd status``
-=============================================  ===================================
-
-Because the scorecard tabs are resolved from whichever spreadsheet the running job was
-given, a reduction and a post-processing stage pointed at different spreadsheets will
-write their status into different sheets. Settle on one spreadsheet and make the yamls
-agree before a campaign.
+Every job should be given ``Scorecard/<tab>``. Several checked-in yamls still carry
+``key=`` arguments naming two other spreadsheets, and because the scorecard tabs are
+resolved from whichever spreadsheet the running job was handed, a reduction and a
+post-processing stage pointed at different spreadsheets write their status into different
+sheets. The current state of each yaml is tabulated under "Known rough edges" in
+`workflow.rst <workflow.rst>`_. Make them agree before a campaign.
 
 Creating a sheet from scratch
 -----------------------------
@@ -196,5 +187,7 @@ Creating a sheet from scratch
 4.  In ``latest``, ``Failed`` and ``LRIS``, paste the 31 column header above into row 1
     and leave the rest empty.
 5.  Share the spreadsheet with the service account's ``client_email`` as an Editor.
-6.  Copy the id out of the URL and put ``key=<id>/WorkQueue`` in the job yamls.
-7.  Initialize the queue as described in step 7 of `workflow.rst <workflow.rst>`_.
+6.  Name the spreadsheet ``Scorecard`` and make sure every job yaml passes
+    ``Scorecard/WorkQueue`` — or ``Scorecard/coadd status`` for the 2D coadd job.
+7.  Initialize the queue as described under "Populate the queue" in
+    `workflow.rst <workflow.rst>`_.
