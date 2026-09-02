@@ -7,8 +7,9 @@ drives a redis work queue, Nautilus jobs pop datasets off it, and results land i
 Nautilus S3 and Google Drive — but four things differ enough to be worth stating up
 front:
 
-* Raw data comes straight from KOA rather than from a hand-organized disk, so there is
-  no ``adap_reorg_setup.py`` step.
+* Raw data comes straight from KOA rather than from a hand-organized disk, and the
+  download job writes the final layout directly, so there is no separate reorganization
+  step.
 * Datasets are named "*target*/*date*/*instrument*", and the red and blue arms are
   separate datasets.
 * Every job in `nautilus_jobs <nautilus_jobs>`_ runs the same container, built from

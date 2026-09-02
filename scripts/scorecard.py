@@ -99,9 +99,9 @@ def get_dataset_from_reduce_path(args, reduce_path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Build score card for completed pypeit reductions.\nAssumes the directory structure created by adap_reorg_setup.py')
+    parser = argparse.ArgumentParser(description='Build score card for completed pypeit reductions.\nAssumes the dataset directory structure described in workflow.rst.')
     parser.add_argument("spec_name", type=str, help = "Name of the spectrograph for the reduction.")
-    parser.add_argument("reorg_dir", type=str, help = "Root of directory structure created by adap_reorg_setup.py")
+    parser.add_argument("reorg_dir", type=str, help = "Root of the dataset directory structure.")
     parser.add_argument("outfile", type=str, help='Output csv file.')
     parser.add_argument("--pypeit_name", type=str, default=None, help="Name of .pypeit file used in the reduction")
     parser.add_argument("--commit", type=str, default = "", help='Optional, git commit id for the PypeIt version used')

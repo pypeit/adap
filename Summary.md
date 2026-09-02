@@ -25,7 +25,7 @@ Four external systems form the control plane:
 
 **2. Get raw data in.** [adap_koa_download.yml](nautilus_jobs/adap_koa_download.yml) pulls from the Keck Observatory Archive straight into `s3://pypeit/adap_2023/raw_data_reorg/`, which is the root every later stage reads from. [scripts/download_lib/](scripts/download_lib/) is the target-name/coordinate-driven KOA querier that does the work and lays out the `<target>/<YYYYMMDD>/<LRIS|LRISBLUE>/raw_[rb]` tree. A **dataset** on this branch is that three-part path, and the red and blue arms are separate datasets.
 
-(On the DEIMOS branches this stage was instead a hand-organized disk reorganized by [adap_reorg_setup.py](scripts/adap_reorg_setup.py) into `<mask>/<grating_angle_filter>/<date-range>/complete|incomplete/raw/`. That script is still here but is not part of this branch's flow.)
+(On the DEIMOS branches this stage is instead a hand-organized disk reorganized into `<mask>/<grating_angle_filter>/<date-range>/complete|incomplete/raw/` by a script that only exists on those branches.)
 
 **3. Reduce.** This is the core. [adap-reduce-lris-from-queue.yml](nautilus_jobs/adap-reduce-lris-from-queue.yml) launches N parallel worker pods, each of which:
 
