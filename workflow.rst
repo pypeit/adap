@@ -346,8 +346,9 @@ Coadding is done at a coarser level than reduction, so it uses a separate tab �
 ``coadd status`` — whose dataset column holds only a *prefix* of the dataset name, naming
 everything to be combined. Parameters for the ``.coadd2d`` files are resolved by
 ``get_reduce_params`` in `scripts/utils.py <scripts/utils.py>`_, which globs ``config/``
-for the same dataset-prefix naming convention and falls back to
-``config/default_pypeit_config``.
+for the same dataset-prefix naming convention. **Every prefix therefore needs a matching
+custom config file**: the fallback for a prefix with no match is
+``config/default_pypeit_config``, which no longer exists. See `Known rough edges`_.
 
 Back up to Google Drive
 -----------------------
@@ -500,6 +501,21 @@ Other
   through ``get_cloud_path``, which uses ``pypeit/adap_2023/raw_data_reorg``. It reads
   from a different root than the reduce stage writes to, so it needs updating before the
   2D coadds will find this campaign's data.
+* ``get_reduce_params`` in `scripts/utils.py <scripts/utils.py>`_ falls back to
+  ``config/default_pypeit_config`` when a dataset prefix has no custom config file, and
+  that file no longer exists — it was superseded by the three per-spectrograph defaults,
+  ``keck_lris_red_default_pypeit_config``,
+  ``keck_lris_red_mark4_default_pypeit_config`` and
+  ``keck_lris_blue_default_pypeit_config``. The path is read without checking for it, so
+  the 2D coadd stage fails on any prefix that does not match a custom file.
+
+  It cannot simply be repointed at one of the three. Unlike
+  `trimming_setup.py <scripts/trimming_setup.py>`_, which selects its default with
+  ``args.spectrograph``, ``get_reduce_params`` is given only the dataset prefix, and a
+  prefix such as ``J1030+0524`` names neither the arm nor the detector era, so there is
+  no single correct default to choose. Deciding what the fallback should be — infer the
+  spectrograph from the data being coadded, or require a per-prefix config file and fail
+  with a clear message — is an open design question.
 * Google authentication always comes from
   ``$HOME/.config/gspread/service_account.json``, gspread's built-in default. There is no
   option to point it elsewhere, so ``$HOME`` has to be right in any container that runs
