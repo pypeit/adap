@@ -104,10 +104,29 @@ queue jobs under `Not part of this workflow`_, which read from the same older lo
 
 So editing a script here has no effect on the cluster until it is pushed the other way::
 
-    aws --endpoint $ENDPOINT_URL s3 cp --no-progress scripts/ s3://pypeit/adap/scripts_2023/ --recursive
+    aws --endpoint $ENDPOINT_URL s3 cp --no-progress scripts/ s3://pypeit/adap/scripts_2023/ --recursive \
+        --exclude "*__pycache__/*" --exclude "*.pyc"
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress config/  s3://pypeit/adap/config_2023/  --recursive
 
 Do this before every run in which a script or config file changed.
+
+The ``--exclude`` flags keep ``__pycache__`` out of S3. Without them the push ships
+compiled bytecode — including ``.pyc`` files for scripts that no longer exist — which then
+copies back down into every pod. It is clutter rather than a hazard, since Python ignores
+a ``.pyc`` whose source is missing or changed, but there is no reason to carry it. If a
+previous push already uploaded some, clear it once with::
+
+    aws --endpoint $ENDPOINT_URL s3 rm s3://pypeit/adap/scripts_2023/ --recursive \
+        --exclude "*" --include "*__pycache__/*"
+
+**One-time:** `backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_ reads its rclone
+configuration from ``s3://pypeit/adap/scripts/rclone.conf``, which the ``config/`` deploy
+above does not write. Put a copy there::
+
+    aws --endpoint $ENDPOINT_URL s3 cp --no-progress config/rclone.conf s3://pypeit/adap/scripts/rclone.conf
+
+That only needs redoing if the rclone configuration itself changes. Repeating it is
+harmless, so it can simply be included in a deploy if that is easier to remember.
 
 ``config/exclude_files.txt`` needs particular care. It lists raw frames to drop from every
 reduction, one file name per line, and `trimming_setup.py <scripts/trimming_setup.py>`_
