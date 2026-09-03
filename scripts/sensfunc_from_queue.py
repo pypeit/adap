@@ -12,7 +12,6 @@ import numpy as np
 
 from pypeit.inputfiles import PypeItFile, SensFile
 
-import metadata_info
 
 from utils import run_task_on_queue, init_logging, run_script
 from rclone import get_cloud_path

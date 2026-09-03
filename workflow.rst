@@ -4,12 +4,9 @@ Overall Workflow
 This branch reduces Keck LRIS data pulled from KOA. It follows the same shape as the
 DEIMOS workflow documented in ``workflow.rst`` on the ``main`` branch — a Google Sheet
 drives a redis work queue, Nautilus jobs pop datasets off it, and results land in
-Nautilus S3 and Google Drive — but four things differ enough to be worth stating up
+Nautilus S3 and Google Drive — but three things differ enough to be worth stating up
 front:
 
-* Raw data comes straight from KOA rather than from a hand-organized disk, and the
-  download job writes the final layout directly, so there is no separate reorganization
-  step.
 * Datasets are named "*target*/*date*/*instrument*", and the red and blue arms are
   separate datasets.
 * Every job in `nautilus_jobs <nautilus_jobs>`_ runs the same container, built from
@@ -47,6 +44,15 @@ The jobs use ``imagePullPolicy: Always``, so re-pushing the same tag is picked u
 next pod. Note that the reinstall line in each yaml is
 ``pip install --no-build-isolation -e '.[dev]'``; without that flag pip builds against an
 unpatched ``vcs_versioning`` and hits the bug the Dockerfile patches.
+
+Two details of the image are worth knowing. ``psutil``, which
+`reduce_from_queue.py <scripts/reduce_from_queue.py>`_ uses to sample how much memory a
+reduction consumes, is not in the Dockerfile's own pip list — it arrives only through
+PypeIt's ``[dev]`` extra, so the reduce stage rests on a PypeIt *development* dependency.
+And the image carries its own ``adap`` clone, with ``WORKDIR`` pointing at it, that no job
+uses: every job clones ``adap`` fresh under ``/tmp/adap_root``. That baked-in copy is
+frozen at image build time, so an interactive shell in the container starts out in stale
+code.
 
 Set up the Google Sheet
 -----------------------
@@ -412,6 +418,16 @@ still checked in but is inert: nothing reads the CSV it produces.
   `adap-stage-raw-queue.yml <nautilus_jobs/adap-stage-raw-queue.yml>`_ all still mount it
   even though none of them read it.
 
+A second, older container
+-------------------------
+
+`kube_tests/pypeit.docker <kube_tests/pypeit.docker>`_ is an earlier image definition,
+superseded by `config/pypeit_lris_adap.docker <config/pypeit_lris_adap.docker>`_ and
+referenced by no job. It builds on Ubuntu 20.04 with a Python 3.8 Miniconda, clones
+PypeIt's default branch rather than ``lris_adap``, pushes to ``profxj/pypeit`` on Docker
+Hub rather than the Nautilus registry, and installs neither rclone nor redis, gspread,
+boto3 or pykoa — so it cannot run the adap scripts at all.
+
 Deprecated scripts
 ------------------
 
@@ -517,6 +533,22 @@ Other
   no single correct default to choose. Deciding what the fallback should be — infer the
   spectrograph from the data being coadded, or require a per-prefix config file and fail
   with a clear message — is an open design question.
+* ``dataset_to_spec`` in `scripts/metadata_info.py <scripts/metadata_info.py>`_ expects
+  the DEIMOS-era dataset layout, in which the first path component is the instrument and
+  the third is a PypeIt spectrograph name. On this branch the first component is the
+  target, so it silently returns a bogus spectrograph name rather than raising::
+
+      J1030+0524/20120415/LRIS  ->  keck_j1030+0524
+      J1030+0524                ->  keck_j1030+0524
+
+  It is called by `run_scorecard_on_queue.py <scripts/run_scorecard_on_queue.py>`_ and
+  `flux_coadd1d_from_queue.py <scripts/flux_coadd1d_from_queue.py>`_, so
+  `Re-score without re-reducing`_ and `Flux calibrate and coadd 1D`_ both start from a
+  spectrograph name that does not exist. ``get_lris_spec_name`` in
+  `scripts/extended_spec_mixins.py <scripts/extended_spec_mixins.py>`_ is the right
+  function for this branch's naming, but it needs an observation date, and the coadd
+  stages are handed a dataset *prefix* that need not contain one — so fixing this means
+  deciding where the date comes from, not just swapping the call.
 * Google authentication always comes from
   ``$HOME/.config/gspread/service_account.json``, gspread's built-in default. There is no
   option to point it elsewhere, so ``$HOME`` has to be right in any container that runs

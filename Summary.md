@@ -17,7 +17,7 @@ Four external systems form the control plane:
 - [nautilus_jobs/](nautilus_jobs/) — Kubernetes `Job`/`Deployment` YAML. One file per pipeline stage.
 - [scripts/](scripts/) — the Python that actually runs inside the pods.
 - [config/](config/) — PypeIt parameter files (per-spectrograph defaults + per-dataset overrides) and [rclone.conf](config/rclone.conf).
-- [kube_tests/](kube_tests/) — a scratch pod for interactive debugging on the cluster.
+- [kube_tests/](kube_tests/) — one stale, pre-2023 Dockerfile, superseded by [config/pypeit_lris_adap.docker](config/pypeit_lris_adap.docker) and referenced by nothing.
 
 ## The workflow
 
