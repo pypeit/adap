@@ -45,14 +45,15 @@ next pod. Note that the reinstall line in each yaml is
 ``pip install --no-build-isolation -e '.[dev]'``; without that flag pip builds against an
 unpatched ``vcs_versioning`` and hits the bug the Dockerfile patches.
 
-Two details of the image are worth knowing. ``psutil``, which
-`reduce_from_queue.py <scripts/reduce_from_queue.py>`_ uses to sample how much memory a
-reduction consumes, is not in the Dockerfile's own pip list — it arrives only through
-PypeIt's ``[dev]`` extra, so the reduce stage rests on a PypeIt *development* dependency.
-And the image carries its own ``adap`` clone, with ``WORKDIR`` pointing at it, that no job
-uses: every job clones ``adap`` fresh under ``/tmp/adap_root``. That baked-in copy is
-frozen at image build time, so an interactive shell in the container starts out in stale
-code.
+One detail of the image is worth knowing: it carries its own ``adap`` clone, with
+``WORKDIR`` pointing at it, that no job uses — every job clones ``adap`` fresh under
+``/tmp/adap_root``. That baked-in copy is frozen at image build time, so an interactive
+shell in the container starts out in stale code.
+
+The Dockerfile installs ``psutil`` explicitly even though PypeIt's ``[dev]`` extra also
+provides it, because `reduce_from_queue.py <scripts/reduce_from_queue.py>`_ needs it to
+sample a reduction's memory use. Leave it in that list rather than relying on PypeIt to
+supply it.
 
 Set up the Google Sheet
 -----------------------
