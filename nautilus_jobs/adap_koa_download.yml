@@ -27,6 +27,8 @@ spec:
           pip install --no-build-isolation -e '.[dev]';
           cd /tmp; mkdir adap_root; cd adap_root;
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap_2023/koa_to_download/targets.txt /tmp/targets.txt;
           mkdir -p /tmp/RAW_DATA;
           python scripts/download_lib/download.py /tmp/targets.txt --outdir /tmp/RAW_DATA 2>&1 | tee /tmp/koa_download.log;

@@ -90,20 +90,40 @@ naming two other spreadsheets; see `Known rough edges`_.
 Deploy the scripts and config to S3
 -----------------------------------
 
-**The git checkout is not what runs.** Every job clones this repository and then
-overwrites ``scripts/`` and ``config/`` from S3::
+**The git checkout is not what runs.** Every job in this workflow clones this repository
+and then overwrites ``scripts/`` and ``config/`` from S3::
 
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/  config/  --recursive
+
+`backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_ is the one exception. It clones
+nothing, and pulls `backup_datasets.sh <scripts/backup_datasets.sh>`_, its dataset list and
+an ``rclone.conf`` straight from ``s3://pypeit/adap/scripts/``. That is the un-suffixed
+prefix, so the deploy below does not reach it — just as it does not reach the superseded
+queue jobs under `Not part of this workflow`_, which read from the same older location.
 
 So editing a script here has no effect on the cluster until it is pushed the other way::
 
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress scripts/ s3://pypeit/adap/scripts_2023/ --recursive
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress config/  s3://pypeit/adap/config_2023/  --recursive
 
-Do this before every run in which a script or config file changed. Some files only exist
-in S3 — ``config/exclude_files.txt``, read by
-`trimming_setup.py <scripts/trimming_setup.py>`_ to drop bad raw frames, is one of them.
+Do this before every run in which a script or config file changed.
+
+``config/exclude_files.txt`` needs particular care. It lists raw frames to drop from every
+reduction, one file name per line, and `trimming_setup.py <scripts/trimming_setup.py>`_
+reads it for every dataset **without checking that it exists first** — so if it is missing
+from the deployed config, every reduction fails with ``FileNotFoundError``. It is checked
+in containing only comments, which excludes nothing; blank lines and comments are ignored,
+so an effectively empty file is fine. Because the deploy above copies S3 *over* the
+checkout rather than replacing it, that checked-in copy is what gets used until an S3 copy
+overwrites it — do not delete it from the repository.
+
+After editing it, push it with the rest of ``config/``, or on its own::
+
+    aws --endpoint $ENDPOINT_URL s3 cp --no-progress config/exclude_files.txt s3://pypeit/adap/config_2023/exclude_files.txt
+
+The per-dataset override files described under `Reduction configuration`_ are the config
+that genuinely exists only in S3; none of them are in this repository.
 
 Note the two S3 prefix families, which are easy to confuse: ``s3://pypeit/adap/`` holds
 the deployed scripts, config, and job logs, while ``s3://pypeit/adap_2023/`` holds this

@@ -407,7 +407,8 @@ def main():
 
         msgs.info(f"Creating trimmed setup for {dataset}.")
         config_path = Path(__file__).parent.parent /"config"
-        raw_files_to_exclude = [line for line in read_lines(config_path / "exclude_files.txt") if not line.startswith('#')]
+        raw_files_to_exclude = [line.strip() for line in read_lines(config_path / "exclude_files.txt")
+                                if line.strip() and not line.strip().startswith('#')]
 
         default_config_file = config_path / f"{args.spectrograph}_default_pypeit_config"
 

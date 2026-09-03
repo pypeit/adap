@@ -1,0 +1,9 @@
+# Raw frames to drop from every reduction, one file name per line.
+#
+# Names must match the "filename" column of the PypeIt metadata table exactly: the bare
+# file name, not a path. Blank lines and lines beginning with # are ignored, so this file
+# excludes nothing as checked in.
+#
+# trimming_setup.py reads this file for every dataset it sets up, and does not check that
+# it exists first, so it must be present in the deployed config. Push it to
+# s3://pypeit/adap/config_2023/ with the rest of config/; see workflow.rst.
