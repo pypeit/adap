@@ -33,19 +33,40 @@ three of them. The parsing lives in ``open_spreadsheet`` in
 `scripts/gspread_utils.py <scripts/gspread_utils.py>`_.
 
 The optional ``@<column>`` names the column the status is written to; it defaults to
-``B``, and the pod name always goes in the column immediately to its right. Only single
-letter columns up to ``Z`` are supported.
+``B``, and the pod name always goes in the column immediately to its right.
+
+**Use only columns A to Y.** ``index_to_column_name`` in
+`scripts/gspread_utils.py <scripts/gspread_utils.py>`_ derives the pod column by taking
+the *first character* of the converted name, so column 27 becomes ``AA`` and is truncated
+back to ``A``. A status column of ``Z`` therefore resolves its pod column to ``A``, and
+the update range ``Z<n>:A<n>`` is normalised by Sheets to ``A<n>:Z<n>`` — which writes the
+status into column A and overwrites the dataset name. Nothing warns you; the row is simply
+destroyed.
 
 Required tabs
 -------------
 
-Four tabs are required, and their names are fixed in the code — ``WorkQueue`` is the
-default worksheet name the jobs are pointed at, and ``latest``, ``Failed`` and ``LRIS``
-are hardcoded in `update_gsheet_scorecard.py <scripts/update_gsheet_scorecard.py>`_::
+Five tabs in total, of which four are needed for a reduction campaign and the fifth only
+if the 2D coadd job is run:
 
-    sheets = ['latest', 'Failed', 'LRIS']
+=================  ==========================  ==============================================
+Tab                Name comes from             Needed
+=================  ==========================  ==============================================
+``WorkQueue``      the job's command line      always
+``latest``         hardcoded                   always
+``Failed``         hardcoded                   always
+``LRIS``           hardcoded                   always
+``coadd status``   the job's command line      only for the 2D coadd job
+=================  ==========================  ==============================================
 
-A fifth tab, ``coadd status``, is needed only if the 2D coadd job is run.
+Only three of those names are actually fixed in the code. ``latest``, ``Failed`` and
+``LRIS`` are hardcoded in `update_gsheet_scorecard.py <scripts/update_gsheet_scorecard.py>`_::
+
+    sheets = ['latest', 'Failed','LRIS', ]
+
+``WorkQueue`` and ``coadd status`` are only a convention: they are the worksheet names the
+yamls happen to pass, so renaming either one means editing every yaml that names it, not
+the scripts.
 
 Input: the ``WorkQueue`` tab
 ----------------------------
@@ -85,8 +106,10 @@ The status column moves through these values:
     Written by the pod that pops the dataset, along with its name in column C.
 
 ``COMPLETE``, ``FAILED``, ``WARNING``
-    The result. ``WARNING`` means the reduction and the S3 upload worked but the Google
-    Drive copy did not.
+    The result. ``WARNING`` means the work and the S3 upload succeeded but the Google
+    Drive copy did not; it is set by both
+    `reduce_from_queue.py <scripts/reduce_from_queue.py>`_ and
+    `sensfunc_from_queue.py <scripts/sensfunc_from_queue.py>`_.
 
 **To re-run a dataset, blank its status** and re-initialize the queue. Rows with any
 status at all are skipped.
@@ -116,24 +139,43 @@ The column *count* is checked on every update, and a mismatch is fatal::
 
     ValueError: CSV file does not match the columns in <spreadsheet>/<worksheet>
 
-The names of ``dataset``, ``science_file``, ``date`` and ``reduce_dir`` also have to be
-spelled as above, because the updater sorts on them by name. The simplest way to create
-these tabs is to paste in the header line of a ``scorecard.csv`` produced by a real
-reduction.
+Five of the names have to be spelled exactly as above, because the updater looks them up
+by name rather than by position: ``dataset``, ``science_file``, ``reduce_dir`` and
+``date`` are sort keys, and ``status`` is what the ``Failed`` tab filters on.
+
+The *order* matters just as much, and for a different reason. ``build_array_from_rows``
+assigns column types positionally — four string columns, then three floats, then an
+integer for every column from the fifth up to the last five, then two more strings::
+
+    ['U256', 'U22', 'datetime64[D]', 'U8'] + [float,float,float] \
+        + [int for x in data_rows[0][4:-5]] + ['U40', 'U20']
+
+So inserting, removing or reordering a column anywhere in the header makes the updater
+parse the wrong type for everything after it. The simplest way to create these tabs is to
+paste in the header line of a ``scorecard.csv`` produced by a real reduction.
 
 The tabs differ only in what they keep:
 
 ``LRIS``
-    Everything, sorted case-insensitively by dataset, then science file, then reduce
-    directory.
+    Everything, sorted by dataset, then science file, then reduce directory. Only the
+    dataset comparison is case-insensitive — it is the one field the updater uppercases
+    before sorting — so science file and reduce directory sort case-sensitively.
 
 ``Failed``
     Only rows whose status is ``FAILED``, most recent first.
 
 ``latest``
-    A rolling window. Rows older than ``--scorecard_max_age`` days before the oldest row
-    in the incoming data are deleted, so a pause in reductions does not empty the tab.
-    The reduce jobs pass that value; it is ``7`` in the queue jobs today.
+    A rolling window. Rows older than the age limit, measured back from the *oldest row in
+    the incoming data* rather than from today, are deleted — so a pause in reductions does
+    not empty the tab.
+
+    The limit reaches the updater as its third positional argument, ``latest_days``. The
+    reduce jobs set it from ``--scorecard_max_age``, which is ``7`` in the queue jobs
+    today. `run_scorecard_on_queue.py <scripts/run_scorecard_on_queue.py>`_ instead passes
+    a hardcoded ``10000``, so re-scoring existing results does not age anything out.
+    (``latest_days`` is declared with ``default = 5``, but that default is unreachable
+    because argparse positionals are required; the help text saying it defaults to 5 is
+    wrong.)
 
 Each update rewrites the block of rows belonging to a dataset, inserting or deleting rows
 so the block is the right size, and keeps the tab in sorted order. **Do not keep

@@ -550,6 +550,26 @@ Other
   function for this branch's naming, but it needs an observation date, and the coadd
   stages are handed a dataset *prefix* that need not contain one — so fixing this means
   deciding where the date comes from, not just swapping the call.
+* `run_scorecard_on_queue.py <scripts/run_scorecard_on_queue.py>`_ builds every one of
+  its paths with a ``complete`` component — ``<dataset>/complete/reduce`` — which is the
+  DEIMOS layout produced by the old reorganization step. The reduce stage on this branch
+  writes ``<dataset>/reduce`` with no ``complete`` level, so the two disagree in seven
+  places: the cloud source root, the ``reduce*`` glob, the download destination, the local
+  scorecard directory, both upload destinations, and the csv path handed to
+  ``update_gsheet_scorecard.py``.
+
+  The practical effect is that the glob for ``<dataset>/complete/reduce*`` matches
+  nothing, so the task logs "No reduce paths found" and returns ``FAILED`` for every
+  dataset without re-scoring anything. It never reaches the sheet update. The cleanup in
+  the ``finally`` block then calls ``rmtree`` on a dataset directory that was never
+  created, so the log also carries a ``FileNotFoundError`` traceback on top of the real
+  cause.
+
+  Note that `scorecard.py <scripts/scorecard.py>`_ itself is tolerant of both layouts —
+  ``get_dataset_from_reduce_path`` recognizes ``<dataset>/complete/reduce/<spec>`` and
+  ``<dataset>/reduce`` alike. Only this driver hardcodes ``complete``, so `Re-score
+  without re-reducing`_ needs those paths brought in line with the reduce stage before it
+  will run.
 * Google authentication always comes from
   ``$HOME/.config/gspread/service_account.json``, gspread's built-in default. There is no
   option to point it elsewhere, so ``$HOME`` has to be right in any container that runs
