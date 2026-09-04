@@ -6,7 +6,6 @@ spec:
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
-  volumeMode: Filesystem
   resources:
     requests:
       storage: 1Gi    

@@ -157,10 +157,26 @@ fronts it live in one file::
     kubectl apply -f nautilus_jobs/persist_volume.yml
     kubectl apply -f nautilus_jobs/workqueue_deployment.yml
 
-Every job then reaches it at ``redis://adap-workqueue:6379`` — unlike the 2019 workflow,
-there is no pod IP to look up and paste into the yamls. Redis has no persistence
-configured, so restarting that pod discards the queue; the queue keys are ``adap_2023_q``
-and ``adap_2023_lock``.
+Check that it came up before going on::
+
+    kubectl get pods -l k8s-app=adap-workqueue
+
+Every queue-driven job then reaches it at ``redis://adap-workqueue:6379`` — unlike the
+2019 workflow, there is no pod IP to look up and paste into the yamls. The keys are
+``adap_2023_q`` for the queue itself and ``adap_2023_lock`` for the lock that serialises
+spreadsheet updates. Both are built from the ``adap_2023`` argument on each job's command
+line, so changing that argument moves a job to an entirely different queue.
+
+**The queue does not survive the pod.** The container runs a bare ``redis-server`` and
+mounts no volume, so anything redis writes lands on the pod's ephemeral storage and is
+gone when the pod is replaced. Adding ``save`` directives would not change that — keeping
+a queue across a restart would need a volume for redis to write into. After any restart,
+re-seed the queue as in `Populate the queue`_.
+
+**Do not scale the Deployment past** ``replicas: 1``. The Service load-balances across
+every pod matching its selector, so a second replica would be a second, independent redis.
+Jobs would be split across two queues, and ``adap_2023_lock`` would no longer serialise
+anything, because the pods holding it would not be talking to the same server.
 
 The ``persist_volume.yml`` PVC is applied first not because the queue uses it — redis
 holds the queue in memory — but because several job yamls still mount it at
