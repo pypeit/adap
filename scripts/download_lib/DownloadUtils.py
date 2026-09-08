@@ -51,11 +51,16 @@ def file_cleanup(query, cdate) -> None:
             for fn in glob.glob(os.path.join(raw,"lev0",pattern)):
                 os.rename(fn, os.path.join(raw,os.path.basename(fn)))
 
-    try:
-        os.rmdir(os.path.join(query.outdir,cdate,"raw","lev0"))
-        os.rmdir(os.path.join(query.outdir,cdate,"raw"))
-    except OSError:
-        pass
+    # Remove the scaffolding this function created but did not fill: the lev0 directories
+    # the frames were just moved out of, and then raw_b/raw_r themselves for an arm that
+    # had no data this night, since both are created unconditionally above. os.rmdir only
+    # removes an empty directory, so an arm that did get frames is left untouched. lev0
+    # has to go first or its parent would not be empty yet.
+    for d in (os.path.join(raw_b,"lev0"), os.path.join(raw_r,"lev0"), raw_b, raw_r):
+        try:
+            os.rmdir(d)
+        except OSError:
+            pass
 
     return
 
