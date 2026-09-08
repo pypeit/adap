@@ -266,10 +266,13 @@ Reduction configuration
 -----------------------
 
 `trimming_setup.py <scripts/trimming_setup.py>`_ generates the ``.pypeit`` files for a
-dataset. It starts from a per-spectrograph default::
+dataset. It starts from a per-spectrograph default, one for each of the five names
+``get_lris_spec_name`` can return::
 
+    config/keck_lris_red_orig_default_pypeit_config
     config/keck_lris_red_default_pypeit_config
     config/keck_lris_red_mark4_default_pypeit_config
+    config/keck_lris_blue_orig_default_pypeit_config
     config/keck_lris_blue_default_pypeit_config
 
 and writes the setup into a ``reduce`` subdirectory of the dataset.
