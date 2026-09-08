@@ -1,26 +1,14 @@
 from pathlib import Path
 
-exclude_pypeit_types = {"DEIMOS": ["bias"],
-                        "ESI":     ["standard"],
-                        "HIRES":   ["bias", "dark"],
-                        "LRIS":    ["bias", "dark"],
-                        "LRISBLUE":    ["bias", "dark"],
-                        "MOSFIRE": [],
-                        "NIRES":   [],
-                        "NIRSPEC": [],
+exclude_pypeit_types = {"LRIS":     ["bias", "dark"],
+                        "LRISBLUE": ["bias", "dark"],
                         }
 
-spec_to_instrument = {"keck_deimos": "DEIMOS",
-                      "keck_esi": "ESI",
-                      "keck_hires": "HIRES",
-                      "keck_lris_blue": "LRISBLUE",
+spec_to_instrument = {"keck_lris_blue": "LRISBLUE",
                       "keck_lris_blue_orig": "LRISBLUE",
                       "keck_lris_red": "LRIS",
                       "keck_lris_red_orig": "LRIS",
                       "keck_lris_red_mark4": "LRIS",
-                      "keck_mosfire": "MOSFIRE",
-                      "keck_nires": "NIRES",
-                      "keck_nirspec": "NIRSPEC",
                      }
 
 def dataset_to_spec(dataset_name):

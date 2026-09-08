@@ -180,7 +180,7 @@ def coadd2d_task(args, observing_config):
         reduce_params = get_reduce_params(observing_config)
 
         # Run the generated coadd2d files
-        for coadd2d_file in coadd2d_output.glob("keck_deimos*.coadd2d"):
+        for coadd2d_file in coadd2d_output.glob("keck_lris*.coadd2d"):
             logger.info(f"Updating coadd2d file {coadd2d_file.name}")
             update_coadd2d_params(coadd2d_file, reduce_params)
             logger.info(f"Running coadd2d file {coadd2d_file.name}")

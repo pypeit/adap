@@ -54,7 +54,7 @@ def warns_fromlogfile(logfile):
 def main():
     parser = argparse.ArgumentParser(description='Parse and save in a new txt file the most useful '
                                                  'warnings from the .log file')
-    parser.add_argument("logfile", type=str, default="keck_deimos_A.log",
+    parser.add_argument("logfile", type=str,
                         help="Location and name of the log file")
     parser.add_argument("--req_warn_file", type=str, default="adap/config/required_warnings.txt",
                         help="Location and name of the file containing the required warnings")

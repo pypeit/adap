@@ -45,109 +45,6 @@ def find_none_rows(metadata):
     return np.unique(rows)
 
 
-def trim_keck_deimos(metadata):
-    """
-    TODO restore this code
-    mjd_order = np.argsort(ps.fitstbl['mjd'])
-
-    # Criteria
-
-    best_dec = np.abs(ps.fitstbl['dec']-45.) < 1.
-    best_arc_exp = (ps.fitstbl['exptime'] >= 1.) & (ps.fitstbl['exptime'] <= 15.) 
-    best_flat_exp = (ps.fitstbl['exptime'] > 5.) & (ps.fitstbl['exptime'] <= 30.) 
-
-    test_criterion = (ps.fitstbl['exptime'] > 50000.)
-
-    arc_type = 'arc,tilt'
-    flat_type = 'pixelflat,illumflat,trace'
-    min_arc_set = 1
-    min_flats = 3
-
-    # ########################
-    # Arcs
-    arcs = ps.fitstbl['frametype'] == arc_type 
-    not_excluded_arcs = arcs & np.isin(ps.fitstbl['filename'],raw_files_to_exclude, invert=True)
-
-    arc_criteria = [best_arc_exp, best_dec]
-
-    # Lamps
-    unique_lamps = np.unique(ps.fitstbl['lampstat01'][arcs].data)
-    indiv_lamps = [item.split(' ') for item in unique_lamps]
-    nlamps = [len(item) for item in indiv_lamps]
-
-    lamp_order = np.argsort(nlamps)[::-1]
-
-    all_keep_arcs = []
-    all_lamps = []
-    # Loop on the lamp sets
-    for ilamp in lamp_order:
-        # Any new lamps?
-        new = False
-        for lamp in indiv_lamps[ilamp]:
-            if lamp not in all_lamps:
-                new = True
-        if not new:
-            msgs.info(f"No new lamps in {indiv_lamps[ilamp]}")
-            continue
-        
-        # All matching this set
-        arc_set = not_excluded_arcs & (ps.fitstbl['lampstat01'].data == unique_lamps[ilamp])
-        
-        # Criteria
-        while True:
-            criteria = np.stack([arc_set]+arc_criteria)
-            gd_arcs = np.all(criteria, axis=0)
-            # Have enough?
-            if np.sum(gd_arcs) >= min_arc_set or len(arc_criteria) == 0:
-                break
-            # Remove a criterion
-            arc_criteria.pop()
-
-        # Take the latest entries in time
-        keep_arcs = np.where(gd_arcs)[0]
-        sort_mjd_arcs = np.argsort(ps.fitstbl['mjd'].data[keep_arcs])
-        keep_arcs = keep_arcs[sort_mjd_arcs[-min_arc_set:]]
-
-        all_keep_arcs += keep_arcs.tolist()
-
-        # Record the lamps
-        all_lamps += indiv_lamps[ilamp]
-        all_lamps = np.unique(all_lamps).tolist()
-        
-    # Keep em
-    all_arcs = np.where(arcs)[0]
-    sort_mjd_arcs = np.argsort(ps.fitstbl['mjd'].data[keep_arcs])
-    for idx in all_arcs:
-        if idx not in all_keep_arcs:
-            filenames[idx] = '#'+filenames[idx]
-
-    # #################
-    # Flats
-    flats = ps.fitstbl['frametype'] == flat_type 
-    not_excluded_flats = flats  & np.isin(ps.fitstbl['filename'],raw_files_to_exclude, invert=True)
-
-    flat_criteria = [best_flat_exp, best_dec]
-
-    while True:
-        criteria = np.stack([not_excluded_flats]+flat_criteria)
-        gd_flats = np.all(criteria, axis=0)
-        # Have enough?
-        if np.sum(gd_flats) > min_flats or len(flat_criteria) == 0:
-            break
-        # Remove a criterion
-        msgs.info("Removing an flat criterion")
-        flat_criteria.pop()
-
-    # Keep the last ones
-    all_flats = np.where(flats)[0]
-    keep_flats = np.where(gd_flats)[0]
-    sort_mjd_flats = np.argsort(ps.fitstbl['mjd'].data[keep_flats])
-    keep_flats = keep_flats[sort_mjd_flats[-min_flats:]]
-    for idx in all_flats:
-        if idx not in keep_flats:
-            filenames[idx] = '#'+filenames[idx]
-    """
-    pass
 
 def trim_criteria(metadata, sort_fields, max, initial_files, all_criteria):
 
@@ -184,54 +81,9 @@ def trim_criteria(metadata, sort_fields, max, initial_files, all_criteria):
 
     return trimmed_files        
 
-def trim_keck_esi(metadata, good_frames):
-    # Only use dome flats
-    all_flats = (metadata.find_frames('pixelflat') & metadata.find_frames('illumflat'))  & good_frames
-    dome_flats = (metadata['idname'] == 'DmFlat') & all_flats
-    not_dome_flats = (metadata['idname'] != 'DmFlat') & all_flats
-
-    # Trim more than 5 dome flats
-    dome_flats_to_trim = trim_criteria(metadata, ['mjd'], 5, dome_flats, [])
-
-    num_dome_flats = np.sum(dome_flats)
-    remaining_dome_flats = num_dome_flats - np.sum(dome_flats_to_trim)
-    if remaining_dome_flats < 5:
-        # Not enough dome flats, supplement them with non-dome flats
-        not_dome_flats_to_trim = trim_criteria(metadata, ['mjd'], 5-remaining_dome_flats, not_dome_flats, [])
-    else:
-        # There's enough dome flats, trim the others
-        not_dome_flats_to_trim = not_dome_flats
-
-    # We want one CuAr arc (300s+) and one non-CuAr arc (between 10 and 30 s)
-    arc_frames = metadata.find_frames('arc') & good_frames
-    cu_frames = arc_frames & (metadata['lampstat02'] == "on")
-    frames_under300s = metadata['exptime'] < 300.0
-    cu_frames_to_trim = trim_criteria(metadata, ['mjd'], 1, cu_frames, [frames_under300s])
-
-    xe_or_hgne_lamps = arc_frames & ((metadata['lampstat01'] == "on") | (metadata['lampstat03']=="on"))
-    frames_beyond_10_to_20s = (metadata['exptime']<10) | (metadata['exptime']>30)
-    xe_or_hgne_lamps_to_trim = trim_criteria(metadata, ['mjd'], 1, xe_or_hgne_lamps, [frames_beyond_10_to_20s])
-
-    # If there are other arc types trim them as well
-    other_arcs_to_trim = arc_frames & np.logical_not(cu_frames | xe_or_hgne_lamps)
-
-    return not_dome_flats_to_trim | dome_flats_to_trim | cu_frames_to_trim | xe_or_hgne_lamps_to_trim | other_arcs_to_trim
 
 
 
-def trim_keck_hires(metadata, good_frames):
-    # Find the flats and arcs that have not already been excluded for some reason.
-    all_flats = metadata.find_frames('pixelflat') & good_frames
-    all_arcs = metadata.find_frames('arc') & good_frames
-    #all_darks = metadata.find_frames('dark') & good_frames
-
-    # Trim things not close enough to 45
-    dec_criteria = np.abs(metadata['dec']-45.) >= 1
-    flats_to_trim = trim_criteria(metadata, ['mjd'], 5, all_flats, [dec_criteria])
-    arcs_to_trim = trim_criteria(metadata, ['mjd'], 1, all_arcs, [dec_criteria])
-    #darks_to_trim = trim_criteria(metadata, ['mjd'], 1, all_darks, [dec_criteria])
-
-    return flats_to_trim | arcs_to_trim # | darks_to_trim
 
     #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
     #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 
@@ -250,48 +102,22 @@ def trim_keck_lris(metadata, good_frames):
     #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
     #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 
 
-def trim_keck_mosfire(metadata, good_frames):
-    # Mosfire uses scienece frames for arcs, so we'll trim all non-science arcs
-    all_non_science_arcs = good_frames & np.logical_not(metadata.find_frames('science')) & metadata.find_frames('arc')
-
-    all_flats = metadata.find_frames('pixelflat') & good_frames
-    all_lampoff_flats = metadata.find_frames('lampoffflats') & good_frames
-    dec_criteria = np.abs(metadata['dec']-45.) >= 1
-    flats_to_trim = trim_criteria(metadata, ['mjd'], 5, all_flats, [dec_criteria])
-    lampoff_flats_to_trim = trim_criteria(metadata, ['mjd'], 5, all_lampoff_flats, [dec_criteria])
-
-    return all_non_science_arcs | flats_to_trim | lampoff_flats_to_trim
 
 def no_trimming(metadata, good_frames):
     # A trimming function that trims nothing
     return np.zeros_like(metadata['filename'],dtype=bool)
 
-trimming_functions = {"keck_deimos": trim_keck_deimos,
-                      "keck_esi": trim_keck_esi,
-                      "keck_hires": trim_keck_hires,
-                      "keck_mosfire": trim_keck_mosfire,
-                      "keck_lris_red_orig": trim_keck_lris,
+trimming_functions = {"keck_lris_red_orig": trim_keck_lris,
                       "keck_lris_red": trim_keck_lris,
-                      "keck_lris_red_orig": trim_keck_lris,
                       "keck_lris_red_mark4": trim_keck_lris,
                       "keck_lris_blue": trim_keck_lris,
                       "keck_lris_blue_orig": trim_keck_lris,
                       }
 
-setup_args = {"keck_mosfire": {"write_bkg_pairs": True}}
-
 def comment_out_filenames(metadata, files_idx):    
     metadata['filename'] = ['# ' + str(name) if files_idx[i] else name for i, name in enumerate(metadata['filename'])]
 
 
-def update_metadata(metadata, spectrograph):
-    """Perform any tweaks to the metadata before trimming it"""
-
-    # Currently the only change we make is to make ESI flats also
-    # scattered light frames
-    if spectrograph == "keck_esi":
-        framebits = [metadata.type_bitmask.turn_on(framebit,'scattlight') if metadata.type_bitmask.flagged(framebit, 'pixelflat') else framebit for framebit in metadata.table['framebit']]
-        metadata.set_frame_types(framebits)
 
 def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir, config_lines, raw_dir):
 
@@ -310,7 +136,6 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
 
     # Run setup
     ps.run(setup_only=True)
-    update_metadata(ps.fitstbl, spectrograph)
 
     # Remove rows with None, as these cause PypeIt to crash
     rows_with_none = find_none_rows(ps.fitstbl)
@@ -338,8 +163,7 @@ def make_trimmed_setup(spectrograph, lcl_path, raw_files_to_exclude, reduce_dir,
     ps.fitstbl.table['calib'][not_group_a] = 0
 
     # Write trimmed setup
-    additional_args = setup_args.get(spectrograph,dict())
-    ps.fitstbl.write_pypeit(target_dir,cfg_lines=config_lines, configs = ['A'],**additional_args)
+    ps.fitstbl.write_pypeit(target_dir,cfg_lines=config_lines, configs = ['A'])
 
 def read_lines(file):
     """Short helper method to read lines from a text file into a list, removing newlines."""
@@ -356,34 +180,6 @@ def update_custom_pypeit(complete_path, spectrograph_name, reduce_dir, pypeit_fi
     pypeit_file.file_paths = [str(complete_path / raw_dir)]
     pypeit_file.write(complete_path / reduce_dir / dir_name / f"{dir_name}.pypeit")
 
-def update_pixelflat(spectrograph, dataset, config_lines):
-    # TODO should this be moved to extended_spec_mixins? Or made more general?
-    if spectrograph == "keck_hires":
-        dataset_parts = dataset.split('/')
-        config_parts = dataset_parts[2].split("_")
-        dataset_binning = config_parts[-1]
-        binning_to_pixelflat_map = {"1x2": "pixelflat_keck_hires_RED_1x2_20160330.fits.gz",
-                                    "1x3": "pixelflat_keck_hires_RED_1x3_20170223.fits.gz",
-                                    "2x2": "pixelflat_keck_hires_RED_2x2_20170614.fits.gz"}
-        return_lines = []
-        for line in config_lines:
-            line_parts = line.split('#',maxsplit=1) # Ignore comments that might contain "pixelflat_file"
-            line_start = line_parts[0]
-            if len(line_parts) > 1:
-                comments = line_parts[1]
-            else:
-                comments = ""
-            indx = line_start.find("pixelflat_file")
-            if indx != -1:
-                if dataset_binning in binning_to_pixelflat_map:
-                    line = line_start[:indx] + "pixelflat_file = " + binning_to_pixelflat_map[dataset_binning] + comments
-                else:
-                    # No pixelflat for this binning, comment out hte pixelflat line
-                    line = line_start[:indx] + "#pixelflat_file = <no known pixelflat file available for this binning>" + comments
-            return_lines.append(line)
-    else:
-        return_lines = config_lines
-    return return_lines
 
 def main():
     parser = argparse.ArgumentParser(description='Build a trimmed down setup file for ADAP raw data. It assumes the ADAP directory structure.')
@@ -441,9 +237,7 @@ def main():
 
         if len(reduce_configs) == 0:
             msgs.info(f"Using default config file.")
-            # Add pixelflats to the config for appropriate spectrographs
-            updated_config_lines = update_pixelflat(args.spectrograph, dataset, default_config_lines)
-            reduce_configs.append(("reduce", updated_config_lines))
+            reduce_configs.append(("reduce", default_config_lines))
             
 
         for reduce_config in reduce_configs:

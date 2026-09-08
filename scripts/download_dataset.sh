@@ -3,15 +3,19 @@
 
 adap_remote_root="s3://pypeit/adap_2023/"
 nautilus_endpoint="https://s3-west.nrp-nautilus.io"
-logs=("keck_hires_A/keck_hires_A.log" "keck_hires_A/keck_hires_A_useful_warns.log" "keck_hires_A/run_pypeit_stdout.txt" "reduce_from_queue.log")
+# The setup directory is named after the spectrograph, which varies by dataset, so it has
+# to be given with -s when logs are requested.
+setup=""
 
 
 usage() {
     echo ""
-    echo "Usage: download_datasets.sh [-l|--logs] [-r|--raw] [-h|--help] <dataset> [<dest>]"
+    echo "Usage: download_datasets.sh [-l|--logs] [-s|--setup <name>] [-r|--raw] [-h|--help] <dataset> [<dest>]"
     echo "Downloads the ADAP results for <dataset> to <dest>"
     echo ""
     echo "If -l or --logs is given, only the logs will be downloaded"
+    echo "If -s or --setup is given, it names the setup directory holding the logs,"
+    echo "  e.g. keck_lris_red_A. Required with -l."
     echo "If -r or --raw is given, the raw data will also be downloaded"
     echo "If no destination is given, the current directory is used."
     echo ""
@@ -39,6 +43,10 @@ do
             ;;
         --logs | -l)
             only_logs=true
+            ;;
+        --setup | -s)
+            shift
+            setup=$1
             ;;
         --raw | -r)
             include_raw=true
@@ -69,6 +77,14 @@ if [[ -z $dest ]]
 then
     dest=$PWD
 fi
+
+if [[ $only_logs == true && -z $setup ]]
+then
+    echo Missing '-s <setup>', which is required with --logs
+    usage
+fi
+
+logs=("$setup/$setup.log" "$setup/${setup}_useful_warns.log" "$setup/run_pypeit_stdout.txt" "reduce_from_queue.log")
 
 
 

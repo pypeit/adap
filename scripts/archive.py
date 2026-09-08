@@ -573,7 +573,6 @@ class ArchiveScript(scriptbase.ScriptBase):
         
         # Go through the coadded files, use their associated collate.dat files to build SourceObjects, and
         # add those to the archive
-        spec = load_spectrograph("keck_deimos")
         coadded_file_messages = []
         for coadded_file in coadded_files:
             source_object = None       
@@ -588,6 +587,9 @@ class ArchiveScript(scriptbase.ScriptBase):
                     spec1d_filename = spec1d_group[0]['spec1d_filename']
                     full_spec1d_file = spec1d_map[spec1d_filename]
                     sobjs = SpecObjs.from_fitsfile(full_spec1d_file, chk_version=False)
+                    # PYP_SPEC is required in a spec1d header, so take the spectrograph
+                    # from the data rather than assuming one.
+                    spec = load_spectrograph(sobjs.header['PYP_SPEC'])
                     for obj_name in spec1d_group['pypeit_name']:
                         sobj = sobjs[sobjs.name_indices(obj_name)][0]
                         if source_object is None:
