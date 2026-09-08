@@ -196,18 +196,57 @@ expects it::
     aws --endpoint $ENDPOINT_URL s3 cp targets.txt s3://pypeit/adap_2023/koa_to_download/targets.txt
 
 Then run the download job, which searches KOA for each target and fetches the matching
-science, arc, and flat frames::
+science, arc, and flat frames — standard stars included, which the
+`Generate sensitivity functions`_ stage later depends on::
 
     kubectl create -f nautilus_jobs/adap_koa_download.yml
+
+**The job runs** `download_lib <scripts/download_lib>`_ **from S3**, not from the image
+and not from the git checkout. Like every other job it overwrites ``scripts/`` from
+``s3://pypeit/adap/scripts_2023/`` before running, so the deployed copy is what executes.
+The recursive push in `Deploy the scripts and config to S3`_ carries the subdirectory
+along, so an ordinary deploy is enough — but the whole directory has to arrive, because
+the modules import each other by bare name (``import Query``, ``import Night``) and a
+partial copy fails at import. Check before running the job::
+
+    aws --endpoint $ENDPOINT_URL s3 ls s3://pypeit/adap/scripts_2023/download_lib/
+
+That must list at least ``download.py``, ``DownloadUtils.py``, ``Night.py``, ``Query.py``
+and ``Target.py``; those five are what ``download.py`` pulls in. If the listing is empty
+or short, push just that directory::
+
+    aws --endpoint $ENDPOINT_URL s3 cp --no-progress scripts/download_lib/ \
+        s3://pypeit/adap/scripts_2023/download_lib/ --recursive \
+        --exclude "*__pycache__/*" --exclude "*.pyc"
 
 `download_lib <scripts/download_lib>`_ organizes what it finds into::
 
     <target>/<YYYYMMDD>/LRIS/raw_r
     <target>/<YYYYMMDD>/LRISBLUE/raw_b
 
-and the job uploads that tree to ``s3://pypeit/adap_2023/raw_data_reorg/``, which is the
-root every later stage reads from (see ``get_cloud_path`` in
-`scripts/rclone.py <scripts/rclone.py>`_).
+and the job uploads that tree to ``s3://pypeit/adap_2023/raw_data_reorg/``. That is the
+root ``get_cloud_path`` in `scripts/rclone.py <scripts/rclone.py>`_ returns, so it is
+where the reduce and post-processing stages look — with one exception:
+`coadd2d_from_queue.py <scripts/coadd2d_from_queue.py>`_ builds its path itself and reads
+a different root, so it does not see this campaign's data at all. See
+`Known rough edges`_.
+
+Three tolerances decide what comes down, none of them configurable:
+
+    **5 arcsec** — the radius of the KOA cone search around the target's ra and dec
+    (``circle <ra> <dec> 0.00139`` in ``query_position``). A target whose catalogue
+    position is off by more than this finds nothing at all.
+
+    **20 arcsec** — a science frame is kept if its pointing is within this of the target
+    (``match_sci_target`` in
+    `download_lib/DownloadUtils.py <scripts/download_lib/DownloadUtils.py>`_).
+
+    **0.5 arcmin** — a science frame is *also* kept if its pointing matches a PypeIt
+    archive standard within this radius, regardless of the target. This is deliberate,
+    and it is how standard stars reach the raw tree:
+    `sensfunc_from_queue.py <scripts/sensfunc_from_queue.py>`_ finds them in the reduced
+    data later. Arcs and flats are matched by instrument configuration instead, not by
+    position.
 
 A **dataset** on this branch is therefore a three-part path — target, UT date,
 instrument — for example::

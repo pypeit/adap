@@ -43,8 +43,13 @@ def file_cleanup(query, cdate) -> None:
 
     for instr in ("LB","LR"):
         raw = raw_b if instr == "LB" else raw_r
-        for fn in glob.glob(os.path.join(raw,"lev0",f"{instr}*.fits")):
-            os.rename(fn, os.path.join(raw,os.path.basename(fn)))
+        # KOA delivers frames either uncompressed or gzipped, and "*.fits" does not match
+        # "*.fits.gz", so both patterns are needed. Anything left behind in lev0 is
+        # invisible to trimming_setup.py, which globs the raw directory itself without
+        # recursing into it.
+        for pattern in (f"{instr}*.fits", f"{instr}*.fits.gz"):
+            for fn in glob.glob(os.path.join(raw,"lev0",pattern)):
+                os.rename(fn, os.path.join(raw,os.path.basename(fn)))
 
     try:
         os.rmdir(os.path.join(query.outdir,cdate,"raw","lev0"))
