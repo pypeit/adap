@@ -57,7 +57,10 @@ def main():
         # Create a query object
         query = Query.Query(target, topdir=args.outdir)
         query.query_position()
-        if query.obj_results is None:
+        # query_position leaves obj_results as the empty list it was initialized to if the
+        # KOA query failed, and returns a zero row table if the query found nothing, so
+        # check for both rather than just None.
+        if query.obj_results is None or len(query.obj_results) == 0:
             print(f'No data found for target: {target.name} {target.ra} {target.dec}')
             continue
         names = [str(d) for d in list(numpy.unique(query.obj_results['targname']))]

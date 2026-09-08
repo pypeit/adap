@@ -201,6 +201,12 @@ def fill_dates(query, target, test=False, nodownload=False):
 
         query.query_date(night)
 
+        # query_date leaves date_results as None if the KOA query failed, so skip this
+        # night rather than letting build_final_table raise on it.
+        if query.date_results is None or len(query.date_results) == 0:
+            print(f'No KOA results for {target.name} for {night.date}')
+            continue
+
         final_table_names = build_final_table(night, query)
         if len(final_table_names) == 0:
             print(f'No files found for {target.name} for {night.date}')

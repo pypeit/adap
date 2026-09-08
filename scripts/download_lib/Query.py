@@ -106,6 +106,12 @@ class Query():
         query_date: Query the KOA database for the target object on a specific date
         '''
 
+        # Results are accumulated across the two instruments below, so each night has to
+        # start from empty. Otherwise date_results carries over from previous nights, and
+        # the final tables filter on instrument configuration but not on date, so an
+        # earlier night with the same configuration would be downloaded again.
+        self.date_results = None
+
         for instr in ("LRIS", "LRISBLUE"):
 
             if instr == "LRIS" and night.graname is None:
@@ -117,16 +123,23 @@ class Query():
 
             night.date_file = os.path.join(self.outdir,instr + f"_adql_{night.date}.tbl")
 
-            # Create a KOA client
+            # Create a KOA client. A failure for one instrument must not stop the other
+            # from being queried, so move on to it rather than abandoning the night.
             if os.path.exists(night.date_file) is False:
                 try:
                     koa.Koa.query_adql(query, night.date_file, format='ipac')
                 except Exception:
-                    print(f'Warning: KOA query_adql failed for {night.date}')
-                    return
+                    print(f'Warning: KOA query_adql failed for {instr} on {night.date}')
+                    continue
 
-            # save the results
-            t = astropy.table.Table.read(night.date_file, format='ascii.ipac')
+            # save the results. A query that returned nothing leaves no table to read,
+            # which likewise must not stop the other instrument.
+            try:
+                t = astropy.table.Table.read(night.date_file, format='ascii.ipac')
+            except Exception:
+                print(f'Warning: no readable KOA results for {instr} on {night.date}')
+                continue
+
             if self.date_results is None:
                 self.date_results = t
             else:
