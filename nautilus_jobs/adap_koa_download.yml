@@ -7,6 +7,13 @@
 #
 # The target list is a text file with one "<name> <ra> <dec>" per line, ra/dec
 # in degrees. Blank lines and lines starting with "#" are ignored.
+#
+# download.py exits non-zero if any dataset came down incomplete. pipefail plus the
+# saved status carries that through the "| tee" so the Job actually fails; without it
+# the pipeline reports tee's status and every run looks like a success. Whatever did
+# arrive is still uploaded first -- partial data in S3 is useful, a silent success is
+# not. Note that a failure now retries per backoffLimit, and because /tmp is emptyDir
+# a retry re-downloads the target from scratch.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -31,10 +38,14 @@ spec:
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap_2023/koa_to_download/targets.txt /tmp/targets.txt;
           mkdir -p /tmp/RAW_DATA;
+          set -o pipefail;
           python scripts/download_lib/download.py /tmp/targets.txt --outdir /tmp/RAW_DATA 2>&1 | tee /tmp/koa_download.log;
+          download_status=$?;
+          set +o pipefail;
           du -sh /tmp/RAW_DATA >> /tmp/koa_download.log;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/RAW_DATA/ s3://pypeit/adap_2023/raw_data_reorg/ --recursive;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/koa_download.log s3://pypeit/adap/results/${POD_NAME}.log
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/koa_download.log s3://pypeit/adap/results/${POD_NAME}.log;
+          exit $download_status
         command:
         - /bin/bash
         - -c
