@@ -3,11 +3,20 @@ Queue-driven KOA Download — Design
 
 This document proposes replacing the one-off KOA download job with a queue-driven stage
 that reads target coordinates from the ``Scorecard`` spreadsheet and writes the datasets
-it discovers back into the ``WorkQueue`` tab. It is a design rather than a description:
-apart from the download verification and resume described under `Resume and retry`_, both
-of which have been implemented, nothing here is built yet. The workflow as it stands today is
-`workflow.rst <workflow.rst>`_, and the sheet it refers to is
-`google_sheet_setup.rst <google_sheet_setup.rst>`_.
+it discovers back into the ``WorkQueue`` tab. **This design has now been implemented**, so what follows describes both the reasoning and
+the code that came out of it. The pieces are
+`koa_download_from_queue.py <scripts/koa_download_from_queue.py>`_,
+`download_lib/TargetList.py <scripts/download_lib/TargetList.py>`_, the target and
+dataset helpers in `gspread_utils.py <scripts/gspread_utils.py>`_, the queue and throttle
+changes in `utils.py <scripts/utils.py>`_, and
+`adap-koa-download-from-queue.yml <nautilus_jobs/adap-koa-download-from-queue.yml>`_. The
+sheet it needs is `google_sheet_setup.rst <google_sheet_setup.rst>`_.
+
+Two things named here as future work were deliberately **not** done: pushing discovered
+datasets straight onto the dataset queue, for the reason under `Writing datasets back`_,
+and the per-target tolerance columns under `Open questions`_. Part 2 of
+`workflow.rst <workflow.rst>`_ still describes the old ``targets.txt`` job and needs
+updating to match.
 
 The problem
 -----------
@@ -202,11 +211,15 @@ the current code need attention before that path is trustworthy.
     the resume explicit rather than dependent on where the frames that did arrive ended
     up. A table already complete costs no KOA call at all.
 
-    **Retries re-query.** ``Query`` caches its ``.tbl`` results in ``outdir`` and returns
-    early if the file is present, but ``outdir`` is on the pod's ephemeral ``/tmp``. A
-    retry on a fresh pod re-runs every KOA query from scratch. Persisting the query tables
-    alongside the raw data in S3, and restoring them at the start of the task, makes a
-    retry cost only the missing files. This matters more under throttling than without it.
+    **Retries re-queried — now fixed.** ``Query`` caches its ``.tbl`` results in
+    ``outdir`` and returns early if the file is present, but ``outdir`` is on the pod's
+    ephemeral ``/tmp``, so a retry on a fresh pod re-ran every KOA query from scratch.
+    ``restore_query_cache`` and ``save_query_cache`` in
+    `koa_download_from_queue.py <scripts/koa_download_from_queue.py>`_ keep the tables in
+    ``s3://pypeit/adap_2023/koa_queries/<target>/`` and restore them before querying, so a
+    retry costs only the frames that are actually missing. The cache is written even for a
+    target that turned out to have no data, so re-running the queue does not re-ask KOA
+    about it.
 
 The ``targets`` tab
 -------------------
@@ -351,9 +364,11 @@ Open questions
   match should become columns in the ``targets`` tab rather than constants in
   `DownloadUtils.py <scripts/download_lib/DownloadUtils.py>`_. Per-target tolerances would
   be useful for targets with poor catalogue positions, but it widens the change.
-* Where the query-table cache should live. ``s3://pypeit/adap_2023/koa_queries/<target>/``
-  keeps it beside the raw data, but it is metadata rather than data and may belong under
-  the ``adap/`` prefix with the logs.
-* Whether a target that yields no datasets should be ``COMPLETE`` or a distinct status.
-  It is not a failure — the target may simply never have been observed with LRIS — but it
-  is worth being able to find those rows later.
+* **Settled:** a target that yields no datasets is marked ``NO DATA`` rather than
+  ``COMPLETE``. It is not a failure, but those rows are worth finding later — a target
+  whose catalogue position is off by more than the 5 arcsec cone search looks exactly the
+  same, and the two are only told apart by checking the position.
+* **Settled:** the query tables are cached at
+  ``s3://pypeit/adap_2023/koa_queries/<target>/``, beside the raw data rather than under
+  the ``adap/`` prefix with the logs, so that everything belonging to a campaign is under
+  one prefix.
