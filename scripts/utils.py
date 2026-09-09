@@ -43,19 +43,43 @@ def init_logging(logfile):
     logging.basicConfig(handlers=[stream_handler, file_handler], force=True,  level="DEBUG")
 
 
+# The work queue lock is held across Google Sheets calls, and retry_gspread_call can sleep
+# for around four minutes before giving up, so the lease has to comfortably outlast that.
+# It does have to expire, though: with redis-py's default of no timeout, a pod killed
+# between taking the lock and releasing it wedges every other pod permanently, and nothing
+# in any log says why. A bounded blocking_timeout matters for the same reason -- a waiter
+# that gives up raises LockError, which the callers log, instead of hanging forever.
+WORKQUEUE_LOCK_TIMEOUT = 600
+WORKQUEUE_LOCK_WAIT = 600
+
+
+def lock_named_queue(redis_server, queue_name):
+    """
+    Take the lock belonging to a named work queue.
+
+    Stages that write to a sheet owned by a *different* queue need that queue's lock
+    rather than their own -- the KOA download stage runs off the target queue but appends
+    rows to the dataset queue's tab, and only the dataset queue's lock guards it.
+    """
+    return redis_server.lock(queue_name + "_lock",
+                             timeout=WORKQUEUE_LOCK_TIMEOUT,
+                             blocking_timeout=WORKQUEUE_LOCK_WAIT)
+
+
 def lock_workqueue(redis_server, args):
     """
-    Open the work queue with a file lock to prevent race conditions between pods running in parallel.
-    This function can be used as a context manager, keeping the file locked within a "with" block.
+    Open the work queue with a lock to prevent race conditions between pods running in parallel.
+    This function can be used as a context manager, keeping the queue locked within a "with" block.
 
     Args:
-    work_queue_file(str or pathlib.Path):  The full path to the work queue file.
+    redis_server (redis.Redis): The redis server hosting the queue.
+    args: The parsed command line, which supplies the work queue name.
 
     Returns:
-    file-like object For the work queue file.
+    A redis lock, usable as a context manager.
 
     """
-    return redis_server.lock(args.work_queue + "_lock")
+    return lock_named_queue(redis_server, args.work_queue)
 
 
 def update_gsheet_status(args, dataset, status, pod):
@@ -207,18 +231,33 @@ def init_work_queue(args):
                                     'values': update_values}])
 
 
+def claim_next(args, my_pod, blocking=False):
+    """
+    Claim the next item from the queue, initializing the queue if the init sentinel
+    turns up.
+
+    The sentinel used to be recognised only on a pod's very first claim. Popped at any
+    other time it was handed to the task as though it were a real item, so a pod already
+    working the queue would try to process a dataset called "init", fail it, and leave
+    the queue unseeded. The loop below also covers the case of two sentinels next to each
+    other in the queue.
+    """
+    item = claim_dataset(args, my_pod, blocking=blocking)
+
+    while item == "init":
+        init_work_queue(args)
+        item = claim_dataset(args, my_pod)
+
+    return item
+
+
 def run_task_on_queue(args, task):
 
     try:
         my_pod = os.environ["POD_NAME"]
         logger.info(f"Started on pod {my_pod} and python {sys.implementation}")
 
-        dataset = claim_dataset(args, my_pod, blocking=True)
-
-        if dataset == "init":
-            dataset = None
-            init_work_queue(args)
-            dataset = claim_dataset(args, my_pod)
+        dataset = claim_next(args, my_pod, blocking=True)
 
     except Exception as e:
         logger.error(f"Failed initializing.", exc_info=True)
@@ -243,12 +282,97 @@ def run_task_on_queue(args, task):
 
         # Done with this dataset, move to the next
         try:
-            dataset = claim_dataset(args, my_pod)
+            dataset = claim_next(args, my_pod)
         except Exception as e:
             logger.error("Failed to claim dataset.", exc_info=True)
             dataset = None
         
     logger.info("No more datasets in queue, exiting")
+
+# How long a pod will wait for a KOA download slot before giving up. Long enough to sit
+# behind a genuinely slow target, short enough that a leaked token surfaces as a clear
+# failure in the log rather than a pod that hangs until the Job's deadline.
+KOA_SLOT_WAIT = 3600
+
+
+def seed_koa_slots(redis_server, key, max_concurrent):
+    """
+    Create the pool of KOA download slots, once.
+
+    The obvious test -- does the pool key exist yet? -- is wrong. Redis deletes a list key
+    when its last element is popped, so a pool with every slot checked out is
+    indistinguishable from one that was never created, and a pod arriving at that moment
+    would seed a second set of tokens and silently double the limit. A separate marker
+    key records that the pool has been created and survives the pool being emptied.
+
+    SET NX is atomic, so of two pods starting together exactly one seeds the pool and the
+    other goes straight to waiting for a token from it.
+    """
+    marker = key + "_seeded"
+
+    if redis_server.set(marker, max_concurrent, nx=True):
+        tokens = [f"slot{i + 1}" for i in range(max_concurrent)]
+        redis_server.rpush(key, *tokens)
+        logger.info(f"Seeded {key} with {max_concurrent} KOA download slots")
+
+
+@contextmanager
+def koa_download_slot(args):
+    """
+    Hold one of a limited number of KOA download slots for the duration of a "with" block.
+
+    KOA should not be asked to serve many simultaneous requests. Koa.download is a serial
+    loop over the frames in a table, so one pod holds exactly one connection at a time and
+    the number of running pods *is* the concurrency -- which makes the parallelism field
+    of the Job the primary throttle. This semaphore is the backstop for what parallelism
+    cannot see: a second download Job, or a hand-run retry, alongside the first.
+
+    Set --max_koa_downloads to 0 to disable it and rely on parallelism alone.
+
+    A pod killed while holding a token leaks it, permanently lowering the limit. That is
+    why the wait is bounded: the pod fails with a message naming the fix rather than
+    hanging. Re-seeding after a leak means clearing the pool *and* its marker::
+
+        kubectl exec $POD -- redis-cli del adap_2023_targets_koa_slots \
+                                          adap_2023_targets_koa_slots_seeded
+    """
+    max_concurrent = getattr(args, "max_koa_downloads", 0)
+
+    if max_concurrent is None or max_concurrent <= 0:
+        yield
+        return
+
+    key = args.work_queue + "_koa_slots"
+
+    redis_server = redis.Redis.from_url(args.queue_url, decode_responses=True)
+    redis_server.ping()
+
+    seed_koa_slots(redis_server, key, max_concurrent)
+
+    logger.info(f"Waiting for a KOA download slot from {key}")
+    token = redis_server.blpop(key, timeout=KOA_SLOT_WAIT)
+
+    if token is None:
+        raise RuntimeError(
+            f"No KOA download slot available from {key} after {KOA_SLOT_WAIT}s. "
+            f"If no other download is running, a token was leaked by a pod that died "
+            f"holding one; clear the pool with "
+            f"'redis-cli del {key} {key}_seeded' and the next pod will re-seed it.")
+
+    # blpop returns (key, value)
+    slot = token[1]
+    logger.info(f"Holding KOA download slot {slot}")
+
+    try:
+        yield slot
+    finally:
+        try:
+            redis_server.rpush(key, slot)
+            logger.info(f"Released KOA download slot {slot}")
+        except Exception:
+            logger.error(f"Failed to release KOA download slot {slot}; it is leaked "
+                         f"until {key} is deleted.", exc_info=True)
+
 
 def get_reduce_params(dataset_prefix):
     config_path = Path(__file__).parent.parent / "config"

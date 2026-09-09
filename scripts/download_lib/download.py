@@ -3,27 +3,9 @@ import sys
 
 import numpy
 
-import Target
 import Query
 import DownloadUtils
-
-def parse_target_file(filename):
-    """
-    Parse the target file
-    """
-
-    targets = []
-
-    with open(filename, 'r', encoding='utf-8') as f:
-        for line in f:
-            if line.startswith('#') or line.strip() == '':
-                continue
-            parts = line.split()
-            name = parts[0]
-            ra = parts[1] if len(parts) > 1 else None
-            dec = parts[2] if len(parts) > 2 else None
-            targets.append(Target.Target(name, ra, dec))
-    return targets
+import TargetList
 
 
 def parse_args():
@@ -77,7 +59,11 @@ def main():
     '''
     args = parse_args()
 
-    targets = parse_target_file(args.filename)
+    try:
+        targets = TargetList.parse_target_file(args.filename)
+    except (OSError, ValueError) as e:
+        print(f'Could not read the target list: {e}')
+        return 1
 
     results = []
     failed_targets = []
