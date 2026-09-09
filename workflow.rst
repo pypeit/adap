@@ -262,45 +262,6 @@ spectrograph via ``get_lris_spec_name`` in
 ``keck_lris_blue_orig``, or ``keck_lris_blue``). Only public KOA data is reachable;
 nothing here logs in for proprietary data.
 
-Reduction configuration
------------------------
-
-`trimming_setup.py <scripts/trimming_setup.py>`_ generates the ``.pypeit`` files for a
-dataset. It starts from a per-spectrograph default, one for each of the five names
-``get_lris_spec_name`` can return::
-
-    config/keck_lris_red_orig_default_pypeit_config
-    config/keck_lris_red_default_pypeit_config
-    config/keck_lris_red_mark4_default_pypeit_config
-    config/keck_lris_blue_orig_default_pypeit_config
-    config/keck_lris_blue_default_pypeit_config
-
-and writes the setup into a ``reduce`` subdirectory of the dataset.
-
-Per-dataset overrides are found by convention rather than configuration. The script globs
-``config/`` for files whose name is the dataset with ``/`` replaced by ``_``, followed by
-a suffix, and the **last underscore-separated token of the filename becomes the output
-subdirectory**. That is why the default output directory is called ``reduce``: a tailored
-file named ``..._reduce.ini`` produces exactly the same subdirectory. A second file named
-``..._alt.ini`` would produce a parallel ``alt`` reduction of the same data.
-
-Two forms are accepted:
-
-    ``.ini`` — parameters only, in PypeIt's parameter-block syntax. The file metadata
-    section of the ``.pypeit`` file is still generated from the raw frames. A tailored
-    file for one dataset is named, for example,
-    ``J1030+0524_20120415_LRIS_reduce.ini``.
-
-    any other suffix — a complete PypeIt input file. Only the path to the raw data is
-    rewritten; everything else is used as given.
-
-Only the per-spectrograph defaults are checked in. Per-dataset override files live in
-``s3://pypeit/adap/config_2023/`` and are not in this repository, so anything added under
-`config/ <config>`_ has to be pushed there before it takes effect — and the overrides
-already in use are only visible by listing that prefix::
-
-    aws --endpoint $ENDPOINT_URL s3 ls s3://pypeit/adap/config_2023/
-
 Populate the queue
 ------------------
 
@@ -369,6 +330,57 @@ For each dataset a pod downloads the raw frames, runs ``trimming_setup.py``, run
 ``run_pypeit`` on every generated ``.pypeit`` file while sampling peak memory, tars the QA
 directory, scores the result, uploads it, updates the scorecard, and deletes the local
 copy before claiming the next dataset.
+
+Reduction configuration
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Nothing here is run by hand. The pod invokes
+`trimming_setup.py <scripts/trimming_setup.py>`_ once per dataset; it generates the
+``.pypeit`` files and creates the ``reduce`` directory they are written into. What you
+supply is the configuration it reads, and that has to be in S3 before the job starts.
+
+This is where the division of labour sits.
+`download_lib <scripts/download_lib>`_ decides, from KOA's archive metadata, which frames
+to bring down at all. ``trimming_setup.py`` then decides, from the headers of the frames
+that actually arrived, which of them the reduction uses: PypeIt classifies the frame types
+itself, at most five flats and two arcs are kept, and the rest are commented out in the
+``.pypeit`` file rather than deleted, so they can be re-enabled by hand. It has to run in
+the pod because the ``.pypeit`` file records the local path to the downloaded raw data.
+
+It starts from a per-spectrograph default, one for each of the five names
+``get_lris_spec_name`` can return::
+
+    config/keck_lris_red_orig_default_pypeit_config
+    config/keck_lris_red_default_pypeit_config
+    config/keck_lris_red_mark4_default_pypeit_config
+    config/keck_lris_blue_orig_default_pypeit_config
+    config/keck_lris_blue_default_pypeit_config
+
+and writes the setup into a ``reduce`` subdirectory of the dataset.
+
+Per-dataset overrides are found by convention rather than configuration. The script globs
+``config/`` for files whose name is the dataset with ``/`` replaced by ``_``, followed by
+a suffix, and the **last underscore-separated token of the filename becomes the output
+subdirectory**. That is why the default output directory is called ``reduce``: a tailored
+file named ``..._reduce.ini`` produces exactly the same subdirectory. A second file named
+``..._alt.ini`` would produce a parallel ``alt`` reduction of the same data.
+
+Two forms are accepted:
+
+    ``.ini`` — parameters only, in PypeIt's parameter-block syntax. The file metadata
+    section of the ``.pypeit`` file is still generated from the raw frames. A tailored
+    file for one dataset is named, for example,
+    ``J1030+0524_20120415_LRIS_reduce.ini``.
+
+    any other suffix — a complete PypeIt input file. Only the path to the raw data is
+    rewritten; everything else is used as given.
+
+Only the per-spectrograph defaults are checked in. Per-dataset override files live in
+``s3://pypeit/adap/config_2023/`` and are not in this repository, so anything added under
+`config/ <config>`_ has to be pushed there before it takes effect — and the overrides
+already in use are only visible by listing that prefix::
+
+    aws --endpoint $ENDPOINT_URL s3 ls s3://pypeit/adap/config_2023/
 
 Reduce a single dataset
 -----------------------
