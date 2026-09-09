@@ -46,40 +46,6 @@ def find_none_rows(metadata):
 
 
 
-def trim_criteria(metadata, sort_fields, max, initial_files, all_criteria):
-
-    
-    orig_num = np.sum(initial_files) 
-    trimmed_files = np.zeros_like(initial_files, dtype=bool)
-    while len(all_criteria) > 0:
-        # The remaining criteria from the initial_files, by using AND
-        trimmed_files = np.logical_and.reduce([initial_files] + all_criteria)
-        if orig_num - np.sum(trimmed_files) >= max:
-            # There are still enough acceptable files, so we're done trimming
-            # by criteria
-            break
-        else:
-            # Too many files were trimmed, remove a criteria and try again
-            all_criteria.pop()
-
-    remaining_num = orig_num - np.sum(trimmed_files)
-
-    if remaining_num < max:
-        # We can't do any trimming, 
-        trimmed_files = np.zeros_like(initial_files, dtype=bool)
-        remaining_num = orig_num
-
-    if remaining_num > max:
-        # If there are still too many, sort the remaining files by the
-        # requested sort fields and remove the extra from the start of those
-        # files
-        remaining_files = np.logical_xor(initial_files, trimmed_files)
-        remaining_indices = np.where(remaining_files)[0]
-        sort_indices = metadata.table[remaining_files].argsort(sort_fields)
-        additional_indices_to_trim = remaining_indices[sort_indices][0:remaining_num-max]
-        trimmed_files = trimmed_files | np.isin(np.arange(len(metadata)),additional_indices_to_trim)
-
-    return trimmed_files        
 
 
 
@@ -88,17 +54,6 @@ def trim_criteria(metadata, sort_fields, max, initial_files, all_criteria):
     #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
     #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 
 
-def trim_keck_lris(metadata, good_frames):
-    # Find the flats and arcs that have not already been excluded for some reason.
-    all_flats = metadata.find_frames('pixelflat') & good_frames
-    all_arcs = metadata.find_frames('arc') & good_frames
-
-    # Trim things not close enough to 45
-    dec_criteria = np.abs(metadata['dec']-45.) >= 1
-    flats_to_trim = trim_criteria(metadata, ['mjd'], 5, all_flats, [dec_criteria])
-    arcs_to_trim = trim_criteria(metadata, ['mjd'], 2, all_arcs, [dec_criteria])
-
-    return flats_to_trim | arcs_to_trim 
     #arc_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 2.) 
     #flat_exp_criteria = (metadata['exptime'] >= 1.) & (metadata['exptime'] <= 5.) 
 
@@ -107,11 +62,14 @@ def no_trimming(metadata, good_frames):
     # A trimming function that trims nothing
     return np.zeros_like(metadata['filename'],dtype=bool)
 
-trimming_functions = {"keck_lris_red_orig": trim_keck_lris,
-                      "keck_lris_red": trim_keck_lris,
-                      "keck_lris_red_mark4": trim_keck_lris,
-                      "keck_lris_blue": trim_keck_lris,
-                      "keck_lris_blue_orig": trim_keck_lris,
+# Calibration frames are no longer trimmed: every arc and flat that survives
+# exclude_files.txt and exclude_pypeit_types is left in the .pypeit file for PypeIt to
+# combine.
+trimming_functions = {"keck_lris_red_orig": no_trimming,
+                      "keck_lris_red": no_trimming,
+                      "keck_lris_red_mark4": no_trimming,
+                      "keck_lris_blue": no_trimming,
+                      "keck_lris_blue_orig": no_trimming,
                       }
 
 def comment_out_filenames(metadata, files_idx):    

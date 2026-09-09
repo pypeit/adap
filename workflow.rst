@@ -341,11 +341,15 @@ supply is the configuration it reads, and that has to be in S3 before the job st
 
 This is where the division of labour sits.
 `download_lib <scripts/download_lib>`_ decides, from KOA's archive metadata, which frames
-to bring down at all. ``trimming_setup.py`` then decides, from the headers of the frames
-that actually arrived, which of them the reduction uses: PypeIt classifies the frame types
-itself, at most five flats and two arcs are kept, and the rest are commented out in the
-``.pypeit`` file rather than deleted, so they can be re-enabled by hand. It has to run in
-the pod because the ``.pypeit`` file records the local path to the downloaded raw data.
+to bring down at all. ``trimming_setup.py`` then works from the headers of the frames that
+actually arrived: PypeIt classifies the frame types itself, and every arc and flat it
+finds is left in place for PypeIt to combine — calibration frames are no longer trimmed
+down to a fixed count. Two exclusions still apply, and both comment the frame out in the
+``.pypeit`` file rather than deleting it, so it can be re-enabled by hand: anything listed
+in ``config/exclude_files.txt``, and any frame PypeIt types as ``bias`` or ``dark``.
+
+``trimming_setup.py`` has to run in the pod because the ``.pypeit`` file records the local
+path to the downloaded raw data.
 
 It starts from a per-spectrograph default, one for each of the five names
 ``get_lris_spec_name`` can return::
