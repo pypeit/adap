@@ -1,25 +1,23 @@
-# Search KOA for each target in the target list and download the matching
-# science, arc, and flat frames, organized by download_lib into
-# <target>/<YYYYMMDD>/LRIS/raw_r and <target>/<YYYYMMDD>/LRISBLUE/raw_b.
+# Queue-driven KOA download. Pops a target off the target queue, looks its coordinates up
+# in the targets tab of the Scorecard sheet, downloads everything KOA has for it, uploads
+# the result to s3://pypeit/adap_2023/raw_data_reorg/, and appends the datasets it found
+# to the WorkQueue tab so the reduce stage can pick them up. See koa_download_design.rst.
 #
-# The upload destination is the root reduce_from_queue.py reads from, see
-# get_cloud_path in scripts/rclone.py.
+# Seed the target queue before applying this, or the pods time out waiting:
+#   POD=$(kubectl get pods -l k8s-app=adap-workqueue -o name --field-selector=status.phase=Running)
+#   kubectl exec $POD -- redis-cli lpush adap_2023_targets_q init
 #
-# The target list is a text file with one "<name> <ra> <dec>" per line, ra/dec
-# in degrees. Blank lines and lines starting with "#" are ignored.
-#
-# download.py exits non-zero if any dataset came down incomplete. pipefail plus the
-# saved status carries that through the "| tee" so the Job actually fails; without it
-# the pipeline reports tee's status and every run looks like a success. Whatever did
-# arrive is still uploaded first -- partial data in S3 is useful, a silent success is
-# not. Note that a failure now retries per backoffLimit, and because /tmp is emptyDir
-# a retry re-downloads the target from scratch.
+# parallelism is the real throttle on KOA. Koa.download is a serial loop over the frames
+# in a table, so one pod holds exactly one connection and concurrency is simply the pod
+# count. Start at 1, watch one target through, and only then consider 2.
+# --max_koa_downloads is a backstop for what parallelism cannot see -- a second download
+# job, or a hand-run retry, alongside this one.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: adap-koa-download
+  name: adap-koa-download-from-queue
 spec:
-  backoffLimit: 2
+  backoffLimit: 0
   parallelism: 1
   template:
     spec:
@@ -30,21 +28,17 @@ spec:
       - name: download-worker
         args:
         - source /home/pypeitusr/pypeit_env/bin/activate;
-          cd /home/pypeitusr/PypeIt; git fetch; git checkout lris_adap; git pull;
+          cd /home/pypeitusr/PypeIt; git fetch; git checkout lris_adap; git pull --ff-only;
           pip install --no-build-isolation -e '.[dev]';
           cd /tmp; mkdir adap_root; cd adap_root;
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap_2023/koa_to_download/targets.txt /tmp/targets.txt;
-          mkdir -p /tmp/RAW_DATA;
-          set -o pipefail;
-          python scripts/download_lib/download.py /tmp/targets.txt --outdir /tmp/RAW_DATA 2>&1 | tee /tmp/koa_download.log;
+          python scripts/koa_download_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root
+            --max_koa_downloads 2
+            Scorecard/targets redis://adap-workqueue:6379 adap_2023_targets s3;
           download_status=$?;
-          set +o pipefail;
-          du -sh /tmp/RAW_DATA >> /tmp/koa_download.log;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/RAW_DATA/ s3://pypeit/adap_2023/raw_data_reorg/ --recursive;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/koa_download.log s3://pypeit/adap/results/${POD_NAME}.log;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/adap_root/koa_download_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log;
           exit $download_status
         command:
         - /bin/bash
@@ -61,6 +55,9 @@ spec:
             ephemeral-storage: 64Gi
             memory: 8Gi
         volumeMounts:
+        - mountPath: /home/pypeitusr/.config/gspread/service_account.json
+          name: gcloud-service-account
+          subPath: credentials
         - mountPath: /tmp
           name: ephemeral
         - mountPath: /home/pypeitusr/.aws/credentials
@@ -83,6 +80,9 @@ spec:
         nautilus.io/disktype: nvme
       restartPolicy: Never
       volumes:
+      - name: gcloud-service-account
+        secret:
+          secretName: adap23-scorecard-gcloud
       - name: prp-s3-credentials
         secret:
           secretName: prp-s3-credentials

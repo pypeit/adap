@@ -2,10 +2,18 @@ Google Sheet Setup
 ==================
 
 One Google spreadsheet, named ``Scorecard``, drives the whole pipeline. It is both the
-input — the list of datasets to process — and the output — per-dataset status and the
-scorecard metrics for every reduction. Each stage of the workflow gets its own tab of that
-one spreadsheet. This document describes the tabs it must contain, the columns in each,
-and how the jobs address it.
+input — the targets to fetch from KOA and the datasets to process — and the output —
+per-dataset status and the scorecard metrics for every reduction. Each stage of the
+workflow gets its own tab of that one spreadsheet. This document describes the tabs it
+must contain, the columns in each, and how the jobs address it.
+
+There are two input tabs because there are two queues. ``targets`` holds the targets the
+KOA download stage works through, one name and position per row. ``WorkQueue`` holds the
+datasets the reduce stage works through. The download stage is what connects them: it
+**writes** the datasets it discovers into column A of ``WorkQueue``, so that list is no
+longer typed in by hand. Why it has to work that way — a dataset's date and arm are
+discovered by the KOA query, so datasets cannot be enqueued before the query that finds
+them has run — is in `koa_download_design.rst <koa_download_design.rst>`_.
 
 The scorecard updater is given only the *spreadsheet* part of the name the reduce job is
 passed (it calls ``args.gsheet.split("/")[0]``), so the queue tab and the scorecard tabs
@@ -46,12 +54,13 @@ destroyed.
 Required tabs
 -------------
 
-Five tabs in total, of which four are needed for a reduction campaign and the fifth only
+Six tabs in total, of which five are needed for a reduction campaign and the sixth only
 if the 2D coadd job is run:
 
 =================  ==========================  ==============================================
 Tab                Name comes from             Needed
 =================  ==========================  ==============================================
+``targets``        the job's command line      always
 ``WorkQueue``      the job's command line      always
 ``latest``         hardcoded                   always
 ``Failed``         hardcoded                   always
@@ -64,9 +73,76 @@ Only three of those names are actually fixed in the code. ``latest``, ``Failed``
 
     sheets = ['latest', 'Failed','LRIS', ]
 
-``WorkQueue`` and ``coadd status`` are only a convention: they are the worksheet names the
-yamls happen to pass, so renaming either one means editing every yaml that names it, not
-the scripts.
+``targets``, ``WorkQueue`` and ``coadd status`` are only a convention: they are the
+worksheet names the yamls happen to pass, so renaming one means editing every yaml that
+names it, not the scripts. ``WorkQueue`` is the one name worth leaving alone, because
+`koa_download_from_queue.py <scripts/koa_download_from_queue.py>`_ defaults to writing its
+datasets to the ``WorkQueue`` tab of whatever spreadsheet it was given; renaming it means
+passing ``--dataset_gsheet`` as well.
+
+Input: the ``targets`` tab
+--------------------------
+
+The list of objects to fetch from KOA, and the queue the download stage works through.
+Five columns, and the target list starts on **row 4**:
+
+=======  ==============  =========================================================
+Column   Contents        Notes
+=======  ==============  =========================================================
+A        target          The target names, one per row, starting at row 4.
+B        status          Written by the job. Leave blank to queue a target.
+C        pod             Written by the job: the pod that claimed the target.
+D        ra              Right ascension in **degrees**. Read by the job.
+E        dec             Declination in **degrees**. Read by the job.
+=======  ==============  =========================================================
+
+Rows 1 to 3 are yours, exactly as on ``WorkQueue`` — the same ``init_work_queue`` loads
+both queues, so the row 4 start and the blank-status rule are identical.
+
+The target name is what appears in the dataset names later, so it becomes the first
+component of every path in ``raw_data_reorg`` and every row this target contributes to
+``WorkQueue``. Pick something filesystem-safe and stable; renaming it later orphans
+everything already downloaded under the old name.
+
+Coordinates must be **decimal degrees**, not sexagesimal.
+`koa_download_from_queue.py <scripts/koa_download_from_queue.py>`_ rejects a row whose ra
+or dec is blank or non-numeric and marks the target ``FAILED`` rather than sending it to
+KOA, because a malformed coordinate otherwise becomes a cone search for ``circle None
+None`` that fails inside KOA and comes back looking like a target with no data.
+
+Position accuracy matters more here than anywhere else in the pipeline. The KOA cone
+search is **5 arcsec** around this position, so a catalogue position off by more than that
+finds nothing at all, and the target is reported ``NO DATA`` rather than as an error.
+Science frames are then kept if they point within **20 arcsec** of it. Neither tolerance
+is configurable from the sheet; both are constants in
+`download_lib/DownloadUtils.py <scripts/download_lib/DownloadUtils.py>`_ and
+`download_lib/Query.py <scripts/download_lib/Query.py>`_.
+
+The status column moves through the same values as ``WorkQueue``, with one addition:
+
+``<blank>``
+    Eligible. Only blank rows are loaded when the target queue is initialized.
+
+``IN QUEUE``, ``In Progress``
+    As on ``WorkQueue``.
+
+``COMPLETE``
+    Every dataset this target produced downloaded and verified, and has been added to
+    ``WorkQueue``.
+
+``NO DATA``
+    KOA has no LRIS data at this position, or none of the nights it does have yielded a
+    usable science, arc and flat set. **This is not a failure** — plenty of targets were
+    simply never observed with LRIS — but it is kept distinct from ``COMPLETE`` so that
+    these rows can be found and their positions checked.
+
+``FAILED``
+    The KOA query errored, the coordinates were unusable, the upload failed, or at least
+    one dataset came down incomplete. Datasets that *did* verify are still written to
+    ``WorkQueue``, so a retry resumes rather than restarting: re-running the target
+    re-downloads only the missing frames and adds no duplicate rows.
+
+**To re-run a target, blank its status** and push ``init`` to the target queue again.
 
 Input: the ``WorkQueue`` tab
 ----------------------------
@@ -77,9 +153,18 @@ Three columns, and the dataset list starts on **row 4**:
 Column   Contents        Notes
 =======  ==============  =========================================================
 A        dataset         The datasets to process, one per row, starting at row 4.
+                         **Written by the KOA download stage**; see below.
 B        status          Written by the jobs. Leave blank to queue a dataset.
 C        pod             Written by the jobs: the pod that claimed the dataset.
 =======  ==============  =========================================================
+
+Column A used to be filled in by hand, from whatever had appeared under
+``raw_data_reorg`` after a download. It is now written by
+`koa_download_from_queue.py <scripts/koa_download_from_queue.py>`_, which appends a row
+for each dataset it has downloaded **and verified**, leaving the status blank so the next
+``init`` picks it up. Names already in column A are skipped, so re-running a target adds
+no duplicates. Adding a row by hand still works and is the way to reduce something that
+was not fetched by the download stage.
 
 Rows 1 to 3 are yours — a title row and whatever notes are useful. ``init_work_queue`` in
 `scripts/utils.py <scripts/utils.py>`_ starts reading at row 4, so anything above that is
@@ -200,7 +285,8 @@ Sharing and permissions
 The jobs authenticate as a Google service account, so:
 
 * Share the spreadsheet with the service account's ``client_email`` as an **Editor**. It
-  writes the status, pod and scorecard columns, so read-only access is not enough.
+  writes the status, pod and scorecard columns, and the KOA download stage appends dataset
+  names to column A of ``WorkQueue``, so read-only access is not enough.
 * If the spreadsheet lives on a shared drive, make sure the service account is a member
   of that drive, or it will not be able to resolve the name ``Scorecard``.
 * The Sheets API must be enabled in the service account's project.
@@ -222,14 +308,19 @@ Creating a sheet from scratch
 -----------------------------
 
 1.  Create the spreadsheet, on the shared drive if the results are shared.
-2.  Create five tabs named ``WorkQueue``, ``latest``, ``Failed``, ``LRIS``, and — if 2D
-    coadds will be run — ``coadd status``.
-3.  In ``WorkQueue``, put a header in row 1 (``dataset``, ``status``, ``pod``), leave rows
-    2 and 3 for notes, and list the datasets from row 4 down. Leave columns B and C empty.
-4.  In ``latest``, ``Failed`` and ``LRIS``, paste the 31 column header above into row 1
+2.  Create six tabs named ``targets``, ``WorkQueue``, ``latest``, ``Failed``, ``LRIS``,
+    and — if 2D coadds will be run — ``coadd status``.
+3.  In ``targets``, put a header in row 1 (``target``, ``status``, ``pod``, ``ra``,
+    ``dec``), leave rows 2 and 3 for notes, and list the targets from row 4 down: name in
+    A, position in degrees in D and E, columns B and C empty.
+4.  In ``WorkQueue``, put a header in row 1 (``dataset``, ``status``, ``pod``) and leave
+    rows 2 and 3 for notes. **Leave the rest empty** — the KOA download stage fills column
+    A in as it discovers datasets. Add rows by hand only for data it did not fetch.
+5.  In ``latest``, ``Failed`` and ``LRIS``, paste the 31 column header above into row 1
     and leave the rest empty.
-5.  Share the spreadsheet with the service account's ``client_email`` as an Editor.
-6.  Name the spreadsheet ``Scorecard`` and make sure every job yaml passes
-    ``Scorecard/WorkQueue`` — or ``Scorecard/coadd status`` for the 2D coadd job.
-7.  Initialize the queue as described under "Populate the queue" in
-    `workflow.rst <workflow.rst>`_.
+6.  Share the spreadsheet with the service account's ``client_email`` as an Editor.
+7.  Name the spreadsheet ``Scorecard`` and make sure every job yaml passes
+    ``Scorecard/targets`` for the download job, ``Scorecard/WorkQueue`` for the rest — or
+    ``Scorecard/coadd status`` for the 2D coadd job.
+8.  Seed the target queue, run the download job, then seed the dataset queue, as described
+    under "Populate the queue" in `workflow.rst <workflow.rst>`_.

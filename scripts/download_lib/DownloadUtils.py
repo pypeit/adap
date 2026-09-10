@@ -192,13 +192,119 @@ def build_final_table(night, query):
     return final_tables
 
 
+def verify_download(download_dir, table_fn):
+    """
+    Check that every frame named in a final table is actually present on disk.
+
+    This is the only reliable check that a download worked. Koa.download catches
+    per-file errors internally, prints them and continues to the next row, so it
+    returns normally even when nothing at all was retrieved -- and Query.download
+    can only report the rarer case where it raised outright.
+
+    Call this *after* file_cleanup, which is what moves the frames out of the lev0
+    subdirectory KOA delivers them into and up to download_dir itself.
+
+    Returns (n_expected, missing, readable). A frame that stayed behind in lev0 counts
+    as missing, which is correct: trimming_setup.py globs the raw directory without
+    recursing, so it would not see that file either.
+    """
+    try:
+        table = astropy.table.Table.read(table_fn, format='ascii.ipac')
+    except Exception as e:
+        print(f'Warning: could not read {table_fn} to verify the download: {e}')
+        return 0, [], False
+
+    koaids = [str(k) for k in list(table['koaid'])]
+    missing = [k for k in koaids
+               if not os.path.exists(os.path.join(download_dir, k))]
+
+    return len(koaids), missing, True
+
+
+def check_night(target, fn_date, attempts):
+    """
+    Collapse one night's per-table download attempts into one result per dataset.
+
+    attempts is a list of (instr, download_dir, table_fn, ran) tuples, one per final
+    table. Each dataset covers three of them -- science, arcs and flats -- and is
+    only usable if all three arrived, so they are verified together.
+
+    Returns a list of (dataset, status, detail) tuples, where dataset is the
+    "<target>/<date>/<instrument>" name and status is COMPLETE, INCOMPLETE or FAILED.
+    """
+    results = []
+
+    for instr in ("LRIS", "LRISBLUE"):
+        rows = [a for a in attempts if a[0] == instr]
+        if len(rows) == 0:
+            continue
+
+        dataset = f'{target.name}/{fn_date}/{instr}'
+        expected = 0
+        missing = []
+        raised = False
+        unreadable = []
+
+        for _, download_dir, table_fn, ran in rows:
+            if ran is False:
+                raised = True
+            n_expected, n_missing, readable = verify_download(download_dir, table_fn)
+            if readable is False:
+                # Without the table there is no list of frames to check against, so the
+                # dataset cannot be called complete whatever is on disk.
+                unreadable.append(os.path.basename(table_fn))
+                continue
+            expected += n_expected
+            missing.extend(n_missing)
+
+        if len(unreadable) > 0:
+            detail = 'could not read ' + ', '.join(unreadable)
+            print(f'FAILED {dataset}: {detail}')
+            results.append((dataset, 'FAILED', detail))
+            continue
+
+        # What is on disk is the authority. A download call that raised while every
+        # frame is nonetheless present is not a problem -- that is what a retry over
+        # already fetched data looks like -- so it is noted but does not fail anything.
+        if len(missing) == 0:
+            detail = f'{expected} frames'
+            if raised:
+                detail += ' (a download call raised, but nothing is missing)'
+            print(f'Verified {dataset}: {detail}')
+            results.append((dataset, 'COMPLETE', detail))
+            continue
+
+        detail = f'{len(missing)} of {expected} frames missing'
+        if raised:
+            detail += ', and a download call failed'
+        # Nothing arriving, or the call raising, points at KOA or the transport and is
+        # worth retrying. Most frames arriving and a few not is more likely to be a
+        # problem with those specific frames, and wants looking at rather than a retry.
+        status = 'FAILED' if (raised or len(missing) == expected) else 'INCOMPLETE'
+        print(f'{status} {dataset}: {detail}')
+        for koaid in missing:
+            print(f'    missing: {koaid}')
+        results.append((dataset, status, detail))
+
+    return results
+
+
 def fill_dates(query, target, test=False, nodownload=False):
     """
-    Fill the target object with the dates it was observed
+    Fill the target object with the dates it was observed and download each night.
+
+    Returns a list of (dataset, status, detail) tuples, one per dataset the night
+    produced, where status is COMPLETE, INCOMPLETE or FAILED. Nights that KOA simply
+    has no data for produce no entry -- that is not a failure. Returns an empty list
+    in test or nodownload mode, where there is nothing on disk to verify.
     """
+    results = []
+
     target.dates = [ str(d) for d in list(numpy.unique(query.obj_results['date_obs']))]
 
     for cdate in target.dates:
+        fn_date = re.sub("-","",cdate)
+
         # Create a night object
         night = Night.Night(cdate)
 
@@ -212,9 +318,15 @@ def fill_dates(query, target, test=False, nodownload=False):
         query.query_date(night)
 
         # query_date leaves date_results as None if the KOA query failed, so skip this
-        # night rather than letting build_final_table raise on it.
+        # night rather than letting build_final_table raise on it. date_error tells the
+        # two apart: a night KOA errored on has to be retried, a night with genuinely no
+        # frames does not.
         if query.date_results is None or len(query.date_results) == 0:
-            print(f'No KOA results for {target.name} for {night.date}')
+            if query.date_error is not None:
+                print(f'FAILED {target.name}/{fn_date}: {query.date_error}')
+                results.append((f'{target.name}/{fn_date}', 'FAILED', query.date_error))
+            else:
+                print(f'No KOA results for {target.name} for {night.date}')
             continue
 
         final_table_names = build_final_table(night, query)
@@ -231,7 +343,9 @@ def fill_dates(query, target, test=False, nodownload=False):
         else:
             print(f'Downloading files for {target.name} for {night.date}')
 
-            fn_date = re.sub("-","",cdate)
+            # Remember which table went to which directory, so the frames can be checked
+            # once file_cleanup has moved them up out of lev0.
+            attempts = []
 
             for final_table_name in final_table_names:
                 if "LRISBLUE" in final_table_name:
@@ -239,6 +353,14 @@ def fill_dates(query, target, test=False, nodownload=False):
                 else:
                     instr, raw = 'LRIS', 'raw_r'
                 query.download_dir = os.path.join(query.outdir,fn_date,instr,raw)
+                ran = True
                 if nodownload is False:
-                    query.download(final_table_name)
+                    ran = query.download(final_table_name)
+                attempts.append((instr, query.download_dir, final_table_name, ran))
+
             file_cleanup(query, fn_date)
+
+            if nodownload is False:
+                results.extend(check_night(target, fn_date, attempts))
+
+    return results
