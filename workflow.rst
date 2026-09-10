@@ -675,10 +675,8 @@ Other
   2D coadds will find this campaign's data.
 * ``get_reduce_params`` in `scripts/utils.py <scripts/utils.py>`_ falls back to
   ``config/default_pypeit_config`` when a dataset prefix has no custom config file, and
-  that file no longer exists — it was superseded by the three per-spectrograph defaults,
-  ``keck_lris_red_default_pypeit_config``,
-  ``keck_lris_red_mark4_default_pypeit_config`` and
-  ``keck_lris_blue_default_pypeit_config``. The path is read without checking for it, so
+  that file no longer exists — it was superseded by the five per-spectrograph defaults
+  listed under `Reduction configuration`_. The path is read without checking for it, so
   the 2D coadd stage fails on any prefix that does not match a custom file.
 
   It cannot simply be repointed at one of the three. Unlike
