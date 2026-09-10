@@ -266,20 +266,61 @@ Populate the queue
 ------------------
 
 There is no ``load_nautilus_redis_queue.sh`` on this branch. Push directly with
-``redis-cli`` inside the pod::
+``redis-cli`` inside the redis pod::
 
-    POD=$(kubectl get pods -l k8s-app=adap-workqueue -o name)
+    POD=$(kubectl get pods -l k8s-app=adap-workqueue -o name | head -1)
     kubectl exec $POD -- redis-cli lpush adap_2023_q init
 
+The ``head -1`` matters: if an old redis pod is still terminating alongside the new one,
+``-o name`` returns two names and ``kubectl exec`` fails.
+
 The ``init`` sentinel tells the first pod that claims it to initialize the queue from the
-spreadsheet, marking each queued row ``IN QUEUE``. Alternatively, push dataset names
-directly to run a specific set without touching the sheet::
+spreadsheet, pushing every dataset whose status is blank and marking those rows
+``IN QUEUE``. Alternatively, push dataset names directly to run a specific set without
+touching the sheet::
 
     kubectl exec $POD -- redis-cli lpush adap_2023_q J1030+0524/20120415/LRIS J1030+0524/20120415/LRISBLUE
+
+**Push** ``init`` **before any dataset names, or not at all.** The queue is filled with
+``lpush`` and drained with ``rpop``, so whatever goes in first comes out first::
+
+    lpush init; lpush A B C   ->  stored as [C, B, A, init], claimed as init, A, B, C
+
+``run_task_on_queue`` recognises the sentinel only on a pod's *first* claim. An ``init``
+reaching a pod any later is treated as an ordinary dataset name: the pod runs the
+reduction on a dataset called ``init``, then tries to write a status for it, and because
+``init`` is not in column A the sheet update logs
+``Did not find init to update status!``.
+
+**The sentinel is consumed even when initialization fails.** If reading the spreadsheet
+raises, the pod logs ``Failed initializing`` and exits — but ``init`` has already been
+popped, so the queue is empty and nothing was queued. Push it again. That is safe at any
+time: a second initialization finds no blank-status rows, because the first one marked
+them ``IN QUEUE``, and so queues nothing.
+
+**Populate the queue before starting the job that drains it.** A pod claims its first
+dataset with a blocking ``brpop`` that gives up after ``--queue_timeout`` seconds, 120 by
+default; on timeout it logs ``No more datasets in queue, exiting`` and exits zero, having
+done nothing.
+
+That timeout also puts a clock on initialization whenever ``parallelism`` is greater than
+one. The pods that did not claim ``init`` spend those same 120 seconds waiting while the
+first pod reads the spreadsheet, and ``init_work_queue`` retries rate-limited Google API
+calls with 30, 60, 60 and 90 second backoffs. A slow sheet read can outlast the timeout
+and leave every other pod exiting empty-handed. Raise ``--queue_timeout`` in the yaml if
+that happens.
 
 To inspect what is waiting::
 
     kubectl exec $POD -- redis-cli lrange adap_2023_q 0 -1
+
+That prints head to tail, and datasets are claimed from the tail, so the **last** line
+listed is the next one to be processed.
+
+To discard the queue and start over, which is worth doing before re-seeding so that
+entries left over from an abandoned run are not processed a second time::
+
+    kubectl exec $POD -- redis-cli del adap_2023_q
 
 Run the reduction
 -----------------
