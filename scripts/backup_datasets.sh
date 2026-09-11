@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-adap_remote_root="s3://pypeit/adap/raw_data_reorg"
+adap_remote_root="s3://pypeit/adap_2023/raw_data_reorg"
 nautilus_endpoint=$ENDPOINT_URL
 
 
@@ -13,13 +13,13 @@ fi
 
 for dataset in $(cat backup_list.txt)
 do
-    adap_dataset_complete=${adap_remote_root}/${dataset}/complete
-    local_dest=${dataset}/complete
+    adap_dataset_root=${adap_remote_root}/${dataset}
+    local_dest=${dataset}
     mkdir -p $local_dest
     echo ""
-    echo Looking for reduce directories in $adap_dataset_complete
+    echo Looking for reduce directories in $adap_dataset_root
 
-    results=($(aws --endpoint $nautilus_endpoint s3 ls ${adap_dataset_complete}/reduce))
+    results=($(aws --endpoint $nautilus_endpoint s3 ls ${adap_dataset_root}/reduce))
 
     if [[ $? != 0 ]]
     then
@@ -40,8 +40,8 @@ do
     for reduce_dir in ${reduce_dirs[@]}
     do
         echo ""
-        echo Downloading ${dataset}/complete/${reduce_dir} to $local_dest
-        aws --endpoint $nautilus_endpoint s3 cp --no-progress "${adap_dataset_complete}/${reduce_dir}" "${local_dest}/${reduce_dir}" --recursive
+        echo Downloading ${dataset}/${reduce_dir} to $local_dest
+        aws --endpoint $nautilus_endpoint s3 cp --no-progress "${adap_dataset_root}/${reduce_dir}" "${local_dest}/${reduce_dir}" --recursive
         echo ""
         echo Uploading ${dataset} to Google Drive
         rclone --config ./rclone.conf sync -v --stats-one-line --stats-unit bits "${local_dest}/${reduce_dir}" "gdrive:backups/${local_dest}/${reduce_dir}"
