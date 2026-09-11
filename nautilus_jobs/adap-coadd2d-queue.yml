@@ -1,3 +1,6 @@
+# DEPRECATED: 2D coaddition is not part of the current workflow, which coadds in 1D
+# only. The script this runs lives under scripts/depreciated/ and does not currently
+# work; see "Deprecated scripts" in workflow.rst.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -21,7 +24,7 @@ spec:
           git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
-          python scripts/coadd2d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status" redis://adap-workqueue:6379 adap_2023 gdrive
+          python scripts/depreciated/coadd2d_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root "Scorecard/coadd status" redis://adap-workqueue:6379 adap_2023 gdrive
         command:
         - /bin/bash
         - -c

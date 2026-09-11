@@ -55,7 +55,7 @@ Required tabs
 -------------
 
 Six tabs in total, of which five are needed for a reduction campaign and the sixth only
-if the 2D coadd job is run:
+if the 2D coadd job is run — which the current workflow does not:
 
 =================  ==========================  ==============================================
 Tab                Name comes from             Needed
@@ -65,7 +65,7 @@ Tab                Name comes from             Needed
 ``latest``         hardcoded                   always
 ``Failed``         hardcoded                   always
 ``LRIS``           hardcoded                   always
-``coadd status``   the job's command line      only for the 2D coadd job
+``coadd status``   the job's command line      not currently used; 2D coadd only
 =================  ==========================  ==============================================
 
 Only three of those names are actually fixed in the code. ``latest``, ``Failed`` and
@@ -271,8 +271,10 @@ header row.
 Optional: the ``coadd status`` tab
 ----------------------------------
 
-`coadd2d_from_queue.py <scripts/coadd2d_from_queue.py>`_ uses its own tab because coadding
-is done at a coarser level than reduction. It has the same three columns as ``WorkQueue``,
+**The current workflow does not run 2D coaddition**, so this tab is unused; see
+"Deprecated scripts" in `workflow.rst <workflow.rst>`_.
+`coadd2d_from_queue.py <scripts/depreciated/coadd2d_from_queue.py>`_ used its own tab
+because coadding is done at a coarser level than reduction. It has the same three columns as ``WorkQueue``,
 but column A holds only a *prefix* of a dataset name, describing everything to be
 combined, for example::
 
@@ -309,7 +311,7 @@ Creating a sheet from scratch
 
 1.  Create the spreadsheet, on the shared drive if the results are shared.
 2.  Create six tabs named ``targets``, ``WorkQueue``, ``latest``, ``Failed``, ``LRIS``,
-    and — if 2D coadds will be run — ``coadd status``.
+    and — only if the deprecated 2D coadd job is revived — ``coadd status``.
 3.  In ``targets``, put a header in row 1 (``target``, ``status``, ``pod``, ``ra``,
     ``dec``), leave rows 2 and 3 for notes, and list the targets from row 4 down: name in
     A, position in degrees in D and E, columns B and C empty.
@@ -321,6 +323,6 @@ Creating a sheet from scratch
 6.  Share the spreadsheet with the service account's ``client_email`` as an Editor.
 7.  Name the spreadsheet ``Scorecard`` and make sure every job yaml passes
     ``Scorecard/targets`` for the download job, ``Scorecard/WorkQueue`` for the rest — or
-    ``Scorecard/coadd status`` for the 2D coadd job.
+    ``Scorecard/coadd status`` for the deprecated 2D coadd job, if it is ever revived.
 8.  Seed the target queue, run the download job, then seed the dataset queue, as described
     under "Populate the queue" in `workflow.rst <workflow.rst>`_.

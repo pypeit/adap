@@ -1,3 +1,22 @@
+"""
+DEPRECATED: 2D coaddition is not part of the current adap_2023 workflow, which coadds in
+1D only with flux_coadd1d_from_queue.py.
+
+Kept for reference rather than use. Three things need fixing before it could be revived:
+
+* ``from utils import ... RClonePath`` raises ImportError -- RClonePath lives in
+  rclone.py, and utils.py neither defines nor re-exports it.
+* It builds its S3 path as pypeit/adap/raw_data_reorg and its Drive path as backups/,
+  rather than going through get_cloud_path, so it reads a different root than the reduce
+  stage writes to.
+* Living in this subdirectory, its bare imports (utils, rclone) no longer resolve, since
+  only scripts/ is on sys.path when a script there is run.
+
+It is also the only caller of get_reduce_params in utils.py, whose fallback to
+config/default_pypeit_config refers to a file that no longer exists.
+
+See workflow.rst.
+"""
 import argparse
 import logging
 import sys

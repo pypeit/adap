@@ -70,8 +70,8 @@ addresses it **by name**::
 columns in each, and how to build one from scratch. The essentials:
 
     **The tabs.** ``WorkQueue`` holds the dataset list and status; ``latest``, ``Failed``
-    and ``LRIS`` receive the scorecard; ``coadd status`` is the queue for the 2D coadd
-    stage, whose entries are dataset *prefixes* rather than datasets.
+    and ``LRIS`` receive the scorecard. ``coadd status`` is the queue for the 2D coadd
+    stage, which is not part of the current workflow, so that tab is unused.
 
     **Datasets must start on row 4.** ``init_work_queue`` in
     `scripts/utils.py <scripts/utils.py>`_ begins reading there, so anything above row 4
@@ -225,11 +225,8 @@ or short, push just that directory::
     <target>/<YYYYMMDD>/LRISBLUE/raw_b
 
 and the job uploads that tree to ``s3://pypeit/adap_2023/raw_data_reorg/``. That is the
-root ``get_cloud_path`` in `scripts/rclone.py <scripts/rclone.py>`_ returns, so it is
-where the reduce and post-processing stages look — with one exception:
-`coadd2d_from_queue.py <scripts/coadd2d_from_queue.py>`_ builds its path itself and reads
-a different root, so it does not see this campaign's data at all. See
-`Known rough edges`_.
+root ``get_cloud_path`` in `scripts/rclone.py <scripts/rclone.py>`_ returns, and every
+stage in this workflow reads through it.
 
 Three tolerances decide what comes down, none of them configurable:
 
@@ -512,26 +509,11 @@ Flux calibrate and coadd 1D
 ---------------------------
 
 `flux_coadd1d_from_queue.py <scripts/flux_coadd1d_from_queue.py>`_ fluxes the extracted
-spectra and coadds them. Like the 2D coadd below, it works at the dataset *prefix* level
-rather than on single datasets, and writes ``<prefix>/1D_Coadd``::
+spectra and coadds them. It works at the dataset *prefix* level rather than on single
+datasets, and writes ``<prefix>/1D_Coadd``. This is the only coadd stage in the current
+workflow; 2D coaddition is not performed, see `Deprecated scripts`_::
 
     kubectl create -f nautilus_jobs/adap_flux_codd1d_from_queue.yml
-
-Coadd 2D
---------
-
-`coadd2d_from_queue.py <scripts/coadd2d_from_queue.py>`_ writes a ``2D_Coadd``
-directory::
-
-    kubectl create -f nautilus_jobs/adap-coadd2d-queue.yml
-
-Coadding is done at a coarser level than reduction, so it uses a separate tab —
-``coadd status`` — whose dataset column holds only a *prefix* of the dataset name, naming
-everything to be combined. Parameters for the ``.coadd2d`` files are resolved by
-``get_reduce_params`` in `scripts/utils.py <scripts/utils.py>`_, which globs ``config/``
-for the same dataset-prefix naming convention. **Every prefix therefore needs a matching
-custom config file**: the fallback for a prefix with no match is
-``config/default_pypeit_config``, which no longer exists. See `Known rough edges`_.
 
 Back up to Google Drive
 -----------------------
@@ -612,8 +594,26 @@ boto3 or pykoa — so it cannot run the adap scripts at all.
 Deprecated scripts
 ------------------
 
-Both carry a deprecation notice in their module docstring and log a warning if they are
-run.
+These carry a deprecation notice in their module docstring.
+
+* `coadd2d_from_queue.py <scripts/depreciated/coadd2d_from_queue.py>`_ ran
+  ``pypeit_setup_coadd2d`` and ``pypeit_coadd_2dspec`` over a ``coadd status`` tab whose
+  entries were dataset *prefixes*, writing a ``2D_Coadd`` directory. **2D coaddition is
+  not part of the current workflow**, which coadds in 1D only with
+  `Flux calibrate and coadd 1D`_, so the script has moved to ``scripts/depreciated/`` and
+  `adap-coadd2d-queue.yml <nautilus_jobs/adap-coadd2d-queue.yml>`_ is not applied.
+
+  Three things would need fixing to revive it. Its ``from utils import ... RClonePath``
+  raises ``ImportError``, because ``RClonePath`` lives in
+  `scripts/rclone.py <scripts/rclone.py>`_ and ``utils.py`` neither defines nor
+  re-exports it. It builds its S3 path as ``pypeit/adap/raw_data_reorg`` and its Drive
+  path as ``backups/`` instead of going through ``get_cloud_path``, so it reads a
+  different root than the reduce stage writes to. And from its new subdirectory its bare
+  imports no longer resolve, since only ``scripts/`` is on ``sys.path``.
+
+  It is also the only caller of ``get_reduce_params`` in
+  `scripts/utils.py <scripts/utils.py>`_, whose fallback to ``config/default_pypeit_config``
+  names a file that no longer exists — so that function has no live caller either.
 
 * `stage_raw_data_from_queue.py <scripts/stage_raw_data_from_queue.py>`_, run by
   `adap-stage-raw-queue.yml <nautilus_jobs/adap-stage-raw-queue.yml>`_, staged raw data
@@ -665,7 +665,7 @@ init_workqueue.yml, refresh_workqueue.yml      ``key=1TADKd3OgbA…/WorkQueue``
 adap-stage-raw-queue.yml                       ``key=1TADKd3OgbA…/WorkQueue@B``
 adap-run-scorecard-on-queue.yml                ``Scorecard/WorkQueue``
 adap-sync-backups-from-queue.yml               ``Scorecard/WorkQueue``
-adap-coadd2d-queue.yml                         ``Scorecard/coadd status``
+adap-coadd2d-queue.yml (deprecated)            ``Scorecard/coadd status``
 =============================================  ===================================
 
 Because the scorecard tabs are resolved from whichever spreadsheet the running job was
@@ -694,30 +694,6 @@ uses ``s3://pypeit/adap/scripts_2023/``. Deploying as described in
 Other
 -----
 
-* `coadd2d_from_queue.py <scripts/coadd2d_from_queue.py>`_ does not start at all. Its
-  ``from utils import ... RClonePath`` raises ``ImportError``: ``RClonePath`` is defined in
-  `scripts/rclone.py <scripts/rclone.py>`_, and ``utils.py`` neither defines nor
-  re-exports it. `collate1d_from_queue.py <scripts/collate1d_from_queue.py>`_ carries the
-  same broken import, though it is deprecated regardless.
-
-  Behind that, it builds its S3 path as ``pypeit/adap/raw_data_reorg`` and its Drive path
-  as ``backups/`` rather than going through ``get_cloud_path``, which uses
-  ``pypeit/adap_2023/raw_data_reorg`` — so it also reads from a different root than the
-  reduce stage writes to. Both have to be fixed before the 2D coadds will find this
-  campaign's data.
-* ``get_reduce_params`` in `scripts/utils.py <scripts/utils.py>`_ falls back to
-  ``config/default_pypeit_config`` when a dataset prefix has no custom config file, and
-  that file no longer exists — it was superseded by the five per-spectrograph defaults
-  listed under `Reduction configuration`_. The path is read without checking for it, so
-  the 2D coadd stage fails on any prefix that does not match a custom file.
-
-  It cannot simply be repointed at one of the three. Unlike
-  `trimming_setup.py <scripts/trimming_setup.py>`_, which selects its default with
-  ``args.spectrograph``, ``get_reduce_params`` is given only the dataset prefix, and a
-  prefix such as ``J1030+0524`` names neither the arm nor the detector era, so there is
-  no single correct default to choose. Deciding what the fallback should be — infer the
-  spectrograph from the data being coadded, or require a per-prefix config file and fail
-  with a clear message — is an open design question.
 * ``dataset_to_spec`` in `scripts/metadata_info.py <scripts/metadata_info.py>`_ expects
   the DEIMOS-era dataset layout, in which the first path component is the instrument and
   the third is a PypeIt spectrograph name. On this branch the first component is the
