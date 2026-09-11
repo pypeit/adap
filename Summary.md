@@ -39,7 +39,7 @@ The reduce task itself ([`reduce_dataset_task`](scripts/reduce_from_queue.py#L17
 
 [adap-reduce-one.yml](nautilus_jobs/adap-reduce-one.yml) runs the same script with `--dataset` to reduce one dataset without the queue, for debugging.
 
-**4. Post-processing**, each its own queue-driven job with the same loop: [sensfunc_from_queue.py](scripts/sensfunc_from_queue.py) → [flux_coadd1d_from_queue.py](scripts/flux_coadd1d_from_queue.py). The coadd stage works at the dataset *prefix* level rather than on single datasets. Coadding is 1D only: [coadd2d_from_queue.py](scripts/depreciated/coadd2d_from_queue.py) is not in use and has moved to `scripts/depreciated/`. ([collate1d_from_queue.py](scripts/collate1d_from_queue.py) is DEIMOS-era and also deprecated, though it still sits in `scripts/`.)
+**4. Post-processing**, each its own queue-driven job with the same loop: [sensfunc_from_queue.py](scripts/sensfunc_from_queue.py) → [flux_coadd1d_from_queue.py](scripts/flux_coadd1d_from_queue.py). The coadd stage works at the dataset *prefix* level rather than on single datasets. Coadding is 1D only: [coadd2d_from_queue.py](scripts/depreciated/coadd2d_from_queue.py) is not in use and has moved to `scripts/depreciated/`. ([collate1d_from_queue.py](scripts/depreciated/collate1d_from_queue.py) is DEIMOS-era and deprecated alongside it.)
 
 **5. Score and back up.** [run_scorecard_on_queue.py](scripts/run_scorecard_on_queue.py) re-scores without re-reducing; [sync_backup_from_queue.py](scripts/sync_backup_from_queue.py) and [backup_datasets.sh](scripts/backup_datasets.sh) mirror S3 → Drive; [archive.py](scripts/archive.py) is the long-term archive path.
 

@@ -6,6 +6,9 @@ pypeit_collate_1d against config/default.collate1d, which only exists on the DEI
 branches, and it still takes the pre-redis command line with no queue_url, so it
 cannot claim datasets from the current work queue. No job in nautilus_jobs runs it.
 
+Living in this subdirectory, its bare imports (utils, rclone) no longer resolve,
+since only scripts/ is on sys.path when a script there is run.
+
 See workflow.rst.
 """
 import argparse

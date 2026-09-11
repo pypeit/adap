@@ -594,7 +594,9 @@ boto3 or pykoa — so it cannot run the adap scripts at all.
 Deprecated scripts
 ------------------
 
-These carry a deprecation notice in their module docstring.
+All three live under ``scripts/depreciated/`` and carry a deprecation notice in their
+module docstring. None of them run as they stand: moving them out of ``scripts/``
+means their bare imports no longer resolve, on top of the problems noted below.
 
 * `coadd2d_from_queue.py <scripts/depreciated/coadd2d_from_queue.py>`_ ran
   ``pypeit_setup_coadd2d`` and ``pypeit_coadd_2dspec`` over a ``coadd status`` tab whose
@@ -615,7 +617,7 @@ These carry a deprecation notice in their module docstring.
   `scripts/utils.py <scripts/utils.py>`_, whose fallback to ``config/default_pypeit_config``
   names a file that no longer exists — so that function has no live caller either.
 
-* `stage_raw_data_from_queue.py <scripts/stage_raw_data_from_queue.py>`_, run by
+* `stage_raw_data_from_queue.py <scripts/depreciated/stage_raw_data_from_queue.py>`_, run by
   `adap-stage-raw-queue.yml <nautilus_jobs/adap-stage-raw-queue.yml>`_, staged raw data
   into ``raw_data_reorg`` from a KOA metadata inventory. The KOA download job now writes
   that tree directly, so there is nothing left to stage. Its command line has been moved
@@ -623,7 +625,7 @@ These carry a deprecation notice in their module docstring.
   raw files under ``<dataset>/complete/raw`` and reads the instrument from the first
   component of the dataset name, neither of which matches this branch's naming.
 
-* `collate1d_from_queue.py <scripts/collate1d_from_queue.py>`_ was written for DEIMOS. It
+* `collate1d_from_queue.py <scripts/depreciated/collate1d_from_queue.py>`_ was written for DEIMOS. It
   runs ``pypeit_collate_1d`` against ``config/default.collate1d``, which exists only on
   the DEIMOS branches, and no job in `nautilus_jobs <nautilus_jobs>`_ invokes it. On this
   branch 1D coadding is `Flux calibrate and coadd 1D`_.
@@ -662,7 +664,7 @@ adap-reduce-one.yml                            ``key=15ealTQOBLB0I…/WorkQueue`
 adap-sensfunc-from-queue.yml                   ``key=1TADKd3OgbA…/WorkQueue``
 adap_flux_codd1d_from_queue.yml                ``key=1TADKd3OgbA…/WorkQueue``
 init_workqueue.yml, refresh_workqueue.yml      ``key=1TADKd3OgbA…/WorkQueue``
-adap-stage-raw-queue.yml                       ``key=1TADKd3OgbA…/WorkQueue@B``
+adap-stage-raw-queue.yml (deprecated)          ``key=1TADKd3OgbA…/WorkQueue@B``
 adap-run-scorecard-on-queue.yml                ``Scorecard/WorkQueue``
 adap-sync-backups-from-queue.yml               ``Scorecard/WorkQueue``
 adap-coadd2d-queue.yml (deprecated)            ``Scorecard/coadd status``

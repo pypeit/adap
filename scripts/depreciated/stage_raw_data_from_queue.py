@@ -9,6 +9,9 @@ layout: it looks for raw files under "<dataset>/complete/raw" and takes the firs
 component of the dataset name as the instrument. Neither holds for this branch's
 "<target>/<YYYYMMDD>/<LRIS|LRISBLUE>" datasets.
 
+Living in this subdirectory, its bare imports (utils, rclone) no longer resolve,
+since only scripts/ is on sys.path when a script there is run.
+
 See workflow.rst.
 """
 import argparse
