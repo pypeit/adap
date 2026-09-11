@@ -10,4 +10,8 @@
 # schema: astropy-2.0
 id extr algorithm multi sens_file use_flat
 DEFAULT "" IR "" "" True
-
+keck_lris_red_orig "" IR "" "" True
+keck_lris_red "" IR "" "" True
+keck_lris_red_mark4 "" IR "" "" True
+keck_lris_blue_orig "" UVIS "" "" True
+keck_lris_blue "" UVIS "" "" True

@@ -3,6 +3,7 @@
 import argparse
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 import subprocess as sp
 import shutil
@@ -15,6 +16,7 @@ from pypeit.inputfiles import PypeItFile, SensFile
 
 from utils import run_task_on_queue, init_logging, run_script
 from rclone import get_cloud_path
+from extended_spec_mixins import get_lris_spec_name
 
 import logging
 logger = logging.getLogger(__name__)
@@ -89,6 +91,17 @@ def find_spec1d_file(pypeit_path, raw_data_file_name):
     else:
         raise ValueError(f"Could not find spec1d for standard file {raw_data_file_name}")
 
+def get_dataset_spec_name(dataset):
+    """Return the PypeIt spectrograph a dataset reduces with, or None if the dataset name
+    cannot be parsed."""
+    try:
+        target, date_str, instrument = Path(dataset).parts
+        obs_date = datetime.strptime(date_str, "%Y%m%d").date()
+        return get_lris_spec_name(obs_date=obs_date, instrument=instrument)
+    except Exception:
+        logger.warning(f"Could not determine the spectrograph for {dataset}.", exc_info=True)
+        return None
+
 def get_senfunc_args(args, dataset, file_name):
     # Look up the sensfunc arguments from out config file
     config_file = args.adap_root_dir / "adap" / "config" / "sensfunc_config.ecsv"
@@ -110,7 +123,14 @@ def get_senfunc_args(args, dataset, file_name):
             dataset_prefix = "/".join(dataset_prefix.split("/")[0:-1])
 
     if not np.any(indx):
-        # Couldn't find one based on the dataset either, use the default
+        # No dataset entry matched, so fall back to the spectrograph this dataset reduces
+        # with. This is what lets one row cover every dataset taken with an LRIS version.
+        spec_name = get_dataset_spec_name(dataset)
+        if spec_name is not None:
+            indx = config_table["id"] == spec_name
+
+    if not np.any(indx):
+        # Couldn't find one based on the spectrograph either, use the default
         indx = config_table["id"] == "DEFAULT"
         if not np.any(indx):
             raise ValueError(f'Could not find "DEFAULT" entry in config file {config_file}')

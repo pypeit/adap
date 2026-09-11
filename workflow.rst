@@ -464,8 +464,10 @@ previous ``reduce`` directory in S3 first.
 Part 3 — Post-processing
 ========================
 
-Each of these is a queue-driven job on the same ``run_task_on_queue`` loop as the
-reduction, so the queue is populated and monitored exactly as above.
+Most of these are queue-driven jobs on the same ``run_task_on_queue`` loop as the
+reduction, so their queues are populated and monitored exactly as above. Two are not:
+`backup_datasets.sh <scripts/backup_datasets.sh>`_ works from an explicit list of datasets
+rather than a queue, and `Archive for KOA`_ is run by hand, with no Nautilus job at all.
 
 Re-score without re-reducing
 ----------------------------
@@ -480,12 +482,31 @@ Generate sensitivity functions
 ------------------------------
 
 `sensfunc_from_queue.py <scripts/sensfunc_from_queue.py>`_ picks standards out of the
-reduced data and builds sensitivity functions, driven by
-`config/sensfunc_config.ecsv <config/sensfunc_config.ecsv>`_, which lists the standard ids
-and extraction to use. Results go back into the dataset's ``reduce`` directory as
-``sens*`` files, replacing any earlier ones::
+reduced data and builds sensitivity functions. Results go back into the dataset's
+``reduce`` directory as ``sens*`` files, replacing any earlier ones::
 
     kubectl create -f nautilus_jobs/adap-sensfunc-from-queue.yml
+
+The arguments handed to ``pypeit_sensfunc`` come from
+`config/sensfunc_config.ecsv <config/sensfunc_config.ecsv>`_. Every column except ``id``
+becomes a command line option when it is non-empty, and ``id`` says which datasets the row
+applies to. The rows are searched in order of decreasing specificity:
+
+    1. the name of the ``spec1d`` file being processed
+    2. the dataset, then each shorter prefix of it
+    3. the PypeIt spectrograph the dataset reduces with
+    4. ``DEFAULT``
+
+Rung 3 is what the checked-in file uses: one row per LRIS version, so that the blue arm
+gets ``--algorithm UVIS`` and the red arm ``--algorithm IR`` without naming a single
+dataset. The spectrograph is derived from the dataset's date and arm with
+``get_lris_spec_name``, the same function the reduce stage uses.
+
+``DEFAULT`` must stay in the file. ``get_senfunc_args`` raises if it is missing, and it is
+what catches a dataset whose name will not parse into a date and an arm.
+
+To tune one dataset rather than a whole arm, add a row keyed on the dataset name; to tune
+a single exposure, key it on the ``spec1d`` file name.
 
 Flux calibrate and coadd 1D
 ---------------------------
