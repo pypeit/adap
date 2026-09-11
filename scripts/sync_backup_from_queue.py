@@ -7,18 +7,20 @@ import shutil
 
 logger = logging.getLogger(__name__)
 
-from utils import init_logging, run_task_on_queue, RClonePath
+from utils import init_logging, run_task_on_queue
+from rclone import RClonePath, get_cloud_path
 
 
 def sync_dataset(args, dataset):
 
     root_path = Path(args.adap_root_dir)
-    # Download data from s3 to sync
-    source_loc = RClonePath(args.rclone_conf, "s3", "pypeit", "adap", "raw_data_reorg", dataset, "complete")
+    # Download data from s3 to sync. get_cloud_path is what the reduce stage writes
+    # through, so this stays in step with it rather than hardcoding a root.
+    source_loc = get_cloud_path(args, "s3") / dataset
     for reduce_path in source_loc.glob("reduce*"):
 
         # Download the reduce path from s3
-        relative_path = Path(dataset, "complete", reduce_path.path.name)
+        relative_path = Path(dataset, reduce_path.path.name)
         local_path = root_path / relative_path
         reduce_path.download(local_path)
 
