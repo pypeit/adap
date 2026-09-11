@@ -545,6 +545,11 @@ datasets on the queue::
 `backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_, does the same for an explicit
 list of datasets read from ``s3://pypeit/adap/scripts/backup_list.txt``.
 
+Both copy each ``reduce*`` directory from ``get_cloud_path``'s S3 root to
+``gdrive:backups/<dataset>/<reduce dir>``. Note that this is a *second* Drive tree: the
+reduce stage already uploads its results to ``gdrive:DATA`` as it goes, so ``backups/``
+is a separate mirror rather than the copy the reduction itself wrote.
+
 Archive for KOA
 ---------------
 
@@ -689,11 +694,17 @@ uses ``s3://pypeit/adap/scripts_2023/``. Deploying as described in
 Other
 -----
 
-* `coadd2d_from_queue.py <scripts/coadd2d_from_queue.py>`_ builds its S3 path as
-  ``pypeit/adap/raw_data_reorg`` and its Drive path as ``backups/``, rather than going
-  through ``get_cloud_path``, which uses ``pypeit/adap_2023/raw_data_reorg``. It reads
-  from a different root than the reduce stage writes to, so it needs updating before the
-  2D coadds will find this campaign's data.
+* `coadd2d_from_queue.py <scripts/coadd2d_from_queue.py>`_ does not start at all. Its
+  ``from utils import ... RClonePath`` raises ``ImportError``: ``RClonePath`` is defined in
+  `scripts/rclone.py <scripts/rclone.py>`_, and ``utils.py`` neither defines nor
+  re-exports it. `collate1d_from_queue.py <scripts/collate1d_from_queue.py>`_ carries the
+  same broken import, though it is deprecated regardless.
+
+  Behind that, it builds its S3 path as ``pypeit/adap/raw_data_reorg`` and its Drive path
+  as ``backups/`` rather than going through ``get_cloud_path``, which uses
+  ``pypeit/adap_2023/raw_data_reorg`` — so it also reads from a different root than the
+  reduce stage writes to. Both have to be fixed before the 2D coadds will find this
+  campaign's data.
 * ``get_reduce_params`` in `scripts/utils.py <scripts/utils.py>`_ falls back to
   ``config/default_pypeit_config`` when a dataset prefix has no custom config file, and
   that file no longer exists — it was superseded by the five per-spectrograph defaults
