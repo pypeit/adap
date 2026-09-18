@@ -83,17 +83,6 @@ Known rough edges
 Places where the checked-in files do not match the workflow above. Each needs a change to
 a yaml or a script, not to this document.
 
-A duplicate reduce job
-----------------------
-
-`adap-reduce-from-queue.yml <nautilus_jobs/adap-reduce-from-queue.yml>`_ and
-`adap-reduce-lris-from-queue.yml <nautilus_jobs/adap-reduce-lris-from-queue.yml>`_ are
-identical except that the former misspells the variable as ``PYPEIT_COMMMIT`` — three
-``M``\ s — in both of its ``echo`` lines, so the PypeIt commit is logged as an empty
-string. It is also the only yaml still pointed at an old spreadsheet, with
-``key=15ealTQOBLB0I…/WorkQueue`` where every other job now names ``Scorecard/WorkQueue``.
-Use the ``lris`` one; the other should be deleted rather than brought in line.
-
 Two S3 script prefixes
 ----------------------
 
