@@ -83,9 +83,9 @@ columns in each, and how to build one from scratch. The essentials:
     loaded into the queue.
 
 The scorecard updater derives the scorecard tabs from whatever spreadsheet the running
-job was handed, so a stage pointed at a different spreadsheet writes its status somewhere
-nobody is looking. Several checked-in yamls still carry ``key=<id>/WorkQueue`` arguments
-naming two other spreadsheets; see `Known rough edges`_.
+job was handed, so a stage pointed at a different spreadsheet would write its status
+somewhere nobody is looking. Every job in this workflow now names the sheet as
+``Scorecard/<tab>``; keep it that way when adding one.
 
 Deploy the scripts and config to S3
 -----------------------------------

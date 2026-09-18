@@ -83,32 +83,6 @@ Known rough edges
 Places where the checked-in files do not match the workflow above. Each needs a change to
 a yaml or a script, not to this document.
 
-Three spreadsheets instead of one
----------------------------------
-
-Every job should be pointed at ``Scorecard/<tab>``, as in `Set up the Google Sheet`_. As
-checked in, they are split three ways:
-
-=============================================  ===================================
-Job                                            Sheet argument
-=============================================  ===================================
-adap-reduce-lris-from-queue.yml                ``key=15ealTQOBLB0I…/WorkQueue``
-adap-reduce-from-queue.yml                     ``key=15ealTQOBLB0I…/WorkQueue``
-adap-reduce-one.yml                            ``key=15ealTQOBLB0I…/WorkQueue``
-adap-sensfunc-from-queue.yml                   ``key=1TADKd3OgbA…/WorkQueue``
-adap-flux-coadd1d-from-queue.yml               ``key=1TADKd3OgbA…/WorkQueue``
-init_workqueue.yml, refresh_workqueue.yml      ``key=1TADKd3OgbA…/WorkQueue``
-adap-stage-raw-queue.yml (deprecated)          ``key=1TADKd3OgbA…/WorkQueue@B``
-adap-run-scorecard-on-queue.yml                ``Scorecard/WorkQueue``
-adap-sync-backups-from-queue.yml               ``Scorecard/WorkQueue``
-adap-coadd2d-queue.yml (deprecated)            ``Scorecard/coadd status``
-=============================================  ===================================
-
-Because the scorecard tabs are resolved from whichever spreadsheet the running job was
-given, a reduction and a post-processing stage pointed at different spreadsheets write
-their status into different sheets. Settle on ``Scorecard`` and make the yamls agree
-before a campaign.
-
 A duplicate reduce job
 ----------------------
 
@@ -116,7 +90,9 @@ A duplicate reduce job
 `adap-reduce-lris-from-queue.yml <nautilus_jobs/adap-reduce-lris-from-queue.yml>`_ are
 identical except that the former misspells the variable as ``PYPEIT_COMMMIT`` — three
 ``M``\ s — in both of its ``echo`` lines, so the PypeIt commit is logged as an empty
-string. Use the ``lris`` one; the other should be deleted.
+string. It is also the only yaml still pointed at an old spreadsheet, with
+``key=15ealTQOBLB0I…/WorkQueue`` where every other job now names ``Scorecard/WorkQueue``.
+Use the ``lris`` one; the other should be deleted rather than brought in line.
 
 Two S3 script prefixes
 ----------------------
