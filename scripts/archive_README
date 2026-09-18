@@ -1,5 +1,5 @@
-The files in this directory consist of metadata files, reduced DEIMOS data, 
-coadded DEIMOS data, and files related to the reduction of DEIMOS data.
+The files in this directory consist of metadata files, reduced Keck LRIS data,
+coadded LRIS data, and files related to the reduction of LRIS data.
 The metadata files are in IPAC format and link the reduced data and its
 related files to the original KOAIDs they were reduced from.
 
@@ -11,24 +11,40 @@ to check the quality of the data is here provided.
 
 Directory Hierarchy
 ===================
-The files have been grouped based on the observing configuration and
-observation dates of the raw data as follows:
+The files have been grouped by the target that was observed, the UT date of
+the observation, and the LRIS arm the data came from, as follows:
 
-${slit mask}/${grating}_${grating tilt}_${filter}/${date}
-
-or
-
-${slit mask}/${grating}_${grating tilt}_${filter}/${start date}_${end date}
+${target}/${UT date}/${instrument}
 
 For example:
 
-041615B1/1200G_8800_OG550/2015-11-12_2015-11-13/
+J1030+0524/20120415/LRIS/
+
+The instrument component is either "LRIS" for the red arm or "LRISBLUE" for the
+blue arm. The two arms are reduced separately, so a night on which both arms
+were used appears as two directories.
 
 These are the subdirectories under this hierarchy containing the reduced data:
 
-- keck_deimos_A/: The results of a PypeIt reduction of the raw data.
-- 1D_Coadd/:      The results of collating and coadding the 1D reduced spectra.
-- 2D_Coadd/:      The results of coadding the 2D reduced spectra.
+- ${spectrograph}_A/: The results of a PypeIt reduction of the raw data. The
+                      spectrograph name is the one PypeIt reduced the data
+                      with, and depends on the arm and on the date of the
+                      observation, because the LRIS detectors were upgraded
+                      several times. It is one of keck_lris_red_orig,
+                      keck_lris_red, keck_lris_red_mark4, keck_lris_blue_orig
+                      or keck_lris_blue. The "_A" suffix is PypeIt's name for
+                      the instrument configuration that was reduced.
+- 1D_Coadd/:          The results of flux calibrating and coadding the 1D
+                      reduced spectra. Because a coadd combines more than one
+                      of the directories above, it is stored higher in the
+                      hierarchy than the reductions that went into it.
+
+Within a ${spectrograph}_A directory:
+
+- Science/:      The spec1d and spec2d files produced from the science frames.
+- Calibrations/: The calibration frames PypeIt built from the arcs and flats.
+
+2D coaddition was not performed for these data.
 
 File Formats
 ============
@@ -36,8 +52,8 @@ File Formats
 spec1d files
 ------------
 FITS files beginning with the prefix 'spec1d' contain calibrated 1d spectra
-extracted from the science data during the main data reduction or after the
-2D coaddition. See https://pypeit.readthedocs.io/en/latest/out_spec1D.html
+extracted from the science data during the main data reduction. See
+https://pypeit.readthedocs.io/en/latest/out_spec1D.html
 for a detailed description of these files.
 
 spec1d text files
@@ -49,21 +65,31 @@ https://pypeit.readthedocs.io/en/latest/out_spec1D.html#extraction-information.
 spec2d
 ------
 FITS files with the 'spec2d' prefix contain a 2D spectral image created by
-PypeIt during the data reduction or the 2D coaddition. They are described in
-detail at https://pypeit.readthedocs.io/en/latest/out_spec2D.html.
+PypeIt during the data reduction. They are described in detail at
+https://pypeit.readthedocs.io/en/latest/out_spec2D.html.
+
+calibration files
+-----------------
+The FITS files in the Calibrations subdirectory are the processed calibration
+frames (arcs, flats, wavelength solutions, slit edge traces and the like)
+that PypeIt built from the raw calibrations and applied to the science frames.
+They are described at
+https://pypeit.readthedocs.io/en/latest/calibrations.html.
 
 1D coadd output files
 ---------------------
-FITS files that begin with a sky coordinate prefix are coadded 1D spectra from
+FITS files that begin with the prefix 'coadd1d' are coadded 1D spectra from
 multiple exposures of a single object. They are described in detail at
 https://pypeit.readthedocs.io/en/latest/coadd1d.html#current-coadd1d-data-model.
 When available, the optimally extracted (Horne 1986) spectra are used for the
 coaddition, otherwise the boxcar extracted spectra are used. This information
-is contained in the coadded 1D file header.
+is contained in the coadded 1D file header, along with a HISTORY block naming
+every spec1d file and extracted object that went into the coadd.
 Before coadding, a relative flux calibration is applied to the 1D spectra using
-an archival sensitivity function (see
-https://pypeit.readthedocs.io/en/latest/collate1d.html#coadd1d-and-fluxing-configuration
-and https://pypeit.readthedocs.io/en/latest/fluxing.html#archival-sensitivity-functions).
+a sensitivity function derived from standard stars observed in the same
+instrument configuration (see
+https://pypeit.readthedocs.io/en/latest/fluxing.html). The sensitivity
+functions themselves are not included in this archive.
 NOTE: A spectrum with relative flux calibration is expressed in units of
 [1e-17 erg/s/cm^2/Ang], have the correct shape over the wavelength range and
 differ from an absolute calibration only in the normalization.
@@ -73,6 +99,16 @@ pypeit files
 Files ending in ".pypeit" are the original PypeIt reduction files that were
 used to guide the reduction of the raw data.  These are text files and are
 described at https://pypeit.readthedocs.io/en/latest/pypeit_file.html.
+Frames that were deliberately left out of the reduction appear in these files
+commented out, so the full set of frames the reduction started from can still
+be read off.
+
+calibration association files
+-----------------------------
+Files ending in ".calib" record which raw frames were combined into each
+processed calibration, and which science frames those calibrations were applied
+to. More information about these files can be found at
+https://pypeit.readthedocs.io/en/latest/calibrations.html.
 
 parameter files
 ---------------
@@ -81,16 +117,16 @@ processing the files, in a "ini" format. More information about these
 parameters can be found at 
 https://pypeit.readthedocs.io/en/latest/pypeit_par.html.
 
-1D collate reports
-------------------
-Files named "collate_report.dat" are IPAC files containing information about
-the files created during 1D coadding. More information about this format can
-be found at https://pypeit.readthedocs.io/en/latest/collate1d.html.
+QA files
+--------
+Each reduction directory contains a "QA.tar.gz" archive holding the quality
+assessment plots PypeIt generated for that reduction. These are described at
+https://pypeit.readthedocs.io/en/latest/qa.html.
 
 log files
 ---------
-log files containing information about the reduction, 1D coadding and 2D coadding
-processes are available in each subdirectories.
+log files containing information about the reduction and the 1D coadding
+processes are available in each subdirectory.
 
 Metadata Files
 ==============
@@ -129,9 +165,11 @@ this directory.
 +---------------+-------------------------------------------------------------+
 | progid        | Program ID from the raw image header.                       |
 +---------------+-------------------------------------------------------------+
-| dispname      | The grating used for the raw image.                         |
+| dispname      | The grating (red arm) or grism (blue arm) used for the raw  |
+|               | image.                                                      |
 +---------------+-------------------------------------------------------------+
-| slmsknam      | Name of the slit mask used for the raw image.               |
+| slmsknam      | The DECKER value from the raw image header, which for LRIS  |
+|               | names the longslit or slit mask that was in place.          |
 +---------------+-------------------------------------------------------------+
 | binning       | Binning from the raw image header.                          |
 +---------------+-------------------------------------------------------------+
@@ -144,70 +182,13 @@ this directory.
 
 coadded_files_meta.dat
 ----------------------
-The coadded_files_meta.dat file contains metadata about the coadded output 
-files. The file is organized by the 1D coadd output file name, and has 
-multiple rows per output file: one row per extracted spectra that was coadded 
-to create the file. Below is the description of the columns in the 
-coadded_files_meta.dat file. All filenames are relative to the top level of 
-this directory.
-
-+-----------------+-----------------------------------------------------------+
-| Column Name     | Description                                               |
-+=================+===========================================================+
-| coadd1d_filename| The filename of the 1D coadded output file.               |
-+-----------------+-----------------------------------------------------------+
-| coadd2d_filename| The filename of the 2D coadded output file.               |
-+-----------------+-----------------------------------------------------------+
-| coadd1d_par_file| The filename of the 1D coadded parameters file.           |
-+-----------------+-----------------------------------------------------------+
-| maskdef_objname | The coadded object name from the slit mask design.        |
-+-----------------+-----------------------------------------------------------+
-| maskdef_id      | The slit id (a.k.a. "dSlitId") from the slit mask design. |
-+-----------------+-----------------------------------------------------------+
-| pypeit_name     | PypeIt name for the extracted object. In the format of    |
-|                 | 'SPATxxxx-SLITyyyy-DETzz' or 'SPATxxxx-SLITyyyy-MSCzz'.   |
-+-----------------+-----------------------------------------------------------+
-| det             | The detector the spectrum was captured on.                |
-+-----------------+-----------------------------------------------------------+
-| objra           | Right Ascension (deg) of the coadded object from the      |
-|                 | slit mask design.                                         |
-+-----------------+-----------------------------------------------------------+
-| objdec          | Declination (deg) of the coadded object from the          |
-|                 | slit mask design.                                         |
-+-----------------+-----------------------------------------------------------+
-| s2n             | The signal to noise ratio of the extracted object before  |
-|                 | the coaddition.                                           |
-+-----------------+-----------------------------------------------------------+
-| maskdef_extract | Boolean indicating if this is a forced extraction at the  |
-|                 | expected location from slit mask design.                  |
-+-----------------+-----------------------------------------------------------+
-| wave_rms        | The RMS in pixels of the wavelength solution.             |
-+-----------------+-----------------------------------------------------------+
-| source_id       | The KOAID of the original raw image.                      |
-+-----------------+-----------------------------------------------------------+
-| spec1d_filename | The name of the spec1d file containing the spectrum that  |
-|                 | was coadded.                                              |
-+-----------------+-----------------------------------------------------------+
-| dispname        | The grating used for the raw image.                       |
-+-----------------+-----------------------------------------------------------+
-| slmsknam        | Name of the slit mask used for the raw image.             |
-+-----------------+-----------------------------------------------------------+
-| binning         | Binning from the raw image header.                        |
-+-----------------+-----------------------------------------------------------+
-| mjd             | Modified Julian Date from the raw image header.           |
-+-----------------+-----------------------------------------------------------+
-| airmass         | Airmass from the raw image header.                        |
-+-----------------+-----------------------------------------------------------+
-| exptime         | Exposure time from the raw image header.                  |
-+-----------------+-----------------------------------------------------------+
-| guidfwhm        | Guide star FWHM value from the raw image header.          |
-+-----------------+-----------------------------------------------------------+
-| progpi          | Program Principle Investigator from the raw image header. |
-+-----------------+-----------------------------------------------------------+
-| semester        | Observing schedule semester from the raw image header.    |
-+-----------------+-----------------------------------------------------------+
-| progid          | Program ID from the raw image header.                     |
-+-----------------+-----------------------------------------------------------+
+A coadded_files_meta.dat file is written alongside reduced_files_meta.dat, but
+it is not populated in this release: the per-object metadata it is built from
+was produced by a collation step that is not part of the LRIS reduction. The
+provenance of each coadded spectrum, the spec1d files and the individual
+extracted objects that were combined to make it, is instead recorded in the
+HISTORY keywords of the coadd1d FITS file itself, and each of those spec1d
+files has a row in reduced_files_meta.dat.
 
 Software Used
 -------------
