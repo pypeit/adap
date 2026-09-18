@@ -437,12 +437,20 @@ def create_archive(archive_root, copy_to_archive):
     # Return an archive object with the metadata objects
     return ArchiveDir(archive_root, archive_metadata_list, copy_to_archive=copy_to_archive)
 
+# PypeIt names its setup directory "<spectrograph>_A", so this matches keck_lris_red_A,
+# keck_lris_blue_orig_A and so on rather than naming one instrument.
+SETUP_DIR_RE = re.compile(r"keck_\w+_A")
+
+def is_setup_dir(name):
+    """Return True if name is a PypeIt setup directory, e.g. keck_lris_red_A."""
+    return SETUP_DIR_RE.fullmatch(name) is not None
+
 def keep_in_archive(relative_path):
     path_parts = relative_path.parts
-    # Exclude keck_deimos_A not under "reduce". These probably originate from the original
-    # organizing of raw files
+    # Exclude setup directories not under "reduce". These probably originate from the
+    # original organizing of raw files
     for i in range(len(path_parts)):
-        if path_parts[i] == "keck_deimos_A":
+        if is_setup_dir(path_parts[i]):
             if i == 0 or path_parts[i-1] !="reduce":
                 return False
 
@@ -450,7 +458,7 @@ def keep_in_archive(relative_path):
     ext = relative_path.suffix
     
     if ext == ".gz":
-        if parent.name == "keck_deimos_A" and relative_path.name == "QA.tar.gz":
+        if is_setup_dir(parent.name) and relative_path.name == "QA.tar.gz":
             return True
         else:
             if relative_path.name.lower().endswith(".fits.gz"):
@@ -463,10 +471,10 @@ def keep_in_archive(relative_path):
         if parent.name == 'PNGs' and parent.parent.name == "QA_coadd":
             return True
     elif ext == ".par":
-        if parent.name in ["keck_deimos_A", "1D_Coadd", "2D_Coadd"]:
+        if is_setup_dir(parent.name) or parent.name in ["1D_Coadd", "2D_Coadd"]:
             return True
     elif ext in ['.calib', '.pypeit', '.log']:
-        if parent.name == "keck_deimos_A":
+        if is_setup_dir(parent.name):
             return True
     elif ext =='.coadd2d':
         if parent.name == "2D_Coadd":
