@@ -105,19 +105,30 @@ queue jobs under `Not part of this workflow`_, which read from the same older lo
 So editing a script here has no effect on the cluster until it is pushed the other way::
 
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress scripts/ s3://pypeit/adap/scripts_2023/ --recursive \
-        --exclude "*__pycache__/*" --exclude "*.pyc"
+        --exclude "*__pycache__/*" --exclude "*.pyc" --exclude "*depreciated/*"
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress config/  s3://pypeit/adap/config_2023/  --recursive
 
 Do this before every run in which a script or config file changed.
 
-The ``--exclude`` flags keep ``__pycache__`` out of S3. Without them the push ships
-compiled bytecode — including ``.pyc`` files for scripts that no longer exist — which then
-copies back down into every pod. It is clutter rather than a hazard, since Python ignores
-a ``.pyc`` whose source is missing or changed, but there is no reason to carry it. If a
-previous push already uploaded some, clear it once with::
+The ``--exclude`` flags keep two things out of S3. ``__pycache__`` and ``.pyc`` are
+clutter rather than a hazard — Python ignores a ``.pyc`` whose source is missing or
+changed — but there is no reason to ship compiled bytecode down into every pod.
+``scripts/depreciated/`` is excluded because nothing in the workflow runs it; see
+`Deprecated scripts`_.
+
+If earlier pushes already uploaded either, clear them once::
 
     aws --endpoint $ENDPOINT_URL s3 rm s3://pypeit/adap/scripts_2023/ --recursive \
         --exclude "*" --include "*__pycache__/*"
+
+The deprecated scripts also need removing by name, because they were deployed from the
+top of ``scripts/`` before they were moved, and a ``cp`` deploy never deletes what it no
+longer uploads. Left in place they would keep arriving in every pod at their old path —
+where their imports still resolve, so they would still run::
+
+    aws --endpoint $ENDPOINT_URL s3 rm s3://pypeit/adap/scripts_2023/coadd2d_from_queue.py
+    aws --endpoint $ENDPOINT_URL s3 rm s3://pypeit/adap/scripts_2023/collate1d_from_queue.py
+    aws --endpoint $ENDPOINT_URL s3 rm s3://pypeit/adap/scripts_2023/stage_raw_data_from_queue.py
 
 **One-time:** `backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_ reads its rclone
 configuration from ``s3://pypeit/adap/scripts/rclone.conf``, which the ``config/`` deploy
@@ -539,7 +550,15 @@ Archive for KOA
 layout KOA expects, alongside the metadata files described in
 `archive_README <scripts/archive_README>`_::
 
-    python scripts/archive.py archive --copy <source> --report archive.report.txt
+    python scripts/archive.py <archive_dir> --copy <destination> --report archive.report.txt
+
+``archive_dir`` is the directory holding the files to archive — there are no subcommands,
+so the first argument is that path and not a verb. ``--copy`` names where to *write* the
+archive; without it the archive is built in place, under ``archive_dir`` itself.
+
+Which files are kept is decided by ``keep_in_archive``, which recognises a PypeIt setup
+directory by the ``<spectrograph>_A`` naming convention, so it covers all five LRIS
+spectrographs.
 
 There is no Nautilus job for this stage on this branch; the 2019 workflow's
 ``remote_archive.py`` and its yaml are only on ``main``.
