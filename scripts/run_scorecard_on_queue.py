@@ -23,16 +23,16 @@ def run_scorecard_task(args, dataset):
     gdrive_loc = get_cloud_path(args, "gdrive")
 
     if args.source == "s3":
-        source_loc = s3_loc / dataset / "complete"
+        source_loc = s3_loc / dataset
     else:
-        source_loc = gdrive_loc / dataset / "complete"
+        source_loc = gdrive_loc / dataset
 
     try:
         reduce_paths = list(source_loc.glob("reduce*"))
         for reduce_path in reduce_paths:
 
             # Download the reduce path from s3
-            relative_path = Path(dataset, "complete", reduce_path.path.name)
+            relative_path = Path(dataset, reduce_path.path.name)
             local_path = root_path / relative_path
             reduce_path.download(local_path)
 
@@ -42,7 +42,7 @@ def run_scorecard_task(args, dataset):
             return "FAILED"
         
         # Make sure there's a "reduce" path 
-        scorecard_path = root_path / dataset / "complete" / "reduce"
+        scorecard_path = root_path / dataset / "reduce"
         if not scorecard_path.is_dir():
             logger.error(f"Couldn't find reduce path to place scorecard for {dataset}.")
             return "FAILED"
@@ -76,7 +76,7 @@ def run_scorecard_task(args, dataset):
         run_script(scorecard_cmd)
 
         # Upload scorecard output to both s3 and gdrive
-        dest_locs =  [gdrive_loc / dataset / "complete" / "reduce", s3_loc / dataset / "complete" / "reduce"]
+        dest_locs =  [gdrive_loc / dataset / "reduce", s3_loc / dataset / "reduce"]
 
         for dest_loc in dest_locs:
             for file in scorecard_path.glob("scorecard*.csv"):
@@ -85,14 +85,16 @@ def run_scorecard_task(args, dataset):
         # Update the scorecard in google sheets. We set the maximum age to 10,000 because we don't want to change the 
         # latest tab, as this task doesn't re-run any pypeit reductions anyway.
         logger.info(f"Updating scorecard spreadsheet on {dataset}")
-        run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "complete", "reduce", "scorecard.csv"), "10000"])
+        run_script(["python", os.path.join(args.adap_root_dir, "adap", "scripts", "update_gsheet_scorecard.py"), args.gsheet.split("/")[0], os.path.join(args.adap_root_dir, dataset, "reduce", "scorecard.csv"), "10000"])
     finally:
         # Always clean up local data to avoid filling up space.
         if args.local:
             logger.info("Not cleaning up on local test run")
         else:
-            logger.info(f"Cleaning up local copy of {dataset}")
-            shutil.rmtree(str(root_path / dataset))
+            local_dataset_path = root_path / dataset
+            if local_dataset_path.is_dir():
+                logger.info(f"Cleaning up local copy of {dataset}")
+                shutil.rmtree(str(local_dataset_path))
     
     return 'COMPLETE'
 

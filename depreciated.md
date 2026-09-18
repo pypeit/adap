@@ -80,48 +80,9 @@ means their bare imports no longer resolve, on top of the problems noted below.
 Known rough edges
 =================
 
-Places where the checked-in files do not match the workflow above. Each needs a change to
-a yaml or a script, not to this document.
+Nothing here is a defect in the checked-in files any more; these are two constraints of
+the setup that are worth knowing before changing it.
 
-Other
------
-
-* ``dataset_to_spec`` in `scripts/metadata_info.py <scripts/metadata_info.py>`_ expects
-  the DEIMOS-era dataset layout, in which the first path component is the instrument and
-  the third is a PypeIt spectrograph name. On this branch the first component is the
-  target, so it silently returns a bogus spectrograph name rather than raising::
-
-      J1030+0524/20120415/LRIS  ->  keck_j1030+0524
-      J1030+0524                ->  keck_j1030+0524
-
-  It is called by `run_scorecard_on_queue.py <scripts/run_scorecard_on_queue.py>`_ and
-  `flux_coadd1d_from_queue.py <scripts/flux_coadd1d_from_queue.py>`_, so
-  `Re-score without re-reducing`_ and `Flux calibrate and coadd 1D`_ both start from a
-  spectrograph name that does not exist. ``get_lris_spec_name`` in
-  `scripts/extended_spec_mixins.py <scripts/extended_spec_mixins.py>`_ is the right
-  function for this branch's naming, but it needs an observation date, and the coadd
-  stages are handed a dataset *prefix* that need not contain one — so fixing this means
-  deciding where the date comes from, not just swapping the call.
-* `run_scorecard_on_queue.py <scripts/run_scorecard_on_queue.py>`_ builds every one of
-  its paths with a ``complete`` component — ``<dataset>/complete/reduce`` — which is the
-  DEIMOS layout produced by the old reorganization step. The reduce stage on this branch
-  writes ``<dataset>/reduce`` with no ``complete`` level, so the two disagree in seven
-  places: the cloud source root, the ``reduce*`` glob, the download destination, the local
-  scorecard directory, both upload destinations, and the csv path handed to
-  ``update_gsheet_scorecard.py``.
-
-  The practical effect is that the glob for ``<dataset>/complete/reduce*`` matches
-  nothing, so the task logs "No reduce paths found" and returns ``FAILED`` for every
-  dataset without re-scoring anything. It never reaches the sheet update. The cleanup in
-  the ``finally`` block then calls ``rmtree`` on a dataset directory that was never
-  created, so the log also carries a ``FileNotFoundError`` traceback on top of the real
-  cause.
-
-  Note that `scorecard.py <scripts/scorecard.py>`_ itself is tolerant of both layouts —
-  ``get_dataset_from_reduce_path`` recognizes ``<dataset>/complete/reduce/<spec>`` and
-  ``<dataset>/reduce`` alike. Only this driver hardcodes ``complete``, so `Re-score
-  without re-reducing`_ needs those paths brought in line with the reduce stage before it
-  will run.
 * Google authentication always comes from
   ``$HOME/.config/gspread/service_account.json``, gspread's built-in default. There is no
   option to point it elsewhere, so ``$HOME`` has to be right in any container that runs

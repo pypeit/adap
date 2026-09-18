@@ -17,7 +17,6 @@ from pypeit.specobjs import SpecObjs
 
 from utils import run_task_on_queue, run_script, init_logging
 from rclone import get_cloud_path
-import metadata_info
 
 
 def update_paths(pypeit_input_file, dataset, root_dir):
@@ -56,7 +55,9 @@ def update_setup_ids(args, coadd1d_file):
 
 def run_flux_coadd1d_task(args, dataset_prefix):
     root_path = Path(args.adap_root_dir)
-    spec_name = metadata_info.dataset_to_spec(dataset_prefix)
+    # A dataset prefix can cover both arms, so it has no single spectrograph. This is
+    # only the basename of the flux/coadd1d input files, so name them for the prefix.
+    base_name = dataset_prefix.replace("/", "_")
 
     # Download data from either s3 or google as requested
     s3_loc = get_cloud_path(args, "s3")
@@ -120,21 +121,20 @@ def run_flux_coadd1d_task(args, dataset_prefix):
         with contextlib.chdir(local_coadd_dir):
             # Filenames for pypeit_flux_setup outputs and the coadding output
             dataset_file_name = "_".join(dataset_prefix.replace("/", "_").split("_")[1:])
-            flux_file_name =  f"{spec_name}.flux"
-            coadd_file_name = f"{spec_name}.coadd1d"
+            flux_file_name =  f"{base_name}.flux"
+            coadd_file_name = f"{base_name}.coadd1d"
             coadd_output_name = f"coadd1d_{dataset_file_name}.fits"
 
             # Determine if there are any custom flux or coadd1d files. If there are we may be able to skip pypeit_flux_setup
             config_dir = root_path / "adap" / "config"
 
-            custom_base_name = dataset_prefix.replace("/", "_")
-            custom_flux_file = config_dir/(custom_base_name + ".flux")
-            custom_coadd1d_file = config_dir/(custom_base_name + ".coadd1d")
+            custom_flux_file = config_dir/(base_name + ".flux")
+            custom_coadd1d_file = config_dir/(base_name + ".coadd1d")
 
             # If either of the custom files does not exist, we need to run pypeit_flux_setup
             if (not custom_flux_file.exists()) or (not custom_coadd1d_file.exists()):
                 logger.info("Running pypeit_flux_setup...")
-                run_script(["python", str(root_path / "adap" / "scripts" / "adap_flux_setup.py"), "--name", spec_name, "--skip_standards", "--recursive", "--coadd_output", coadd_output_name, str(root_path / dataset_prefix)], save_output=str(local_coadd_dir / "flux_setup_output.txt"))
+                run_script(["python", str(root_path / "adap" / "scripts" / "adap_flux_setup.py"), "--name", base_name, "--skip_standards", "--recursive", "--coadd_output", coadd_output_name, str(root_path / dataset_prefix)], save_output=str(local_coadd_dir / "flux_setup_output.txt"))
 
             # Copy any custom files over
             if custom_flux_file.exists():
