@@ -96,11 +96,12 @@ and then overwrites ``scripts/`` and ``config/`` from S3::
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/  config/  --recursive
 
-`backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_ is the one exception. It clones
-nothing, and pulls `backup_datasets.sh <scripts/backup_datasets.sh>`_, its dataset list and
-an ``rclone.conf`` straight from ``s3://pypeit/adap/scripts/``. That is the un-suffixed
-prefix, so the deploy below does not reach it — just as it does not reach the superseded
-queue jobs under `Not part of this workflow`_, which read from the same older location.
+`backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_ is the one job that clones
+nothing. It copies down just the three files it needs —
+`backup_datasets.sh <scripts/backup_datasets.sh>`_ and its dataset list from
+``s3://pypeit/adap/scripts_2023/``, and an ``rclone.conf`` from
+``s3://pypeit/adap/config_2023/`` — so the deploy below reaches everything it runs
+except the dataset list, which is not in this repository. See `Back up to Google Drive`_.
 
 So editing a script here has no effect on the cluster until it is pushed the other way::
 
@@ -129,15 +130,6 @@ where their imports still resolve, so they would still run::
     aws --endpoint $ENDPOINT_URL s3 rm s3://pypeit/adap/scripts_2023/coadd2d_from_queue.py
     aws --endpoint $ENDPOINT_URL s3 rm s3://pypeit/adap/scripts_2023/collate1d_from_queue.py
     aws --endpoint $ENDPOINT_URL s3 rm s3://pypeit/adap/scripts_2023/stage_raw_data_from_queue.py
-
-**One-time:** `backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_ reads its rclone
-configuration from ``s3://pypeit/adap/scripts/rclone.conf``, which the ``config/`` deploy
-above does not write. Put a copy there::
-
-    aws --endpoint $ENDPOINT_URL s3 cp --no-progress config/rclone.conf s3://pypeit/adap/scripts/rclone.conf
-
-That only needs redoing if the rclone configuration itself changes. Repeating it is
-harmless, so it can simply be included in a deploy if that is easier to remember.
 
 ``config/exclude_files.txt`` needs particular care. It lists raw frames to drop from every
 reduction, one file name per line, and `trimming_setup.py <scripts/trimming_setup.py>`_
@@ -536,7 +528,11 @@ datasets on the queue::
 
 `backup_datasets.sh <scripts/backup_datasets.sh>`_, run by
 `backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_, does the same for an explicit
-list of datasets read from ``s3://pypeit/adap/scripts/backup_list.txt``.
+list of datasets, one per line, read from ``s3://pypeit/adap/scripts_2023/backup_list.txt``.
+That list is maintained by hand and is not in this repository, so no deploy creates it —
+upload it before running the job::
+
+    aws --endpoint $ENDPOINT_URL s3 cp backup_list.txt s3://pypeit/adap/scripts_2023/backup_list.txt
 
 Both copy each ``reduce*`` directory from ``get_cloud_path``'s S3 root to
 ``gdrive:backups/<dataset>/<reduce dir>``. Note that this is a *second* Drive tree: the

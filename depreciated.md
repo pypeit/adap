@@ -83,15 +83,6 @@ Known rough edges
 Places where the checked-in files do not match the workflow above. Each needs a change to
 a yaml or a script, not to this document.
 
-Two S3 script prefixes
-----------------------
-
-`init_workqueue.yml <nautilus_jobs/init_workqueue.yml>`_ and
-`backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_ pull their scripts from
-``s3://pypeit/adap/scripts/``, the un-suffixed DEIMOS-era prefix, while every other job
-uses ``s3://pypeit/adap/scripts_2023/``. Deploying as described in
-`Deploy the scripts and config to S3`_ does not update what those two jobs run.
-
 Other
 -----
 

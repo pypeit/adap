@@ -13,9 +13,9 @@ spec:
       - args:
         - source /home/pypeitusr/pypeit_env/bin/activate;
           cd /tmp; 
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/backup_list.txt .;
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/backup_datasets.sh .; 
-          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts/rclone.conf .; 
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/backup_list.txt .;
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/backup_datasets.sh .; 
+          aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/rclone.conf .; 
           bash ./backup_datasets.sh
         command:
         - /bin/bash
