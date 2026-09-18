@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: adap_2023-init-workqueue
+  name: adap2023-init-workqueue
 spec:
   backoffLimit: 0
   template:
