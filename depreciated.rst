@@ -1,5 +1,5 @@
 Depreciated and unused components
-=========================
+=================================
 
 These files are in the repository but are not steps above. Nothing here needs to be run.
 
@@ -19,7 +19,8 @@ still checked in but is inert: nothing reads the CSV it produces.
 
   Note that these jobs do still write ``IN QUEUE`` back into the spreadsheet as a side
   effect of reading it, so running one will mark rows queued that no redis queue knows
-  about. Use the ``init`` sentinel in `Populate the queue`_ instead.
+  about. Use the ``init`` sentinel in
+  `Populate the queue <workflow.rst#populate-the-queue>`_ instead.
 
 * `persist_volume.yml <nautilus_jobs/persist_volume.yml>`_ declares that PVC. It is still
   required, because `adap-coadd2d-queue.yml <nautilus_jobs/adap-coadd2d-queue.yml>`_,
@@ -49,7 +50,8 @@ means their bare imports no longer resolve, on top of the problems noted below.
   ``pypeit_setup_coadd2d`` and ``pypeit_coadd_2dspec`` over a ``coadd status`` tab whose
   entries were dataset *prefixes*, writing a ``2D_Coadd`` directory. **2D coaddition is
   not part of the current workflow**, which coadds in 1D only with
-  `Flux calibrate and coadd 1D`_, so the script has moved to ``scripts/depreciated/`` and
+  `Flux calibrate and coadd 1D <workflow.rst#flux-calibrate-and-coadd-1d>`_, so the
+  script has moved to ``scripts/depreciated/`` and
   `adap-coadd2d-queue.yml <nautilus_jobs/adap-coadd2d-queue.yml>`_ is not applied.
 
   Three things would need fixing to revive it. Its ``from utils import ... RClonePath``
@@ -75,7 +77,8 @@ means their bare imports no longer resolve, on top of the problems noted below.
 * `collate1d_from_queue.py <scripts/depreciated/collate1d_from_queue.py>`_ was written for DEIMOS. It
   runs ``pypeit_collate_1d`` against ``config/default.collate1d``, which exists only on
   the DEIMOS branches, and no job in `nautilus_jobs <nautilus_jobs>`_ invokes it. On this
-  branch 1D coadding is `Flux calibrate and coadd 1D`_.
+  branch 1D coadding is
+  `Flux calibrate and coadd 1D <workflow.rst#flux-calibrate-and-coadd-1d>`_.
 
 Known rough edges
 =================

@@ -16,7 +16,7 @@ front:
 
 The workflow below is in three parts: things done once when the cluster is set up, the
 loop that reduces data, and the post-processing stages that run after a reduction is
-good. `depreciated.md <depreciated.md>`_ covers what is checked in but is not part of
+good. `depreciated.rst <depreciated.rst>`_ covers what is checked in but is not part of
 any of them, along with two constraints of the setup worth knowing before changing it.
 
 Part 1 — One-time setup
@@ -115,7 +115,7 @@ The ``--exclude`` flags keep two things out of S3. ``__pycache__`` and ``.pyc`` 
 clutter rather than a hazard — Python ignores a ``.pyc`` whose source is missing or
 changed — but there is no reason to ship compiled bytecode down into every pod.
 ``scripts/depreciated/`` is excluded because nothing in the workflow runs it; see
-`depreciated.md <depreciated.md>`_.
+`Deprecated scripts <depreciated.rst#deprecated-scripts>`_.
 
 If earlier pushes already uploaded either, clear them once::
 
@@ -184,7 +184,8 @@ anything, because the pods holding it would not be talking to the same server.
 The ``persist_volume.yml`` PVC is applied first not because the queue uses it — redis
 holds the queue in memory — but because several job yamls still mount it at
 ``/work_queue`` and their pods will not schedule if the claim does not exist. Nothing
-reads what is in it; see `depreciated.md <depreciated.md>`_.
+reads what is in it; see
+`Superseded by the redis queue <depreciated.rst#superseded-by-the-redis-queue>`_.
 
 Part 2 — Running a reduction campaign
 =====================================
@@ -514,7 +515,8 @@ Flux calibrate and coadd 1D
 `flux_coadd1d_from_queue.py <scripts/flux_coadd1d_from_queue.py>`_ fluxes the extracted
 spectra and coadds them. It works at the dataset *prefix* level rather than on single
 datasets, and writes ``<prefix>/1D_Coadd``. This is the only coadd stage in the current
-workflow; 2D coaddition is not performed, see `depreciated.md <depreciated.md>`_::
+workflow; 2D coaddition is not performed, see
+`Deprecated scripts <depreciated.rst#deprecated-scripts>`_::
 
     kubectl create -f nautilus_jobs/adap-flux-coadd1d-from-queue.yml
 
