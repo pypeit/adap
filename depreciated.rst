@@ -29,6 +29,26 @@ still checked in but is inert: nothing reads the CSV it produces.
   `adap-stage-raw-queue.yml <nautilus_jobs/adap-stage-raw-queue.yml>`_ all still mount it
   even though none of them read it.
 
+Superseded by the targets tab
+-----------------------------
+
+`adap_koa_download.yml <nautilus_jobs/adap_koa_download.yml>`_ is the original KOA
+download job. It read a hand-uploaded text file of ``<name> <ra> <dec>`` lines from
+``s3://pypeit/adap_2023/koa_to_download/targets.txt`` and ran
+`download_lib/download.py <scripts/download_lib/download.py>`_ over it directly, with no
+queue and no sheet. What it could not do was close the loop: nothing wrote the datasets
+it produced back to the ``WorkQueue`` tab, so an operator had to look at what had landed
+under ``raw_data_reorg/`` and transcribe the names by hand.
+
+It is superseded by
+`adap-koa-download-from-queue.yml <nautilus_jobs/adap-koa-download-from-queue.yml>`_,
+which takes its targets from the ``targets`` tab and appends the datasets it finds to
+``WorkQueue``. The ``koa_to_download/`` prefix goes with it.
+
+The text-file entry point itself is *not* deprecated. ``download.py`` keeps its
+``parse_target_file`` path for local and manual runs; it is only the job yaml, and the
+S3 prefix it reads, that this workflow no longer uses.
+
 A second, older container
 -------------------------
 

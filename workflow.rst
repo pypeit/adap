@@ -13,6 +13,9 @@ front:
   `config/pypeit_lris_adap.docker <config/pypeit_lris_adap.docker>`_.
 * The work queue is reached through a Kubernetes Service, so no yaml needs to be edited
   with a redis pod IP.
+* There are **two** queues. The download stage works through *targets*; every stage after
+  it works through *datasets*. The download stage is what connects them, writing the
+  datasets it discovers into the tab the dataset queue is loaded from.
 
 The workflow below is in three parts: things done once when the cluster is set up, the
 loop that reduces data, and the post-processing stages that run after a reduction is
@@ -59,21 +62,29 @@ Set up the Google Sheet
 -----------------------
 
 One Google spreadsheet, named ``Scorecard``, drives the whole pipeline. It is both the
-input — the list of datasets to process — and the output — per-dataset status and the
-scorecard metrics. Each stage gets its own tab of that one spreadsheet, and every job
-addresses it **by name**::
+input — the targets to fetch from KOA and the datasets to process — and the output —
+per-dataset status and the scorecard metrics. Each stage gets its own tab of that one
+spreadsheet, and every job addresses it **by name**::
 
+    Scorecard/targets
     Scorecard/WorkQueue
-    Scorecard/coadd status
 
 `google_sheet_setup.rst <google_sheet_setup.rst>`_ documents the tabs it needs, the
 columns in each, and how to build one from scratch. The essentials:
 
-    **The tabs.** ``WorkQueue`` holds the dataset list and status; ``latest``, ``Failed``
-    and ``LRIS`` receive the scorecard. ``coadd status`` is the queue for the 2D coadd
-    stage, which is not part of the current workflow, so that tab is unused.
+    **The tabs.** There is one input tab per queue. ``targets`` holds the target names
+    and positions the download stage works through; ``WorkQueue`` holds the datasets
+    every stage after it works through. ``latest``, ``Failed`` and ``LRIS`` receive the
+    scorecard. ``coadd status`` is the queue for the 2D coadd stage, which is not part of
+    the current workflow, so that tab is unused.
 
-    **Datasets must start on row 4.** ``init_work_queue`` in
+    **Column A of** ``WorkQueue`` **is written by the download stage**, not typed in by
+    hand. It appends a row for each dataset it has downloaded and verified, leaving the
+    status blank so the next ``init`` queues it, and skips names already present so a
+    re-run adds no duplicates. Adding a row by hand still works, and is how to reduce
+    something the download stage did not fetch.
+
+    **Rows start on row 4** in both input tabs. ``init_work_queue`` in
     `scripts/utils.py <scripts/utils.py>`_ begins reading there, so anything above row 4
     is treated as headers.
 
@@ -193,17 +204,53 @@ Part 2 — Running a reduction campaign
 Download the raw data from KOA
 ------------------------------
 
-The target list is a text file with one ``<name> <ra> <dec>`` per line, ra and dec in
-degrees; blank lines and lines starting with ``#`` are ignored. Upload it where the job
-expects it::
+This stage is queue-driven like every other, but its unit of work is a **target** rather
+than a dataset: a dataset's date and arm are *discovered* by the KOA query, so datasets
+cannot be enqueued before the query that finds them has run. It therefore has a queue of
+its own, ``adap_2023_targets_q``, fed from the ``targets`` tab. The reasoning is in
+`koa_download_design.rst <koa_download_design.rst>`_.
 
-    aws --endpoint $ENDPOINT_URL s3 cp targets.txt s3://pypeit/adap_2023/koa_to_download/targets.txt
+Fill in the ``targets`` tab first — target name in column A, ra and dec in **decimal
+degrees** in columns D and E, status blank, from row 4 down. Coordinates have to be
+decimal degrees rather than sexagesimal; a row whose ra or dec is blank or non-numeric is
+marked ``FAILED`` without being sent to KOA. Then seed the target queue and run the job,
+which searches KOA for each target and fetches the matching science, arc, and flat frames
+— standard stars included, which the `Generate sensitivity functions`_ stage later
+depends on::
 
-Then run the download job, which searches KOA for each target and fetches the matching
-science, arc, and flat frames — standard stars included, which the
-`Generate sensitivity functions`_ stage later depends on::
+    POD=$(kubectl get pods -l k8s-app=adap-workqueue -o name --field-selector=status.phase=Running)
+    kubectl exec $POD -- redis-cli lpush adap_2023_targets_q init
+    kubectl create -f nautilus_jobs/adap-koa-download-from-queue.yml
 
-    kubectl create -f nautilus_jobs/adap_koa_download.yml
+For each target a pod looks its coordinates up in the ``targets`` tab, asks KOA what was
+observed there, downloads every night it finds, uploads the tree to
+``s3://pypeit/adap_2023/raw_data_reorg/``, and then **appends the datasets it downloaded
+and verified to column A of the** ``WorkQueue`` **tab**, with a blank status, so that the
+reduce stage's own ``init`` picks them up. That append is what removes the hand
+transcription that used to sit between the two stages; it takes the *dataset* queue's
+lock, ``adap_2023_lock``, because that is the lock guarding that tab.
+
+A target ends up ``COMPLETE``, ``NO DATA`` or ``FAILED``. ``NO DATA`` is not a failure —
+plenty of targets were simply never observed with LRIS — but it is kept distinct from
+``COMPLETE`` so that those rows can be found and their positions checked, because a
+target whose catalogue position is off by more than the cone search below looks exactly
+the same. A ``FAILED`` target still contributes whatever datasets did verify, so blanking
+its status and re-running resumes rather than restarts: the KOA query tables are cached
+in ``s3://pypeit/adap_2023/koa_queries/<target>/`` and restored before querying, so a
+retry costs only the frames that are actually missing.
+
+**parallelism is the throttle on KOA.** ``Koa.download`` is a serial loop over the frames
+in a table, so one pod holds exactly one connection and concurrency is simply the pod
+count. The yaml ships at ``parallelism: 1``; watch one target through before raising it.
+``--max_koa_downloads`` is a backstop for what parallelism cannot see — a second download
+job, or a hand-run retry, alongside the first — implemented as a self-seeding semaphore
+in the same redis. A pod killed while holding a token leaks it, which lowers the limit
+until the pool *and* its marker are cleared::
+
+    kubectl exec $POD -- redis-cli del adap_2023_targets_koa_slots adap_2023_targets_koa_slots_seeded
+
+The old hand-uploaded ``targets.txt`` job is superseded by this one; see
+`Superseded by the targets tab <depreciated.rst#superseded-by-the-targets-tab>`_.
 
 **The job runs** `download_lib <scripts/download_lib>`_ **from S3**, not from the image
 and not from the git checkout. Like every other job it overwrites ``scripts/`` from
@@ -215,9 +262,9 @@ partial copy fails at import. Check before running the job::
 
     aws --endpoint $ENDPOINT_URL s3 ls s3://pypeit/adap/scripts_2023/download_lib/
 
-That must list at least ``download.py``, ``DownloadUtils.py``, ``Night.py``, ``Query.py``
-and ``Target.py``; those five are what ``download.py`` pulls in. If the listing is empty
-or short, push just that directory::
+That must list at least ``DownloadUtils.py``, ``Night.py``, ``Query.py``, ``Target.py``
+and ``TargetList.py``; those are what the queue job and the modules it imports pull in.
+If the listing is empty or short, push just that directory::
 
     aws --endpoint $ENDPOINT_URL s3 cp --no-progress scripts/download_lib/ \
         s3://pypeit/adap/scripts_2023/download_lib/ --recursive \
@@ -266,6 +313,10 @@ nothing here logs in for proprietary data.
 Populate the queue
 ------------------
 
+This is the **dataset** queue, ``adap_2023_q``, that the reduce stage and everything
+after it work through. The target queue of the download stage is seeded exactly the same
+way under its own key; everything in this section applies to both.
+
 There is no ``load_nautilus_redis_queue.sh`` on this branch. Push directly with
 ``redis-cli`` inside the redis pod::
 
@@ -275,23 +326,24 @@ There is no ``load_nautilus_redis_queue.sh`` on this branch. Push directly with
 The ``head -1`` matters: if an old redis pod is still terminating alongside the new one,
 ``-o name`` returns two names and ``kubectl exec`` fails.
 
-The ``init`` sentinel tells the first pod that claims it to initialize the queue from the
-spreadsheet, pushing every dataset whose status is blank and marking those rows
-``IN QUEUE``. Alternatively, push dataset names directly to run a specific set without
+The ``init`` sentinel tells the pod that claims it to initialize the queue from the
+spreadsheet, pushing every row whose status is blank and marking those rows ``IN QUEUE``.
+On the ``WorkQueue`` tab those rows are whatever the download stage has appended since
+the last run. Alternatively, push dataset names directly to run a specific set without
 touching the sheet::
 
     kubectl exec $POD -- redis-cli lpush adap_2023_q J1030+0524/20120415/LRIS J1030+0524/20120415/LRISBLUE
 
-**Push** ``init`` **before any dataset names, or not at all.** The queue is filled with
-``lpush`` and drained with ``rpop``, so whatever goes in first comes out first::
+The queue is filled with ``lpush`` and drained with ``rpop``, so whatever goes in first
+comes out first::
 
     lpush init; lpush A B C   ->  stored as [C, B, A, init], claimed as init, A, B, C
 
-``run_task_on_queue`` recognises the sentinel only on a pod's *first* claim. An ``init``
-reaching a pod any later is treated as an ordinary dataset name: the pod runs the
-reduction on a dataset called ``init``, then tries to write a status for it, and because
-``init`` is not in column A the sheet update logs
-``Did not find init to update status!``.
+The sentinel is honoured wherever it turns up, not only on a pod's first claim:
+``claim_next`` in `scripts/utils.py <scripts/utils.py>`_ re-initializes and claims again
+for as long as it keeps popping ``init``, which also covers two sentinels next to each
+other. Pushing it after a batch of dataset names is therefore harmless — those names are
+simply processed first.
 
 **The sentinel is consumed even when initialization fails.** If reading the spreadsheet
 raises, the pod logs ``Failed initializing`` and exits — but ``init`` has already been

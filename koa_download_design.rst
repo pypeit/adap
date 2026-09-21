@@ -15,8 +15,8 @@ sheet it needs is `google_sheet_setup.rst <google_sheet_setup.rst>`_.
 Two things named here as future work were deliberately **not** done: pushing discovered
 datasets straight onto the dataset queue, for the reason under `Writing datasets back`_,
 and the per-target tolerance columns under `Open questions`_. Part 2 of
-`workflow.rst <workflow.rst>`_ still describes the old ``targets.txt`` job and needs
-updating to match.
+`workflow.rst <workflow.rst>`_ now describes this stage rather than the old
+``targets.txt`` job.
 
 The problem
 -----------
@@ -343,8 +343,8 @@ What this retires
 
 ``targets.txt`` and the ``s3://pypeit/adap_2023/koa_to_download/`` prefix disappear.
 `adap_koa_download.yml <nautilus_jobs/adap_koa_download.yml>`_ is superseded by the queue
-job and moves to the "Not part of this workflow" section of
-`workflow.rst <workflow.rst>`_, alongside the CSV-era queue jobs it will then resemble.
+job and has moved to `depreciated.rst <depreciated.rst>`_, alongside the CSV-era queue
+jobs it now resembles.
 
 Part 2 of the workflow becomes a single sequence with no hand transcription in it:
 

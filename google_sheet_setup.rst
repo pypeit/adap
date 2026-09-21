@@ -272,11 +272,11 @@ Optional: the ``coadd status`` tab
 ----------------------------------
 
 **The current workflow does not run 2D coaddition**, so this tab is unused; see
-"Deprecated scripts" in `workflow.rst <workflow.rst>`_.
+`Deprecated scripts <depreciated.rst#deprecated-scripts>`_.
 `coadd2d_from_queue.py <scripts/depreciated/coadd2d_from_queue.py>`_ used its own tab
-because coadding is done at a coarser level than reduction. It has the same three columns as ``WorkQueue``,
-but column A holds only a *prefix* of a dataset name, describing everything to be
-combined, for example::
+because coadding is done at a coarser level than reduction. It has the same three columns
+as ``WorkQueue``, but column A holds only a *prefix* of a dataset name, describing
+everything to be combined, for example::
 
     J1030+0524
     J1030+0524/20120415
@@ -299,12 +299,34 @@ are documented in `nautilus_jobs/CREDENTIALS.md <nautilus_jobs/CREDENTIALS.md>`_
 Which job uses which sheet
 --------------------------
 
-Every job should be given ``Scorecard/<tab>``. Several checked-in yamls still carry
-``key=`` arguments naming two other spreadsheets, and because the scorecard tabs are
-resolved from whichever spreadsheet the running job was handed, a reduction and a
-post-processing stage pointed at different spreadsheets write their status into different
-sheets. The current state of each yaml is tabulated under "Known rough edges" in
-`workflow.rst <workflow.rst>`_. Make them agree before a campaign.
+Every job is given ``Scorecard/<tab>``, and every checked-in yaml in
+`nautilus_jobs <nautilus_jobs>`_ now does so — the ``key=`` arguments naming two other
+spreadsheets, which earlier versions carried, are gone. Which tab each one is handed:
+
+===========================================  ====================
+Job                                          Tab
+===========================================  ====================
+``adap-koa-download-from-queue.yml``         ``targets``
+``adap-reduce-lris-from-queue.yml``          ``WorkQueue``
+``adap-reduce-one.yml``                      ``WorkQueue``
+``adap-run-scorecard-on-queue.yml``          ``WorkQueue``
+``adap-sensfunc-from-queue.yml``             ``WorkQueue``
+``adap-flux-coadd1d-from-queue.yml``         ``WorkQueue``
+``adap-sync-backups-from-queue.yml``         ``WorkQueue``
+``adap-coadd2d-queue.yml``                   ``coadd status``
+===========================================  ====================
+
+``adap-coadd2d-queue.yml`` is in that list for completeness only; it is the deprecated 2D
+coadd job and is not applied, which is why its tab is unused.
+`backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_ and
+`adap_koa_download.yml <nautilus_jobs/adap_koa_download.yml>`_ touch no sheet at all. The
+remaining yamls that name ``Scorecard/WorkQueue`` — ``init_workqueue.yml``,
+``refresh_workqueue.yml`` and ``adap-stage-raw-queue.yml`` — are not part of this
+workflow and should not be applied; see `depreciated.rst <depreciated.rst>`_.
+
+Keep it this way when adding a job. Because the scorecard tabs are resolved from
+whichever spreadsheet the running job was handed, a reduction and a post-processing stage
+pointed at different spreadsheets would write their status into different sheets.
 
 Creating a sheet from scratch
 -----------------------------
@@ -325,4 +347,4 @@ Creating a sheet from scratch
     ``Scorecard/targets`` for the download job, ``Scorecard/WorkQueue`` for the rest — or
     ``Scorecard/coadd status`` for the deprecated 2D coadd job, if it is ever revived.
 8.  Seed the target queue, run the download job, then seed the dataset queue, as described
-    under "Populate the queue" in `workflow.rst <workflow.rst>`_.
+    under `Populate the queue <workflow.rst#populate-the-queue>`_.
