@@ -13,7 +13,7 @@ spec:
       - args:
         - source /home/pypeitusr/pypeit_env/bin/activate;
           cd /tmp; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
-          python scripts/download_work_queue_from_gs.py --refresh "Scorecard/WorkQueue" /work_queue/work_queue_2023.csv;
+          python scripts/download_work_queue_from_gs.py --refresh "LRIS-ADAP/WorkQueue" /work_queue/work_queue_2023.csv;
           ls -l /work_queue;
         command:
         - /bin/bash

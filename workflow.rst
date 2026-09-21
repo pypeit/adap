@@ -61,13 +61,13 @@ supply it.
 Set up the Google Sheet
 -----------------------
 
-One Google spreadsheet, named ``Scorecard``, drives the whole pipeline. It is both the
+One Google spreadsheet, named ``LRIS-ADAP``, drives the whole pipeline. It is both the
 input — the targets to fetch from KOA and the datasets to process — and the output —
 per-dataset status and the scorecard metrics. Each stage gets its own tab of that one
 spreadsheet, and every job addresses it **by name**::
 
-    Scorecard/targets
-    Scorecard/WorkQueue
+    LRIS-ADAP/targets
+    LRIS-ADAP/WorkQueue
 
 `google_sheet_setup.rst <google_sheet_setup.rst>`_ documents the tabs it needs, the
 columns in each, and how to build one from scratch. The essentials:
@@ -96,7 +96,7 @@ columns in each, and how to build one from scratch. The essentials:
 The scorecard updater derives the scorecard tabs from whatever spreadsheet the running
 job was handed, so a stage pointed at a different spreadsheet would write its status
 somewhere nobody is looking. Every job in this workflow now names the sheet as
-``Scorecard/<tab>``; keep it that way when adding one.
+``LRIS-ADAP/<tab>``; keep it that way when adding one.
 
 Deploy the scripts and config to S3
 -----------------------------------
@@ -404,7 +404,7 @@ The command line itself no longer needs editing:
 
     python scripts/reduce_from_queue.py --rclone_conf config/rclone.conf
         --adap_root_dir /tmp/adap_root --scorecard_max_age 7
-        **Scorecard/WorkQueue** **redis://adap-workqueue:6379** adap_2023 s3
+        **LRIS-ADAP/WorkQueue** **redis://adap-workqueue:6379** adap_2023 s3
 
 Then::
 

@@ -8,7 +8,7 @@ Four external systems form the control plane:
 
 | System | Role |
 |---|---|
-| **Google Sheet** | Human-facing dashboard. One spreadsheet named `Scorecard`, one tab per stage. Column A = dataset names, a status column = `IN QUEUE` / `In Progress` / `COMPLETE` / `FAILED` / `WARNING`, plus scorecard tabs |
+| **Google Sheet** | Human-facing dashboard. One spreadsheet named `LRIS-ADAP`, one tab per stage. Column A = dataset names, a status column = `IN QUEUE` / `In Progress` / `COMPLETE` / `FAILED` / `WARNING`, plus scorecard tabs |
 | **Redis** (in-cluster) | The actual work queue + distributed lock. Sheet API has no locking, so Redis arbitrates between parallel pods |
 | **S3** (Ceph via `rook-ceph-rgw-nautiluss3.rook`) | Primary data store: raw data, reduce products, logs |
 | **Google Drive** | Secondary backup of results, via rclone |
@@ -55,7 +55,7 @@ Config resolution is convention-over-configuration: [trimming_setup.py:167](scri
 - **Redis is reached through a Service.** [workqueue_deployment.yml](nautilus_jobs/workqueue_deployment.yml) defines both the redis Deployment and an `adap-workqueue` Service, and every job connects to `redis://adap-workqueue:6379`. Applying the Deployment without the Service leaves the jobs unable to resolve the queue. There's no pod IP to paste into yamls on this branch.
 - **The file-based queue is still checked in and is inert.** [download_work_queue_from_gs.py](scripts/download_work_queue_from_gs.py), [init_workqueue.yml](nautilus_jobs/init_workqueue.yml), [refresh_workqueue.yml](nautilus_jobs/refresh_workqueue.yml) and [upload_workqueue_to_s3.yml](nautilus_jobs/upload_workqueue_to_s3.yml) are from the era when pods locked a CSV on a shared volume. Nothing reads that CSV any more — but reading the sheet still writes `IN QUEUE` back into it, so running one of those jobs marks rows queued that Redis knows nothing about.
 - **[persist_volume.yml](nautilus_jobs/persist_volume.yml) is still required, for the wrong reason.** Redis holds the queue in memory, but four live job yamls still mount the `pypeit-adap-work-queue` PVC at `/work_queue` without reading it, and their pods won't schedule if the claim doesn't exist.
-- **The sheet is addressed by name, not by key.** Every job passes `Scorecard/<tab>`, so the scorecard tabs — which are resolved from whichever spreadsheet the job was handed — all land in the same place. Keep it that way when adding a job.
+- **The sheet is addressed by name, not by key.** Every job passes `LRIS-ADAP/<tab>`, so the scorecard tabs — which are resolved from whichever spreadsheet the job was handed — all land in the same place. Keep it that way when adding a job.
 - **`config/exclude_files.txt`** is read by [trimming_setup.py:164](scripts/trimming_setup.py#L164) for every dataset, with no existence check, so a deployed `config/` missing it fails every reduction. It is checked in holding only comments, which excludes nothing; a copy in `s3://pypeit/adap/config_2023/` overlays that one at runtime.
 - [config/rclone.conf](config/rclone.conf) is committed and references a service-account JSON mounted from the `adap23-scorecard-gcloud` k8s secret; S3 creds come from the `prp-s3-credentials` secret. No keys are in the repo itself.
 

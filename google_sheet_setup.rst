@@ -1,7 +1,7 @@
 Google Sheet Setup
 ==================
 
-One Google spreadsheet, named ``Scorecard``, drives the whole pipeline. It is both the
+One Google spreadsheet, named ``LRIS-ADAP``, drives the whole pipeline. It is both the
 input — the targets to fetch from KOA and the datasets to process — and the output —
 per-dataset status and the scorecard metrics for every reduction. Each stage of the
 workflow gets its own tab of that one spreadsheet. This document describes the tabs it
@@ -28,8 +28,8 @@ Every job takes the sheet as one command line argument, in this form::
 
 Address it **by name**, so that every stage is visibly pointed at the same spreadsheet::
 
-    Scorecard/WorkQueue
-    Scorecard/coadd status
+    LRIS-ADAP/WorkQueue
+    LRIS-ADAP/coadd status
 
 Opening by name requires the service account to be able to *find* the file, so if the
 spreadsheet lives on a shared drive the service account has to be a member of that drive.
@@ -290,7 +290,7 @@ The jobs authenticate as a Google service account, so:
   writes the status, pod and scorecard columns, and the KOA download stage appends dataset
   names to column A of ``WorkQueue``, so read-only access is not enough.
 * If the spreadsheet lives on a shared drive, make sure the service account is a member
-  of that drive, or it will not be able to resolve the name ``Scorecard``.
+  of that drive, or it will not be able to resolve the name ``LRIS-ADAP``.
 * The Sheets API must be enabled in the service account's project.
 
 The credential itself, where it has to be mounted, and the Drive side of the same account
@@ -299,7 +299,7 @@ are documented in `nautilus_jobs/CREDENTIALS.md <nautilus_jobs/CREDENTIALS.md>`_
 Which job uses which sheet
 --------------------------
 
-Every job is given ``Scorecard/<tab>``, and every checked-in yaml in
+Every job is given ``LRIS-ADAP/<tab>``, and every checked-in yaml in
 `nautilus_jobs <nautilus_jobs>`_ now does so — the ``key=`` arguments naming two other
 spreadsheets, which earlier versions carried, are gone. Which tab each one is handed:
 
@@ -320,7 +320,7 @@ Job                                          Tab
 coadd job and is not applied, which is why its tab is unused.
 `backup_datasets.yml <nautilus_jobs/backup_datasets.yml>`_ and
 `adap_koa_download.yml <nautilus_jobs/adap_koa_download.yml>`_ touch no sheet at all. The
-remaining yamls that name ``Scorecard/WorkQueue`` — ``init_workqueue.yml``,
+remaining yamls that name ``LRIS-ADAP/WorkQueue`` — ``init_workqueue.yml``,
 ``refresh_workqueue.yml`` and ``adap-stage-raw-queue.yml`` — are not part of this
 workflow and should not be applied; see `depreciated.rst <depreciated.rst>`_.
 
@@ -343,8 +343,8 @@ Creating a sheet from scratch
 5.  In ``latest``, ``Failed`` and ``LRIS``, paste the 31 column header above into row 1
     and leave the rest empty.
 6.  Share the spreadsheet with the service account's ``client_email`` as an Editor.
-7.  Name the spreadsheet ``Scorecard`` and make sure every job yaml passes
-    ``Scorecard/targets`` for the download job, ``Scorecard/WorkQueue`` for the rest — or
-    ``Scorecard/coadd status`` for the deprecated 2D coadd job, if it is ever revived.
+7.  Name the spreadsheet ``LRIS-ADAP`` and make sure every job yaml passes
+    ``LRIS-ADAP/targets`` for the download job, ``LRIS-ADAP/WorkQueue`` for the rest — or
+    ``LRIS-ADAP/coadd status`` for the deprecated 2D coadd job, if it is ever revived.
 8.  Seed the target queue, run the download job, then seed the dataset queue, as described
     under `Populate the queue <workflow.rst#populate-the-queue>`_.

@@ -33,8 +33,8 @@ Three things must also be granted on the Google side; the JSON alone is not enou
 
 - The **Sheets API and Drive API** must be enabled in the service account's GCP project.
 - Each spreadsheet must be **shared with the service account's `client_email`** as an
-  Editor, since the jobs write status columns back. That covers every sheet named in
-  the job yamls (`15ealTQOBLB0I…`, `1TADKd3OgbA…`, and the `Scorecard` sheets).
+  Editor, since the jobs write status columns back. Every job yaml now names the one
+  `LRIS-ADAP` spreadsheet, so that is the only sheet to share.
 - The service account must be a **member of the shared drive** named by
   `team_drive` in `config/rclone.conf`, with permission to add content, or the
   `gdrive:` uploads in [reduce_from_queue.py](../scripts/reduce_from_queue.py),

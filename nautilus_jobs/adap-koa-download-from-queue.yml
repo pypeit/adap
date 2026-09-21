@@ -1,5 +1,5 @@
 # Queue-driven KOA download. Pops a target off the target queue, looks its coordinates up
-# in the targets tab of the Scorecard sheet, downloads everything KOA has for it, uploads
+# in the targets tab of the LRIS-ADAP sheet, downloads everything KOA has for it, uploads
 # the result to s3://pypeit/adap_2023/raw_data_reorg/, and appends the datasets it found
 # to the WorkQueue tab so the reduce stage can pick them up. See koa_download_design.rst.
 #
@@ -36,7 +36,7 @@ spec:
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/config_2023/ config/ --recursive;
           python scripts/koa_download_from_queue.py --rclone_conf config/rclone.conf --adap_root_dir /tmp/adap_root
             --max_koa_downloads 2
-            Scorecard/targets redis://adap-workqueue:6379 adap_2023_targets s3;
+            LRIS-ADAP/targets redis://adap-workqueue:6379 adap_2023_targets s3;
           download_status=$?;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress /tmp/adap_root/koa_download_from_queue.log s3://pypeit/adap/results/${POD_NAME}.log;
           exit $download_status

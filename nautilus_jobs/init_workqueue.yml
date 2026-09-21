@@ -14,7 +14,7 @@ spec:
         - source /home/pypeitusr/pypeit_env/bin/activate;
           cd /tmp; git clone https://github.com/pypeit/adap.git; cd adap; git checkout adap_2023;
           aws --endpoint $ENDPOINT_URL s3 cp --no-progress s3://pypeit/adap/scripts_2023/ scripts/ --recursive;
-          python scripts/download_work_queue_from_gs.py "Scorecard/WorkQueue" /work_queue/work_queue_2023.csv;
+          python scripts/download_work_queue_from_gs.py "LRIS-ADAP/WorkQueue" /work_queue/work_queue_2023.csv;
           ls -l /work_queue;
         command:
         - /bin/bash

@@ -2,7 +2,7 @@ Queue-driven KOA Download — Design
 ==================================
 
 This document proposes replacing the one-off KOA download job with a queue-driven stage
-that reads target coordinates from the ``Scorecard`` spreadsheet and writes the datasets
+that reads target coordinates from the ``LRIS-ADAP`` spreadsheet and writes the datasets
 it discovers back into the ``WorkQueue`` tab. **This design has now been implemented**, so what follows describes both the reasoning and
 the code that came out of it. The pieces are
 `koa_download_from_queue.py <scripts/koa_download_from_queue.py>`_,
@@ -224,7 +224,7 @@ the current code need attention before that path is trustworthy.
 The ``targets`` tab
 -------------------
 
-A new tab in the same ``Scorecard`` spreadsheet — the same one that holds ``WorkQueue`` —
+A new tab in the same ``LRIS-ADAP`` spreadsheet — the same one that holds ``WorkQueue`` —
 because the scorecard updater derives its tabs from whatever spreadsheet the running job
 was handed.
 
@@ -289,7 +289,7 @@ the ``work_queue`` slot::
 
     python scripts/koa_download_from_queue.py --rclone_conf config/rclone.conf
         --adap_root_dir /tmp/adap_root
-        Scorecard/targets redis://adap-workqueue:6379 adap_2023_targets s3
+        LRIS-ADAP/targets redis://adap-workqueue:6379 adap_2023_targets s3
 
 The job yaml is `adap_koa_download.yml <nautilus_jobs/adap_koa_download.yml>`_ with the
 ``targets.txt`` fetch dropped, ``parallelism: 2``, and the redis service reachable — it
