@@ -96,7 +96,7 @@ def open_spreadsheet(name : str)->tuple[gspread.spreadsheet.Spreadsheet,
 
 
 
-def read_target_coords(gsheet, start_row=4):
+def read_target_coords(gsheet, start_row=1):
     """Read target names and coordinates from a targets tab.
 
     The tab has the same shape as any other work queue tab -- names in column A from
@@ -123,8 +123,8 @@ def read_target_coords(gsheet, start_row=4):
     # The pod name goes immediately right of the status, so the coordinates start after
     # that. Reading whole rows rather than columns keeps this free of the column-letter
     # arithmetic that index_to_column_name gets wrong past column Z.
-    ra_index = status_index + 2
-    dec_index = status_index + 3
+    ra_index = status_index + 1
+    dec_index = status_index + 2
 
     rows = retry_gspread_call(lambda: worksheet.get_all_values())
 
@@ -144,7 +144,7 @@ def read_target_coords(gsheet, start_row=4):
     return targets
 
 
-def find_target_coords(gsheet, name, start_row=4):
+def find_target_coords(gsheet, name, start_row=2):
     """Look up one target's row in a targets tab, or None if it is not there."""
     for target in read_target_coords(gsheet, start_row=start_row):
         if target['name'] == name:
